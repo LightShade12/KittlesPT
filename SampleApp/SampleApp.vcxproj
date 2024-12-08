@@ -71,12 +71,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\int\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(ProjectName)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\int\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\int\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(ProjectName)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\int\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -150,7 +150,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\imgui_themes.cpp" />
+    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="thirdparty\glad\src\glad.c" />
     <ClCompile Include="thirdparty\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="thirdparty\imgui\backends\imgui_impl_opengl3.cpp" />
@@ -159,6 +160,9 @@
     <ClCompile Include="thirdparty\imgui\imgui_draw.cpp" />
     <ClCompile Include="thirdparty\imgui\imgui_tables.cpp" />
     <ClCompile Include="thirdparty\imgui\imgui_widgets.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\imgui_themes.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
