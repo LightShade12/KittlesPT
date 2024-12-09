@@ -44,6 +44,7 @@ GUIWindow::GUIWindow(const char* title, int initial_width, int initial_height, c
 	if (!isValid())
 	{
 		glfwTerminate();
+		printf("failed to create window\n");
 		exit(EXIT_FAILURE);
 	}
 

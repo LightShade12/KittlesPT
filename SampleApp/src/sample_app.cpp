@@ -20,8 +20,27 @@ void DeveloperWindow::renderUI()
 
 void SampleAppWindow::renderUI()
 {
-	ImGui::ShowDemoWindow();
+	{
+		int winposx, winposy;
+		glfwGetWindowPos(m_window_ctx_handle, &winposx, &winposy);
+		ImGui::SetNextWindowPos(ImVec2(winposx, winposy));
+		ImGui::SetNextWindowSize(ImVec2(width, height));
 
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::Begin("###viewport", nullptr,
+			ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+		ImGui::Image(NULL, ImVec2(width, height));
+
+		ImGui::End();
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor(1);
+	}
+
+	ImGui::ShowDemoWindow();
 	developer_window.draw(m_window_ctx_handle, "Developer Menu");
 }
 
