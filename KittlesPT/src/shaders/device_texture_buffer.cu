@@ -12,6 +12,10 @@
 
 namespace KittlesPT
 {
+	//====================================================================================
+	//DEVICE TEXTURE BUFFER
+	//=========================================================================================
+
 	__device__ void DeviceTextureBuffer::textureWrite(float4 value, int2 pixel_coord) const
 	{
 		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
@@ -37,6 +41,10 @@ namespace KittlesPT
 		pixel_coord = clamp(pixel_coord, make_int2(0, 0), make_int2(width - 1, height - 1));
 		return surf2Dread<float4>(m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
 	}
+
+	//==================================================================================================
+	//TEXTURE BUFFER
+	//====================================================================================================
 
 	void TextureBuffer::init(int width, int height)
 	{
@@ -74,6 +82,7 @@ namespace KittlesPT
 		cudaGraphicsGLRegisterImage(&m_graphics_resource, m_GL_texture,
 			GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore);
 	}
+
 	DeviceTextureBuffer TextureBuffer::enableCudaAccess()
 	{
 		cudaGraphicsMapResources(1, &m_graphics_resource, 0);

@@ -39,7 +39,7 @@
 #ifndef HELPER_MATH_H
 #define HELPER_MATH_H
 
-#include "cuda_runtime.h"
+#include <cuda_runtime.h>
 
 typedef unsigned int uint;
 typedef unsigned short ushort;
@@ -1465,6 +1465,7 @@ inline __device__ __host__ float4 smoothstep(float4 a, float4 b, float4 x)
 	float4 y = clamp((x - a) / (b - a), 0.0f, 1.0f);
 	return (y * y * (make_float4(3.0f) - (make_float4(2.0f) * y)));
 }
+
 //Extensions
 
 inline __host__ __device__ int2 operator/(int2 a, float b)
