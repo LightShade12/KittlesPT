@@ -38,9 +38,9 @@ void ToggleableSideWindow::draw(GLFWwindow* glfw_main_window, const char* window
 }
 
 GUIWindow::GUIWindow(const char* title, int initial_width, int initial_height, const char* glsl_version_formatted)
-	:width(initial_width), height(initial_height)
+	:m_window_width(initial_width), m_window_height(initial_height)
 {
-	m_window_ctx_handle = glfwCreateWindow(width, height, title, NULL, NULL);
+	m_window_ctx_handle = glfwCreateWindow(m_window_width, m_window_height, title, NULL, NULL);
 	if (!isValid())
 	{
 		glfwTerminate();
@@ -76,8 +76,8 @@ void GUIWindow::processAndDraw()
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glfwGetFramebufferSize(m_window_ctx_handle, &width, &height);
-	glViewport(0, 0, width, height);
+	glfwGetFramebufferSize(m_window_ctx_handle, &m_window_width, &m_window_height);
+	glViewport(0, 0, m_window_width, m_window_height);
 
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -109,6 +109,11 @@ void GUIWindow::setCurrent()
 	{
 		ImGui::SetCurrentContext(m_imgui_ctx_handle);
 	}
+}
+void GUIWindow::destroy()
+{
+	onDestroy();
+	glfwDestroyWindow(m_window_ctx_handle);
 };
 
 static void glfw_error_callback(int error, const char* description)
@@ -134,11 +139,12 @@ void GUIApplication::init()
 		window_settings.initial_window_width,
 		window_settings.initial_window_height,
 		window_settings.glsl_version_formatted);
+	main_window->onCreate();//TODO: wrap into single GUIWindow::init()
 };
 
 void GUIApplication::run()
 {
-	while (!glfwWindowShouldClose(main_window->m_window_ctx_handle))
+	while (!main_window->shouldClose())
 	{
 		main_window->processAndDraw();
 	}
@@ -150,6 +156,6 @@ void GUIApplication::destroy()
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	glfwDestroyWindow(main_window->m_window_ctx_handle);
+	main_window->destroy();
 	glfwTerminate();
 };

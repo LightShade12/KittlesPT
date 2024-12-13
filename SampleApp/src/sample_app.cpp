@@ -18,13 +18,31 @@ void DeveloperWindow::renderUI()
 		std::chrono::duration_cast<std::chrono::duration<float>>(last_frame_time_point.time_since_epoch()).count() - start_time_secs);
 }
 
+void SampleAppWindow::onCreate()
+{
+	m_viewport_texture.init(m_window_width, m_window_height);
+	m_renderer.init();
+}
+
+void SampleAppWindow::onDestroy()
+{
+	m_renderer.shutdown();
+	m_viewport_texture.destroy();
+}
+
 void SampleAppWindow::renderUI()
 {
+	m_viewport_texture.resize(m_window_width, m_window_height);
+	m_renderer.resizeFrame(m_window_width, m_window_height);
+	m_renderer.executeRendering();
+	m_renderer.getRenderTargetTexture(m_viewport_texture.m_GL_texture_name);
+
+	//TODO: background gui class
 	{
 		int winposx, winposy;
 		glfwGetWindowPos(m_window_ctx_handle, &winposx, &winposy);
 		ImGui::SetNextWindowPos(ImVec2(winposx, winposy));
-		ImGui::SetNextWindowSize(ImVec2(width, height));
+		ImGui::SetNextWindowSize(ImVec2(m_window_width, m_window_height));
 
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -32,8 +50,11 @@ void SampleAppWindow::renderUI()
 		ImGui::Begin("###viewport", nullptr,
 			ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-
-		ImGui::Image(NULL, ImVec2(width, height));
+		if (m_viewport_texture.isValid())
+		{
+			ImGui::Image((void*)m_viewport_texture.m_GL_texture_name,
+				ImVec2(m_window_width, m_window_height), { 0,1 }, { 1,0 });
+		}
 
 		ImGui::End();
 		ImGui::PopStyleVar(2);

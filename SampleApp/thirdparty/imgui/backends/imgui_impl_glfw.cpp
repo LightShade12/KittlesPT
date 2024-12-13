@@ -1214,10 +1214,10 @@ static void ImGui_ImplGlfw_SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
     // positioned from the upper-left corner. GLFW makes an effort to convert macOS style coordinates, however it
     // doesn't handle it when changing size. We are manually moving the window in order for changes of size to be based
     // on the upper-left corner.
-    int x, y, width, height;
+    int x, y, m_window_width, m_window_height;
     glfwGetWindowPos(vd->Window, &x, &y);
-    glfwGetWindowSize(vd->Window, &width, &height);
-    glfwSetWindowPos(vd->Window, x, y - height + size.y);
+    glfwGetWindowSize(vd->Window, &m_window_width, &m_window_height);
+    glfwSetWindowPos(vd->Window, x, y - m_window_height + size.y);
 #endif
     vd->IgnoreWindowSizeEventFrame = ImGui::GetFrameCount();
     glfwSetWindowSize(vd->Window, (int)size.x, (int)size.y);

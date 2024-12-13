@@ -56,6 +56,7 @@
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)\thirdparty\glad\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -65,6 +66,8 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CompileOut>$(SolutionDir)bin\cuda\$(Configuration)\%(Filename)%(Extension).obj</CompileOut>
+      <Include>$(ProjectDir)\thirdparty\glad\include;</Include>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -76,6 +79,7 @@
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)\thirdparty\glad\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -87,10 +91,38 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CompileOut>$(SolutionDir)bin\cuda\$(Configuration)\%(Filename)%(Extension).obj</CompileOut>
+      <Include>$(ProjectDir)\thirdparty\glad\include;</Include>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="kernel.cu" />
+    <CudaCompile Include="src\error_check.cu" />
+    <CudaCompile Include="src\kernel.cu" />
+    <CudaCompile Include="src\maths\linear_algebra.cu" />
+    <CudaCompile Include="src\maths\sampling.cu" />
+    <CudaCompile Include="src\maths\vector_maths.cu" />
+    <CudaCompile Include="src\renderer.cu" />
+    <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\containers.cuh" />
+    <ClInclude Include="src\error_check.cuh" />
+    <ClInclude Include="src\maths\constants.cuh" />
+    <ClInclude Include="src\maths\linear_algebra.cuh" />
+    <ClInclude Include="src\maths\matrix_maths.cuh" />
+    <ClInclude Include="src\maths\sampling.cuh" />
+    <ClInclude Include="src\maths\vector_maths.cuh" />
+    <ClInclude Include="src\maths\vector_types_extension.cuh" />
+    <ClInclude Include="src\renderer.hpp" />
+    <ClInclude Include="src\shaders\device_texture_buffer.cuh" />
+    <CudaCompile Include="src\shaders\kernels.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
+    <ClInclude Include="src\shaders\kernels.cuh" />
+    <ClInclude Include="thirdparty\glad\include\glad\glad.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="thirdparty\glad\src\glad.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

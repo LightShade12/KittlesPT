@@ -40,6 +40,8 @@ public:
 
 	GUIWindow(const char* title, int initial_width, int initial_height, const char* glsl_version_formatted);
 
+	virtual void onCreate() = 0;
+	virtual void onDestroy() = 0;
 	//custom gui content rendering
 	virtual void renderUI() = 0;
 	//custom gui content update handling
@@ -49,16 +51,21 @@ public:
 
 	void setCurrent();
 
+	bool shouldClose() { return glfwWindowShouldClose(m_window_ctx_handle); };
+	void destroy();
+	
+
 	bool isValid() { return m_window_ctx_handle != nullptr; }
 
 public:
-	int width = 0, height = 0;
+	int m_window_width = 0, m_window_height = 0;
 	ImGuiContext* m_imgui_ctx_handle = nullptr;
 	GLFWwindow* m_window_ctx_handle = nullptr;
 };
 
 class GUIApplication {
 public:
+	//TODO: this should be owned by window?
 	struct WindowConfig
 	{
 		const int initial_window_width = 640 + 16;
