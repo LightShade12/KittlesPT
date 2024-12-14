@@ -22,6 +22,6 @@ namespace KittlesPT
 
 	__device__ bool Intersection::operator!()
 	{
-		return (distance < 0);
+		return (instance_id < 0);
 	}
 }

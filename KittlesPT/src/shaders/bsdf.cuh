@@ -18,11 +18,11 @@ namespace KittlesPT
 	class BSDF {
 	public:
 
-		__device__ BSDF(float3 x, float3 y, float3 z) :tangentMatrix(Mat3(x, y, z)) {};
+		__device__ BSDF(float3 x, float3 y, float3 z) :tangent_matrix(Mat3(x, y, z)) {};
 
 		//BSDF(float3 tang, float3 bitan, float3 n) :tangentMatrix(Mat3(tang, bitan, n)) {};
 
-		__device__ BSDF(const Mat3& tangent_matrix, float3 albedo);
+		__device__ BSDF(const Mat3& tangent_matrix_, float3 albedo);
 
 		__device__ float3 f(float3 r_wo, float3 r_wi) const;
 
@@ -39,6 +39,6 @@ namespace KittlesPT
 	public:
 		float3 albedo_factor = make_float3(1, 0, 0);
 
-		Mat3 tangentMatrix;
+		Mat3 tangent_matrix;
 	};
 }

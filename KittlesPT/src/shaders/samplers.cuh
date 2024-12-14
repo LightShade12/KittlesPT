@@ -18,6 +18,9 @@ namespace KittlesPT
 
 		__device__ float get1D();
 
+		__device__ uint32_t getSeed() { return seed; }
+		__device__ void setSeed(uint32_t x) { seed = x; }
+
 		__device__ float2 get2D();
 
 	public:

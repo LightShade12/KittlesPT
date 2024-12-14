@@ -16,7 +16,7 @@ namespace KittlesPT
 		seed *= index;
 		seed += dimension;
 	}
-	__device__ float IndependentSampler::get1D()
+	__device__ float IndependentSampler::get1D()	
 	{
 		seed = rng.pcg_hash(seed);
 		return (float)seed / (float)UINT32_MAX;

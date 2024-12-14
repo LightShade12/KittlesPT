@@ -3,16 +3,16 @@
 
 namespace KittlesPT
 {
-	BSDF::BSDF(const Mat3& tangent_matrix, float3 albedo)
+	BSDF::BSDF(const Mat3& tangent_matrix_, float3 albedo)
 	{
-		tangentMatrix = tangent_matrix;
+		tangent_matrix = tangent_matrix_;
 		albedo_factor = albedo;
 	}
 
 	__device__ float3 BSDF::f(float3 r_wo, float3 r_wi) const
 	{
 		//float3 wo = tangentMatrix.inverse() * r_wo;
-		float3 wi = tangentMatrix.inverse() * r_wi;
+		float3 wi = tangent_matrix.inverse() * r_wi;
 		float3 wo = r_wo;
 		//float3 wi = r_wi;
 
@@ -21,16 +21,16 @@ namespace KittlesPT
 
 	__device__ float BSDF::pdf(float3 r_wo, float3 r_wi) const
 	{
-		float3 wi = tangentMatrix.inverse() * r_wi;
+		float3 wi = tangent_matrix.inverse() * r_wi;
 		float3 wo = r_wo;
 		return pdfOpaqueDielectric(wo, wi);
 	}
 
 	__device__ BSDFSample BSDF::sampleBSDF(float3 r_wo, float2 u2) const
 	{
-		float3 wo = tangentMatrix.inverse() * r_wo;
+		float3 wo = tangent_matrix.inverse() * r_wo;
 		BSDFSample bs = sampleOpaqueDielectric(wo, u2);
-		bs.wi = tangentMatrix * bs.wi;
+		bs.wi = tangent_matrix * bs.wi;
 		return bs;
 	}
 
