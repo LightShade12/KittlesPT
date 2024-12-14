@@ -114,7 +114,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include;$(SolutionDir)KittlesPT\include;$(SolutionDir)KittlesPT\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include;$(SolutionDir)KittlesPT\include;$(SolutionDir)KittlesPT\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

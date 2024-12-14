@@ -56,7 +56,7 @@
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)\thirdparty\glad\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)thirdparty\glad\include;$(ProjectDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -68,6 +68,7 @@
       <CompileOut>$(SolutionDir)bin\cuda\$(Configuration)\%(Filename)%(Extension).obj</CompileOut>
       <Include>$(ProjectDir)\thirdparty\glad\include;</Include>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <CodeGeneration>compute_75,sm_75</CodeGeneration>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -79,7 +80,7 @@
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)\thirdparty\glad\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)thirdparty\glad\include;$(ProjectDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -93,6 +94,7 @@
       <CompileOut>$(SolutionDir)bin\cuda\$(Configuration)\%(Filename)%(Extension).obj</CompileOut>
       <Include>$(ProjectDir)\thirdparty\glad\include;</Include>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <CodeGeneration>compute_75,sm_75</CodeGeneration>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -105,6 +107,7 @@
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\kittles_pt\kittles_pt.hpp" />
     <ClInclude Include="src\containers.cuh" />
     <ClInclude Include="src\error_check.cuh" />
     <ClInclude Include="src\maths\constants.cuh" />
@@ -119,6 +122,7 @@
       <FileType>Document</FileType>
     </CudaCompile>
     <ClInclude Include="src\shaders\kernels.cuh" />
+    <ClInclude Include="src\shaders\ray.cuh" />
     <ClInclude Include="thirdparty\glad\include\glad\glad.h" />
   </ItemGroup>
   <ItemGroup>

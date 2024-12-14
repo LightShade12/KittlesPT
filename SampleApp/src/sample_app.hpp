@@ -1,6 +1,6 @@
 #pragma once
 #include "gui_application.hpp"
-#include "../../KittlesPT/src/renderer.hpp"
+#include "kittles_pt/kittles_pt.hpp"
 #include <chrono>
 
 class DeveloperWindow : public ToggleableSideWindow

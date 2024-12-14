@@ -7,6 +7,8 @@ namespace KittlesPT
 	struct GlobalShaderData
 	{
 		int2 frame_resolution;
+		int frame_index = 0;
+		float frame_delta = 0.0f;
 		DeviceTextureBuffer main_texture;
 	};
 };

@@ -61,7 +61,7 @@ void SampleAppWindow::renderUI()
 		ImGui::PopStyleColor(1);
 	}
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 	developer_window.draw(m_window_ctx_handle, "Developer Menu");
 }
 
