@@ -53,7 +53,7 @@ __global__ void renderUV(const KittlesPT::GlobalShaderData shader_data)
 	//============================================
 	float2 ndc_coord = uv_coord * 2 - 1;
 
-	Ray primary_ray = shader_data.scene_camera.getRay(ndc_coord, frame_res);
+	Ray primary_ray = shader_data.scene_camera.generateRay(ndc_coord, frame_res);
 
 	float3 frag_color = make_float3(ndc_coord.x, ndc_coord.y, 0.25);
 
@@ -75,7 +75,10 @@ __global__ void renderUV(const KittlesPT::GlobalShaderData shader_data)
 	if (!closest || closest_id < 0)
 	{
 		//miss
-		frag_color = make_float3(0, 0.35, 0.45);
+		float3 unit_direction = normalize(primary_ray.getDirection());
+		float a = 0.5 * (unit_direction.y + 1.0);
+		frag_color = (1.0 - a) * make_float3(1.0, 1.0, 1.0) + a * make_float3(0.5, 0.7, 1.0);
+		//frag_color = make_float3(0, 0.35, 0.45);
 	}
 	else
 	{

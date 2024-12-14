@@ -1,13 +1,14 @@
 #pragma once
 #include "gui_application.hpp"
 #include "kittles_pt/kittles_pt.hpp"
+
 #include <chrono>
 
 class DeveloperWindow : public ToggleableSideWindow
 {
 public:
 	void updateUI() override;
-
+	float getDeltaTS() const { return delta_time_secs.count(); };
 private:
 
 	void renderUI() override;
@@ -64,6 +65,21 @@ struct GLTexture
 	GLuint m_GL_texture_name = NULL;
 };
 
+class Camera
+{
+public:
+	Camera() = default;
+	float fov_y_rad = glm::radians(90.0f);
+	float movement_speed = 5.0f;
+	float rotation_speed = 0.8f;
+
+	bool moved = false;
+	glm::vec3 position=glm::vec3(0.0f);
+	glm::vec3 forward = {0,0,-1};
+	glm::vec3 up = {0,1,0};
+	glm::vec3 right = {1,0,0};
+};
+
 class SampleAppWindow : public GUIWindow
 {
 public:
@@ -80,5 +96,6 @@ public:
 public:
 	GLTexture m_viewport_texture;
 	DeveloperWindow developer_window;
+	Camera m_camera;
 	KittlesPT::Renderer m_renderer;
 };

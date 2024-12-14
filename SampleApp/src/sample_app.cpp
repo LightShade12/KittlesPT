@@ -1,5 +1,11 @@
 #include "sample_app.hpp"
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/quaternion.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/quaternion.hpp"
+
 void DeveloperWindow::updateUI()
 {
 	std::chrono::time_point<std::chrono::steady_clock> current_frame_time_point = std::chrono::high_resolution_clock::now();
@@ -68,4 +74,81 @@ void SampleAppWindow::renderUI()
 void SampleAppWindow::updateUI()
 {
 	developer_window.updateUI();
+
+	constexpr glm::vec3 global_up(0, 1, 0);
+	static glm::vec2 last_mouse_pos;
+
+	double xpos, ypos;
+	glfwGetCursorPos(m_window_ctx_handle, &xpos, &ypos);
+
+	glm::vec2 mouse_pos = { xpos,ypos };
+	glm::vec2 mouse_delta = (mouse_pos - last_mouse_pos) * 0.002f;//TODO: add storage for literal here
+	last_mouse_pos = mouse_pos;
+
+	if (glfwGetMouseButton(m_window_ctx_handle, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_PRESS)
+	{
+		glfwSetInputMode(m_window_ctx_handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		m_camera.moved = false;
+		return;
+	}
+	glfwSetInputMode(m_window_ctx_handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	bool moved = false;
+
+	float delta_ts = developer_window.getDeltaTS() / 1.0f;
+	//delta_ts = 0.3f;
+
+	if (glfwGetKey(m_window_ctx_handle, GLFW_KEY_W) == GLFW_PRESS)//FORWARD
+	{
+		m_camera.position += m_camera.movement_speed * delta_ts * m_camera.forward; moved |= true;
+	}
+	if (glfwGetKey(m_window_ctx_handle, GLFW_KEY_S) == GLFW_PRESS)//BACK
+	{
+		m_camera.position -= m_camera.movement_speed * delta_ts * m_camera.forward; moved |= true;
+	}
+	if (glfwGetKey(m_window_ctx_handle, GLFW_KEY_A) == GLFW_PRESS)//LEFT
+	{
+		m_camera.position -= m_camera.movement_speed * delta_ts * m_camera.right; moved |= true;
+	}
+	if (glfwGetKey(m_window_ctx_handle, GLFW_KEY_D) == GLFW_PRESS)//RIGHT
+	{
+		m_camera.position += m_camera.movement_speed * delta_ts * m_camera.right; moved |= true;
+	}
+	if (glfwGetKey(m_window_ctx_handle, GLFW_KEY_E) == GLFW_PRESS)//UP
+	{
+		m_camera.position += m_camera.movement_speed * delta_ts * global_up; moved |= true;
+	}
+	if (glfwGetKey(m_window_ctx_handle, GLFW_KEY_Q) == GLFW_PRESS)//DOWN
+	{
+		m_camera.position -= m_camera.movement_speed * delta_ts * global_up; moved |= true;
+	}
+
+	if (mouse_delta.x != 0.0f || mouse_delta.y != 0.0f)
+	{
+		float pitch_delta = mouse_delta.y * m_camera.rotation_speed;
+		float yaw_delta = mouse_delta.x * m_camera.rotation_speed;
+
+		glm::quat q = glm::normalize(glm::cross(glm::angleAxis(-pitch_delta, m_camera.right),
+			glm::angleAxis(-yaw_delta, global_up)));
+
+		m_camera.forward = glm::normalize(glm::rotate(q, m_camera.forward));
+		m_camera.right = normalize(glm::cross(m_camera.forward, global_up));
+		m_camera.up = normalize(glm::cross(m_camera.right, m_camera.forward));
+
+		moved = true;
+	}
+
+	m_camera.moved = moved;
+
+	if (m_camera.moved)
+	{
+		glm::mat4 view
+		(
+			glm::vec4(m_camera.right, 0),
+			glm::vec4(m_camera.up, 0),
+			glm::vec4(m_camera.forward, 0),
+			glm::vec4(m_camera.position, 1)
+		);
+		glm::mat4 proj = glm::perspectiveFovLH(m_camera.fov_y_rad, float(m_window_width), float(m_window_height), 1.f, 100.f);
+		m_renderer.setView(proj, glm::inverse(view));
+	}
 }

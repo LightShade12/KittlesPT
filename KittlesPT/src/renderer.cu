@@ -5,6 +5,9 @@
 #include "containers.cuh"
 #include "shaders/kernels.cuh"
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
 #include <thrust/device_vector.h>
 
 #include <unordered_map>
@@ -30,7 +33,8 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
 
 		m_renderer_data->scene_spheres.push_back(Sphere(1, make_float3(0, 0, -3)));
-		//m_renderer_data->scene_spheres.push_back(Sphere(0.4, make_float3(0, 0.3, -2.7)));
+		m_renderer_data->scene_spheres.push_back(Sphere(1, make_float3(0, -0.5, -3)));
+
 		m_renderer_data->shader_global_data.scene_buffer =
 			Buffer<Sphere>(thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),
 				m_renderer_data->scene_spheres.size());
@@ -56,6 +60,14 @@ namespace KittlesPT
 
 		m_width = width; m_height = height;
 		m_renderer_data->shader_global_data.frame_resolution = make_int2(m_width, m_height);
+		glm::mat4 view = glm::mat4
+		(1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, -1, 0,
+			0, 0, 0, 1);
+		setView(glm::perspectiveFovLH(glm::radians(90.0f),
+			float(m_width), float(m_height), 1.f, 100.f),
+			glm::inverse(view));
 
 		if (m_renderer_data->m_frame_textures["main_texture"].isInitialised())
 		{
@@ -84,5 +96,9 @@ namespace KittlesPT
 
 	void Renderer::setView(glm::mat4 projection_mat, glm::mat4 view_mat)
 	{
+		//TODO: skip inversion
+		Mat4 proj = Mat4(projection_mat);
+		Mat4 view = Mat4(view_mat);
+		m_renderer_data->shader_global_data.scene_camera.setView(proj.inverse(), view.inverse());
 	}
 }
