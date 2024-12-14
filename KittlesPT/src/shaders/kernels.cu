@@ -3,6 +3,7 @@
 #include "../error_check.cuh"
 #include "../maths/linear_algebra.cuh"
 #include "ray.cuh"
+#include "samplers.cuh"
 #include "sphere.cuh"
 
 #include <cuda.h>
@@ -52,6 +53,8 @@ __global__ void renderUV(const KittlesPT::GlobalShaderData shader_data)
 	if ((pixel_coord.x >= frame_res.x) || (pixel_coord.y >= frame_res.y)) return;
 	//============================================
 	float2 ndc_coord = uv_coord * 2 - 1;
+	IndependentSampler sampler;
+	sampler.initPixelSeed(pixel_coord, frame_res.x, shader_data.frame_index);
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(ndc_coord, frame_res);
 

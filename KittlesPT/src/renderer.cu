@@ -32,8 +32,8 @@ namespace KittlesPT
 		m_renderer_data = new RendererData();
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
 
-		m_renderer_data->scene_spheres.push_back(Sphere(1, make_float3(0, 0, -3)));
-		m_renderer_data->scene_spheres.push_back(Sphere(1, make_float3(0, -0.5, -3)));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3)));
+		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3)));
 
 		m_renderer_data->shader_global_data.scene_buffer =
 			Buffer<Sphere>(thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),

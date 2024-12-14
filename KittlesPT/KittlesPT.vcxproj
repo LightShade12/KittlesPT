@@ -106,8 +106,10 @@
     <CudaCompile Include="src\maths\sampling.cu" />
     <CudaCompile Include="src\maths\vector_maths.cu" />
     <CudaCompile Include="src\renderer.cu" />
+    <CudaCompile Include="src\shaders\bsdf.cu" />
     <CudaCompile Include="src\shaders\camera.cu" />
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
+    <CudaCompile Include="src\shaders\samplers.cu" />
     <CudaCompile Include="src\shaders\sphere.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -121,6 +123,7 @@
     <ClInclude Include="src\maths\vector_maths.cuh" />
     <ClInclude Include="src\maths\vector_types_extension.cuh" />
     <ClInclude Include="src\renderer.hpp" />
+    <ClInclude Include="src\shaders\bsdf.cuh" />
     <ClInclude Include="src\shaders\camera.cuh" />
     <ClInclude Include="src\shaders\device_texture_buffer.cuh" />
     <CudaCompile Include="src\shaders\kernels.cu">
@@ -128,6 +131,7 @@
     </CudaCompile>
     <ClInclude Include="src\shaders\kernels.cuh" />
     <ClInclude Include="src\shaders\ray.cuh" />
+    <ClInclude Include="src\shaders\samplers.cuh" />
     <ClInclude Include="src\shaders\sphere.cuh" />
     <ClInclude Include="thirdparty\glad\include\glad\glad.h" />
   </ItemGroup>
