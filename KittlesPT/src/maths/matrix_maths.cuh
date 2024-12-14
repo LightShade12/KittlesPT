@@ -2,7 +2,7 @@
 
 #include "vector_maths.cuh"
 
-//#include "glm/mat4x4.hpp"
+#include "glm/mat4x4.hpp"
 #include <stdio.h>//for prints
 
 // column-major maths
@@ -22,12 +22,12 @@ namespace KittlesPT
 			columns[2] = make_float3(0, 0, val);
 		};
 
-		//__host__ explicit Matrix3x3(const glm::mat3& mat)
-		//{
-		//	columns[0] = make_float3(mat[0][0], mat[0][1], mat[0][2]);  // First column
-		//	columns[1] = make_float3(mat[1][0], mat[1][1], mat[1][2]);  // Second column
-		//	columns[2] = make_float3(mat[2][0], mat[2][1], mat[2][2]);  // Third column
-		//}
+		__host__ explicit Matrix3x3(const glm::mat3& mat)
+		{
+			columns[0] = make_float3(mat[0][0], mat[0][1], mat[0][2]);  // First column
+			columns[1] = make_float3(mat[1][0], mat[1][1], mat[1][2]);  // Second column
+			columns[2] = make_float3(mat[2][0], mat[2][1], mat[2][2]);  // Third column
+		}
 
 		__host__ __device__ Matrix3x3(float3 c1, float3 c2, float3 c3) {
 			columns[0] = c1; columns[1] = c2; columns[2] = c3;
@@ -165,13 +165,13 @@ namespace KittlesPT
 			columns[3] = make_float4(0, 0, 0, val);
 		};
 
-		//__host__ explicit Matrix4x4(const glm::mat4& mat)
-		//{
-		//	columns[0] = make_float4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]);  // First column
-		//	columns[1] = make_float4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]);  // Second column
-		//	columns[2] = make_float4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]);  // Third column
-		//	columns[3] = make_float4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]);  // Fourth column
-		//}
+		__host__ explicit Matrix4x4(const glm::mat4& mat)
+		{
+			columns[0] = make_float4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]);  // First column
+			columns[1] = make_float4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]);  // Second column
+			columns[2] = make_float4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]);  // Third column
+			columns[3] = make_float4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]);  // Fourth column
+		}
 
 		__host__ __device__ Matrix4x4(float4 c1, float4 c2, float4 c3, float4 c4) {
 			columns[0] = c1; columns[1] = c2; columns[2] = c3; columns[3] = c4;

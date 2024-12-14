@@ -5,6 +5,8 @@
 #include "containers.cuh"
 #include "shaders/kernels.cuh"
 
+#include <thrust/device_vector.h>
+
 #include <unordered_map>
 #include <string>
 #include <iostream>
@@ -13,19 +15,26 @@ namespace KittlesPT
 {
 	struct RendererData
 	{
+		thrust::device_vector<Sphere> scene_spheres;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
 	};
 
 	void Renderer::init()
 	{
-		
 		int cuda_driver_version, cuda_runtime_version;
 		cudaDriverGetVersion(&cuda_driver_version); cudaRuntimeGetVersion(&cuda_runtime_version);
 		printf("CUDA driver version: %d.%d\nCUDA toolkit runtime version: %d.%d\n",
 			cuda_driver_version / 1000, cuda_driver_version % 100, cuda_runtime_version / 1000, cuda_runtime_version % 100);
 		m_renderer_data = new RendererData();
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
+
+		m_renderer_data->scene_spheres.push_back(Sphere(1, make_float3(0, 0, -3)));
+		//m_renderer_data->scene_spheres.push_back(Sphere(0.4, make_float3(0, 0.3, -2.7)));
+		m_renderer_data->shader_global_data.scene_buffer =
+			Buffer<Sphere>(thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),
+				m_renderer_data->scene_spheres.size());
+		m_renderer_data->shader_global_data.scene_camera = Camera(make_float3(0), make_float3(0, 0, -1));
 	}
 	void Renderer::shutdown()
 	{
@@ -34,6 +43,7 @@ namespace KittlesPT
 			tex.second.destroy();
 		}
 
+		m_renderer_data->scene_spheres.clear();//TODO: put this in destroy/destructor
 		delete m_renderer_data;
 	}
 
@@ -70,5 +80,9 @@ namespace KittlesPT
 	void Renderer::getRenderTargetTexture(GLuint r_texture)
 	{
 		m_renderer_data->m_frame_textures["main_texture"].copyTo(r_texture);
+	}
+
+	void Renderer::setView(glm::mat4 projection_mat, glm::mat4 view_mat)
+	{
 	}
 }

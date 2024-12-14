@@ -1,9 +1,9 @@
 #include "kernels.cuh"
 
-//#include "../renderer.hpp"
 #include "../error_check.cuh"
 #include "../maths/linear_algebra.cuh"
 #include "ray.cuh"
+#include "sphere.cuh"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -24,72 +24,6 @@ namespace KittlesPT
 
 		checkCudaErrors(cudaGetLastError());
 	}
-
-	struct Intersection
-	{
-		__device__ bool operator ! ()
-		{
-			return (distance < 0);
-		}
-		float distance = -1;
-	};
-
-	struct SurfaceInteraction
-	{
-		float distance = -1;
-		float3 world_position;
-		float3 world_normal;
-	};
-
-	class Camera
-	{
-	public:
-		__device__ Camera(float3 pos, float3 forward) :
-			world_position(pos), forward_direction(forward) {};
-
-		//generate camera rays; -1 => forawrd depth
-		__device__ Ray getRay(float2 ndc_coords, int2 frame_resolution) const
-		{
-			float aspect_ratio = (float)frame_resolution.x / (float)frame_resolution.y;
-
-			float camera_height = 2.0f;
-			float camera_width = aspect_ratio * camera_height;
-
-			//-1 => forward depth
-			float3 raydir = make_float3(ndc_coords.x * camera_width, ndc_coords.y * camera_height, -1);
-			Ray ray = Ray(world_position, normalize(raydir));
-			return ray;
-		};
-		float3 world_position;
-		float3 forward_direction;
-	};
-
-	class Sphere {
-	public:
-		__device__ Sphere(float radius_, float3 pos)
-			:radius(radius_), world_position(pos) {};
-
-		__device__ Intersection intersect(const Ray& ray)
-		{
-			float3 oc = world_position - ray.getOrigin();
-			float a = Sqr(length(ray.getDirection()));
-			float h = dot(ray.getDirection(), oc);
-			float c = Sqr(length(oc)) - radius * radius;
-			float discriminant = h * h - a * c;
-
-			Intersection intr;
-			if (discriminant < 0) {
-				intr.distance = -1.0;
-			}
-			else {
-				intr.distance = (h - sqrtf(discriminant)) / a;
-			}
-			return intr;
-		}
-
-		float3 world_position;
-		float radius = 1;
-	};
 
 	__device__ SurfaceInteraction closestHit(const Ray& ray, const Intersection& intr, const Sphere& sp)
 	{
@@ -119,15 +53,26 @@ __global__ void renderUV(const KittlesPT::GlobalShaderData shader_data)
 	//============================================
 	float2 ndc_coord = uv_coord * 2 - 1;
 
-	Sphere sphere1(1, make_float3(0, 0, -3));
-	Camera camera = Camera(make_float3(0), make_float3(0, 0, -1));
+	Ray primary_ray = shader_data.scene_camera.getRay(ndc_coord, frame_res);
 
-	Ray primary_ray = camera.getRay(ndc_coord, frame_res);
-
-	Intersection hit_intr = sphere1.intersect(primary_ray);
 	float3 frag_color = make_float3(ndc_coord.x, ndc_coord.y, 0.25);
 
-	if (!hit_intr)
+	Intersection closest;
+	closest.distance = INFINITY;
+	int closest_id = -1;
+
+	for (int id = 0; id < shader_data.scene_buffer.num; id++)
+	{
+		const Sphere& sphere = shader_data.scene_buffer.data[id];
+		Intersection intr = sphere.intersect(primary_ray);
+		if (intr.distance < closest.distance && intr.distance >= 0)
+		{
+			closest = intr;
+			closest_id = id;
+		}
+	}
+
+	if (!closest || closest_id < 0)
 	{
 		//miss
 		frag_color = make_float3(0, 0.35, 0.45);
@@ -135,7 +80,7 @@ __global__ void renderUV(const KittlesPT::GlobalShaderData shader_data)
 	else
 	{
 		//hit
-		SurfaceInteraction surfintr = closestHit(primary_ray, hit_intr, sphere1);
+		SurfaceInteraction surfintr = closestHit(primary_ray, closest, shader_data.scene_buffer.data[closest_id]);
 		frag_color = surfintr.world_normal;
 	}
 
