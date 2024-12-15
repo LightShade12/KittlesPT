@@ -101,11 +101,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="src\error_check.cu" />
+    <CudaCompile Include="src\maths\matrix_maths.cu" />
     <CudaCompile Include="src\reference.cu" />
     <CudaCompile Include="src\maths\linear_algebra.cu" />
     <CudaCompile Include="src\maths\sampling.cu" />
     <CudaCompile Include="src\maths\vector_maths.cu" />
     <CudaCompile Include="src\renderer.cu" />
+    <CudaCompile Include="src\shaders\atmosphere.cu" />
     <CudaCompile Include="src\shaders\bsdf.cu" />
     <CudaCompile Include="src\shaders\camera.cu" />
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
@@ -123,12 +125,14 @@
     <ClInclude Include="src\maths\vector_maths.cuh" />
     <ClInclude Include="src\maths\vector_types_extension.cuh" />
     <ClInclude Include="src\renderer.hpp" />
+    <ClInclude Include="src\shaders\atmosphere.cuh" />
     <ClInclude Include="src\shaders\bsdf.cuh" />
     <ClInclude Include="src\shaders\camera.cuh" />
     <ClInclude Include="src\shaders\device_texture_buffer.cuh" />
     <CudaCompile Include="src\shaders\kernels.cu">
       <FileType>Document</FileType>
     </CudaCompile>
+    <ClInclude Include="src\shaders\integrator.cuh" />
     <ClInclude Include="src\shaders\kernels.cuh" />
     <ClInclude Include="src\shaders\ray.cuh" />
     <ClInclude Include="src\shaders\samplers.cuh" />

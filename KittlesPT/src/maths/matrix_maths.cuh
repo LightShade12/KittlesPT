@@ -328,4 +328,6 @@ namespace KittlesPT
 	//column major maths
 	using Mat4 = Matrix4x4;
 	using Mat3 = Matrix3x3;
+
+	__device__ Mat3 generateOrthonormalBasis(const float3& normal);
 }

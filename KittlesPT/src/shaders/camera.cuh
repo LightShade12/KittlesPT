@@ -5,6 +5,12 @@ namespace KittlesPT
 {
 	class Ray;
 
+	class Film
+	{
+	public:
+		__device__ float3 getDisplayL(float3 HDR_radiance) const;
+	};
+
 	class Camera
 	{
 	public:
@@ -18,6 +24,8 @@ namespace KittlesPT
 
 		__host__ void setView(Mat4 inv_proj, Mat4 inv_view);
 
+	public:
+		Film film;
 		Mat4 inv_view_matrix;
 		Mat4 inv_projection_matrix;
 		float3 world_position;
