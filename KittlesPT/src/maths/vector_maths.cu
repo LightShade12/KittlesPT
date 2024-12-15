@@ -50,4 +50,13 @@ namespace KittlesPT
 	{
 		return make_float3(::powf(a.x, b.x), ::powf(a.y, b.y), ::powf(a.z, b.z));
 	}
+	__device__ float3 sphericalToCartesian(float theta, float phi)
+	{
+		float3 wm;
+		wm.x = sin(theta) * cos(phi);
+		wm.y = cos(theta);
+		wm.z = sin(theta) * sin(phi);
+		return wm;
+		//return normalize(wm);
+	}
 }

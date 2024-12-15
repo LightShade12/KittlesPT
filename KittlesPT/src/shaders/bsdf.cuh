@@ -46,23 +46,30 @@ namespace KittlesPT
 
 		__device__ float pdf(float3 r_wo, float3 r_wi) const;
 
-		__device__ BSDFSample sampleBSDF(float3 r_wo, float2 u2) const;
+		__device__ BSDFSample sampleBSDF(float3 w_wo, float2 u2, float2 X2) const;
 
 	private:
 
+		__device__ float3 sampleGlossyMicrofacetBRDF_VNDF(float3 wo, float2 u2) const;
+
+		__device__ float3 fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
+
+		__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
+
+		//------
+
+		__device__ BSDFSample sampleOpaqueDielectric(float3 wo, float2 u2, float X) const;
+
+		__device__ float3 fOpaqueDielectric(float3 wo, float3 wi) const;
+
+		__device__ float pdfOpaqueDielectric(float3 wo, float3 wi) const;
+
+		//diffuse brdf
 		__device__ float3 sampleDiffuseBRDF(float2 u2) const;
 
 		__device__ float fDiffuseBRDF(float3 wo, float3 wi) const;
 
 		__device__ float pdfDiffuseBRDF(float3 wo, float3 wi) const;
-
-		__device__ float3 fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
-
-		__device__ BSDFSample sampleOpaqueDielectric(float3 wo, float2 u2) const;
-
-		__device__ float3 fOpaqueDielectric(float3 wo, float3 wi) const;
-
-		__device__ float pdfOpaqueDielectric(float3 wo, float3 wi) const;
 
 	public:
 		float3 albedo_factor = make_float3(1, 0, 0);

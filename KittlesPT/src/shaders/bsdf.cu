@@ -1,5 +1,6 @@
 #include "bsdf.cuh"
 #include "samplers.cuh"
+#include "../maths/linear_algebra.cuh"
 
 namespace KittlesPT
 {
@@ -26,10 +27,11 @@ namespace KittlesPT
 		return pdfOpaqueDielectric(wo, wi);
 	}
 
-	__device__ BSDFSample BSDF::sampleBSDF(float3 w_wo, float2 u2) const
+	__device__ BSDFSample BSDF::sampleBSDF(float3 w_wo, float2 u2, float2 X2) const
 	{
+		float path_probability = X2.x;
 		float3 wo = tangent_matrix.inverse() * w_wo;
-		BSDFSample bs = sampleOpaqueDielectric(wo, u2);
+		BSDFSample bs = sampleOpaqueDielectric(wo, u2, X2.y);
 		bs.wi = tangent_matrix * bs.wi;
 		return bs;
 	}
@@ -111,6 +113,7 @@ namespace KittlesPT
 		float r_per = (cosTheta - ior * cosTheta_t) / (cosTheta + ior * cosTheta_t);
 		return (r_prl * r_prl + r_per * r_per) * 0.5f;
 	}
+
 	__device__ float microFacetBRDF(float3 wo, float3 wi, float3 h, float roughness)
 	{
 		float NoH = clamp(h.z, 0.f, 1.f);
@@ -135,25 +138,52 @@ namespace KittlesPT
 		return F;
 	}
 
-	__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi)
+	__device__ float BSDF::pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const
 	{
-		return wi.z / Constants::PI;
+		float VoH = fmaxf(dot(wo, h), 0.0f);
+		float NoH = fmaxf(h.z, 0.0f);
+		float D = D_GGX(NoH, roughness);
+		float pdf = (VoH > 0.f) ? (D * NoH) / (4.0f * VoH) : 0.f;
+		return pdf;
 	}
+
+	__device__ float3 BSDF::sampleGlossyMicrofacetBRDF_VNDF(float3 wo, float2 u2) const
+	{
+		float a = Sqr(roughness);
+		float a2 = a * a;
+		// -- Generate uniform random variables between 0 and 1
+		float e0 = u2.x;
+		float e1 = u2.y;
+
+		// -- Calculate theta and phi for our microfacet normal wm by
+		// -- importance sampling the Ggx distribution of normals
+		float theta = acosf(sqrtf((1.0f - e0) / ((a2 - 1.0f) * e0 + 1.0f)));
+		float phi = 2 * Constants::PI * e1;
+
+		// -- Convert from spherical to Cartesian coordinates
+		float3 wm = sphericalToCartesian(theta, phi);
+
+		return wm;
+	};
 
 	//===========================================================================================================
 	//OPAQUE DIELECTRIC BSDF
 	//===========================================================================================================
 
-	__device__ BSDFSample BSDF::sampleOpaqueDielectric(float3 wo, float2 u2) const
+	__device__ BSDFSample BSDF::sampleOpaqueDielectric(float3 wo, float2 u2, float Xi) const
 	{
+		float path_probability = Xi;
+
 		//Diffuse scatter path----------------------
 
 		float3 wi = sampleDiffuseBRDF(u2);
 		float3 f = albedo_factor * fDiffuseBRDF(wo, wi);
 		float pdf = pdfDiffuseBRDF(wo, wi);
 
+		//Glossy
 		float3 h = normalize(wi + wo);
 		float3 spec = fGlossyMicrofacetBRDF(wo, wi, h);
+		f *= (1.0f - spec);
 		f += spec;
 
 		return BSDFSample(BSDFSample::Diffuse | BSDFSample::Reflected, f, wi, pdf);
@@ -161,11 +191,22 @@ namespace KittlesPT
 
 	__device__ float3 BSDF::fOpaqueDielectric(float3 wo, float3 wi) const
 	{
-		return albedo_factor * fDiffuseBRDF(wo, wi);
+		float3 h = normalize(wo + wi);
+
+		float3 glossy = fGlossyMicrofacetBRDF(wo, wi, h);
+		float3 cDiffuse = (1.0f - glossy);
+
+		float3 diffuse = cDiffuse * albedo_factor * fDiffuseBRDF(wo, wi);
+		return diffuse + glossy;
 	}
 
 	__device__ float BSDF::pdfOpaqueDielectric(float3 wo, float3 wi) const
 	{
-		return pdfDiffuseBRDF(wo, wi);
+		float3 h = normalize(wo + wi);
+		float pSpec = pdfGlossyMicrofacetBRDF(wo, wi, h);
+
+		float pDiffuse = pdfDiffuseBRDF(wo, wi);
+		//return pDiffuse;
+		return (0.5f) * (pSpec + pDiffuse);
 	}
 }

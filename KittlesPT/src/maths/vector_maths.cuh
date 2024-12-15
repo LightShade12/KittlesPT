@@ -16,4 +16,6 @@ namespace KittlesPT
 	__device__ float3 log2f(const float3 a);
 
 	__device__ float3 powf(const float3 a, const float3 b);
+
+	__device__ float3 sphericalToCartesian(float theta, float phi);
 }
