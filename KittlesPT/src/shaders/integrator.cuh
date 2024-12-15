@@ -71,7 +71,7 @@ namespace KittlesPT
 
 				SurfaceInteraction surfintr = closestHit(ray, intr, shader_data.scene_buffer.data[intr.instance_id]);
 
-				BSDF bsdf = BSDF(generateOrthonormalBasis(surfintr.world_normal), make_float3(0.8));
+				BSDF bsdf = BSDF(generateOrthonormalBasis(surfintr.world_normal), make_float3(0.8,0,0),0.1);
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D());
 
 				float3 wi = bs.wi;

@@ -40,7 +40,7 @@ namespace KittlesPT
 
 		//BSDF(float3 tang, float3 bitan, float3 n) :tangentMatrix(Mat3(tang, bitan, n)) {};
 
-		__device__ BSDF(const Mat3& tangent_basis, float3 albedo);
+		__device__ BSDF(const Mat3& tangent_basis, float3 albedo, float roughness);
 
 		__device__ float3 f(float3 r_wo, float3 r_wi) const;
 
@@ -56,6 +56,8 @@ namespace KittlesPT
 
 		__device__ float pdfDiffuseBRDF(float3 wo, float3 wi) const;
 
+		__device__ float3 fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
+
 		__device__ BSDFSample sampleOpaqueDielectric(float3 wo, float2 u2) const;
 
 		__device__ float3 fOpaqueDielectric(float3 wo, float3 wi) const;
@@ -64,7 +66,8 @@ namespace KittlesPT
 
 	public:
 		float3 albedo_factor = make_float3(1, 0, 0);
-
+		float roughness = 0.5f;
+		float ior = 1.45f;
 		Mat3 tangent_matrix;
 	};
 }
