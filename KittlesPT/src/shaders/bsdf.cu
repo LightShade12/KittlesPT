@@ -63,11 +63,13 @@ namespace KittlesPT
 
 	__device__ BSDFSample BSDF::sampleOpaqueDielectric(float3 wo, float2 u2) const
 	{
+		//Diffuse scatter path----------------------
+
 		float3 wi = sampleDiffuseBRDF(u2);
 		float3 f = albedo_factor * fDiffuseBRDF(wo, wi);
 		float pdf = pdfDiffuseBRDF(wo, wi);
 
-		return BSDFSample(f, wi, pdf);
+		return BSDFSample(BSDFSample::Diffuse | BSDFSample::Reflected, f, wi, pdf);
 	}
 
 	__device__ float3 BSDF::fOpaqueDielectric(float3 wo, float3 wi) const

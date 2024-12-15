@@ -4,10 +4,28 @@
 
 namespace KittlesPT
 {
-	struct BSDFSample 
+	struct BSDFSample
 	{
 		__device__ BSDFSample() = default;
-		__device__ BSDFSample(float3 f, float3 wi, float pdf) :f(f), wi(wi), pdf(pdf) {};
+		__device__ BSDFSample(int scatter, float3 f, float3 wi, float pdf) :scatter(scatter), f(f), wi(wi), pdf(pdf) {};
+
+		__device__ bool scatterTypeIs(int flag) const
+		{
+			return scatter & flag;
+		}
+
+		enum Scatter
+		{
+			Absorbed = 0,
+			Emitted = 1,
+			Reflected = 2,
+			Transmitted = 4,
+			Diffuse = 8,
+			Glossy = 16,
+			Specular = 32
+		};
+
+		int scatter = Absorbed;
 		float3 f{};
 		float3 wi{};
 		float pdf = 0;
@@ -34,7 +52,7 @@ namespace KittlesPT
 
 		__device__ float3 sampleDiffuseBRDF(float2 u2) const;
 
-		__device__ float fDiffuseBRDF(float3 wo,  float3 wi) const;
+		__device__ float fDiffuseBRDF(float3 wo, float3 wi) const;
 
 		__device__ float pdfDiffuseBRDF(float3 wo, float3 wi) const;
 
