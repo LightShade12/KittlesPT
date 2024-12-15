@@ -31,6 +31,7 @@ namespace KittlesPT
 			cuda_driver_version / 1000, cuda_driver_version % 100, cuda_runtime_version / 1000, cuda_runtime_version % 100);
 		m_renderer_data = new RendererData();
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
+		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
 
 		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3)));
 		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3)));
@@ -72,19 +73,23 @@ namespace KittlesPT
 		if (m_renderer_data->m_frame_textures["main_texture"].isInitialised())
 		{
 			m_renderer_data->m_frame_textures["main_texture"].resize(m_width, m_height);
+			m_renderer_data->m_frame_textures["accumulation_texture"].resize(m_width, m_height);
 		}
 		else
 		{
 			m_renderer_data->m_frame_textures["main_texture"].init(m_width, m_height);
+			m_renderer_data->m_frame_textures["accumulation_texture"].init(m_width, m_height);
 		}
 	}
 	void Renderer::executeRendering()
 	{
 		m_renderer_data->shader_global_data.main_texture = m_renderer_data->m_frame_textures["main_texture"].enableCudaAccess();
+		m_renderer_data->shader_global_data.accumulation_texture = m_renderer_data->m_frame_textures["accumulation_texture"].enableCudaAccess();
 
 		launchRenderPassKernel(m_renderer_data->shader_global_data);
 
 		m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
+		m_renderer_data->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_data->shader_global_data.accumulation_texture);
 
 		m_renderer_data->shader_global_data.frame_index++;//TODO:expose to host as readonly?
 	}
@@ -100,5 +105,8 @@ namespace KittlesPT
 		Mat4 proj = Mat4(projection_mat);
 		Mat4 view = Mat4(view_mat);
 		m_renderer_data->shader_global_data.scene_camera.setView(proj.inverse(), view.inverse());
+		//reset accum
+		glClearTexImage(m_renderer_data->m_frame_textures["accumulation_texture"].m_GL_texture, 0, GL_RGBA, GL_FLOAT, NULL);
+		m_renderer_data->shader_global_data.frame_index = 0;
 	}
 }

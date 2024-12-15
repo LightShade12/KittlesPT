@@ -24,5 +24,6 @@ namespace KittlesPT
 		Buffer<Sphere> scene_buffer;
 		Camera scene_camera;
 		DeviceTextureBuffer main_texture;
+		DeviceTextureBuffer accumulation_texture;
 	};
 };
