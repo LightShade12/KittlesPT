@@ -22,13 +22,21 @@ namespace KittlesPT
 
 		//BSDF(float3 tang, float3 bitan, float3 n) :tangentMatrix(Mat3(tang, bitan, n)) {};
 
-		__device__ BSDF(const Mat3& tangent_matrix_, float3 albedo);
+		__device__ BSDF(const Mat3& tangent_basis, float3 albedo);
 
 		__device__ float3 f(float3 r_wo, float3 r_wi) const;
 
 		__device__ float pdf(float3 r_wo, float3 r_wi) const;
 
 		__device__ BSDFSample sampleBSDF(float3 r_wo, float2 u2) const;
+
+	private:
+
+		__device__ float3 sampleDiffuseBRDF(float2 u2) const;
+
+		__device__ float fDiffuseBRDF(float3 wo,  float3 wi) const;
+
+		__device__ float pdfDiffuseBRDF(float3 wo, float3 wi) const;
 
 		__device__ BSDFSample sampleOpaqueDielectric(float3 wo, float2 u2) const;
 
