@@ -22,7 +22,7 @@ void DeveloperWindow::renderUI()
 	ImGui::Text("EMA FPS: %.3f ms", average_fps);
 	ImGui::Text("Runtime secs: %.3f s",
 		std::chrono::duration_cast<std::chrono::duration<float>>(last_frame_time_point.time_since_epoch()).count() - start_time_secs);
-}
+	}
 
 void SampleAppWindow::onCreate()
 {
@@ -68,12 +68,12 @@ void SampleAppWindow::renderUI()
 	}
 
 	//ImGui::ShowDemoWindow();
-	developer_window.draw(m_window_ctx_handle, "Developer Menu");
+	m_developer_window.draw(m_window_ctx_handle, "Developer Menu");
 }
 
 void SampleAppWindow::updateUI()
 {
-	developer_window.updateUI();
+	m_developer_window.updateUI();
 
 	constexpr glm::vec3 global_up(0, 1, 0);
 	static glm::vec2 last_mouse_pos;
@@ -94,7 +94,7 @@ void SampleAppWindow::updateUI()
 	glfwSetInputMode(m_window_ctx_handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	bool moved = false;
 
-	float delta_ts = developer_window.getDeltaTS() / 1.0f;
+	float delta_ts = m_developer_window.getDeltaTS() / 1.0f;
 	//delta_ts = 0.3f;
 
 	if (glfwGetKey(m_window_ctx_handle, GLFW_KEY_W) == GLFW_PRESS)//FORWARD

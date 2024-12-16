@@ -53,10 +53,13 @@ namespace KittlesPT
 	__device__ float3 sphericalToCartesian(float theta, float phi)
 	{
 		float3 wm;
-		wm.x = sin(theta) * cos(phi);
-		wm.y = cos(theta);
-		wm.z = sin(theta) * sin(phi);
+		wm.x = sinf(theta) * cosf(phi);
+		wm.y = sinf(theta) * sinf(phi);
+		wm.z = cosf(theta);
 		return wm;
-		//return normalize(wm);
+	}
+	__device__ bool sameHemisphere(const float3& a, const float3& b, const float3& n)
+	{
+		return dot(a, n) * dot(b, n) > 0;
 	}
 }

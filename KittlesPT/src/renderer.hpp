@@ -18,6 +18,8 @@ namespace KittlesPT
 
 		void executeRendering();
 
+		float getMaterialRoughness(int idx);
+
 		void getRenderTargetTexture(GLuint r_texture);
 
 		//TODO:make const&

@@ -4,11 +4,12 @@
 #include "shaders/device_texture_buffer.cuh"
 #include "containers.cuh"
 #include "shaders/kernels.cuh"
+#include "shaders/material.cuh"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#include <thrust/device_vector.h>
+#include <thrust/universal_vector.h>
 
 #include <unordered_map>
 #include <string>
@@ -18,7 +19,8 @@ namespace KittlesPT
 {
 	struct RendererData
 	{
-		thrust::device_vector<Sphere> scene_spheres;
+		thrust::universal_vector<Sphere> scene_spheres;
+		thrust::universal_vector<Material> scene_materials;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
 	};
@@ -33,12 +35,20 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
 
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3)));
-		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3)));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 0));
+		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3), 0));
+		m_renderer_data->scene_materials.push_back(Material(make_float3(0.8, 0, 0), 0.3));
 
 		m_renderer_data->shader_global_data.scene_buffer =
-			Buffer<Sphere>(thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),
+			Buffer<Sphere>(thrust::raw_pointer_cast(
+				m_renderer_data->scene_spheres.data()),
 				m_renderer_data->scene_spheres.size());
+
+		m_renderer_data->shader_global_data.materials_buffer =
+			Buffer<Material>(thrust::raw_pointer_cast(
+				m_renderer_data->scene_materials.data()),
+				m_renderer_data->scene_materials.size());
+
 		m_renderer_data->shader_global_data.scene_camera = Camera(make_float3(0), make_float3(0, 0, -1));
 	}
 	void Renderer::shutdown()
@@ -49,6 +59,7 @@ namespace KittlesPT
 		}
 
 		m_renderer_data->scene_spheres.clear();//TODO: put this in destroy/destructor
+		m_renderer_data->scene_materials.clear();//TODO: put this in destroy/destructor
 		delete m_renderer_data;
 	}
 

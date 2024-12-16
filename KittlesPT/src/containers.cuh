@@ -2,6 +2,7 @@
 #include "shaders/device_texture_buffer.cuh"
 #include "shaders/sphere.cuh"
 #include "shaders/camera.cuh"
+#include "shaders/material.cuh"
 #include <cuda_runtime.h>
 
 namespace KittlesPT
@@ -22,6 +23,7 @@ namespace KittlesPT
 		int frame_index = 0;
 		float frame_delta = 0.0f;
 		Buffer<Sphere> scene_buffer;
+		Buffer<Material> materials_buffer;
 		Camera scene_camera;
 		DeviceTextureBuffer main_texture;
 		DeviceTextureBuffer accumulation_texture;

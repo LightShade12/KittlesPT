@@ -62,13 +62,7 @@ namespace KittlesPT
 	//===========================================================================================================
 	//GLOSSY MICROFACET BRDF
 	//===========================================================================================================
-
-	//return H
-	__device__ float3 sampleGlossyMicrofacetBRDF(float2 u2)
-	{
-		return sampleCosineWeightedHemisphere(u2);
-	}
-
+	//SmithGGXMaskingShadowing
 	__device__ float G2_Smith(float3 wo, float3 wi, float roughness)
 	{
 		float a2 = ::powf(roughness, 4);
@@ -82,16 +76,15 @@ namespace KittlesPT
 		return 2.0f * dotNL * dotNV / (denomA + denomB);
 	}
 
-	//clamped roughness
+	//clamps roughness
 	__device__ float D_GGX(float NoH, float roughness)
 	{
 		roughness = fmaxf(roughness, Constants::MAT_MIN_ROUGHNESS);//needed TODO: switch to specular brdf below this threshold
-		float alpha = roughness * roughness;
-		float alpha2 = alpha * alpha;
-		float NoH2 = NoH * NoH;
-		float b = (NoH2 * (alpha2 - 1.0) + 1.0);//alt: NoH2 * alpha2 + (1 - NoH2)
-		//float b = NoH2 * alpha2 + (1 - NoH2);//alt: NoH2 * alpha2 + (1 - NoH2)
-		return alpha2 / (Constants::PI * (b * b));
+		float alpha = Sqr(roughness);
+		float alpha2 = Sqr(alpha);
+		float NoH2 = Sqr(NoH);
+		float b = (NoH2 * (alpha2 - 1.0) + 1.0);
+		return alpha2 / (Constants::PI * Sqr(b));
 	}
 
 	__device__ float fresnelDielectric(float cosTheta, float ior)
@@ -123,9 +116,14 @@ namespace KittlesPT
 		//below expects squared roughness
 		float D = D_GGX(NoH, roughness);
 		float G = G2_Smith(wo, wi, roughness);
-
+		//printf("<%.3f>", NoL);
+		//NoL = 1.0f;
 		float out = (D * G) / (4 * fmaxf(NoV, 0.0001f) * NoL);
-
+		//float out = (G * AbsDot(wo, h)) / (fmaxf(NoV, 0.0001f) * NoH);
+		if (wi.z <= 0.0f || dot(wi, h) <= 0)
+		{
+			out = 0.0f;
+		}
 		return out;
 	}
 	//-----
@@ -133,6 +131,11 @@ namespace KittlesPT
 	__device__ float3 BSDF::fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const
 	{
 		float Mss = microFacetBRDF(wo, wi, h, roughness);
+		/*	if (isinf(Mss))
+			{
+				printf("<inf:Mss>");
+			}*/
+
 		float Fss = fresnelDielectric(dot(wo, h), ior);
 		float3 F = make_float3(Fss * Mss);
 		return F;
@@ -155,15 +158,15 @@ namespace KittlesPT
 		float e0 = u2.x;
 		float e1 = u2.y;
 
-		// -- Calculate theta and phi for our microfacet normal wm by
-		// -- importance sampling the Ggx distribution of normals
 		float theta = acosf(sqrtf((1.0f - e0) / ((a2 - 1.0f) * e0 + 1.0f)));
+		// Correct GGX sampling of theta using the inverse CDF
+		//float theta = atanf(a * sqrtf(e0 / (1.0f - e0)));
+		//float theta = acosf(sqrtf(a2 / e0 * (a2 - 1.0f) + 1.0f));//github
 		float phi = 2 * Constants::PI * e1;
 
-		// -- Convert from spherical to Cartesian coordinates
 		float3 wm = sphericalToCartesian(theta, phi);
 
-		return wm;
+		return normalize(wm);
 	};
 
 	//===========================================================================================================

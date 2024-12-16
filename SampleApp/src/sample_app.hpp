@@ -74,10 +74,10 @@ public:
 	float rotation_speed = 0.8f;
 
 	bool moved = false;
-	glm::vec3 position=glm::vec3(0.0f);
-	glm::vec3 forward = {0,0,-1};
-	glm::vec3 up = {0,1,0};
-	glm::vec3 right = {1,0,0};
+	glm::vec3 position = glm::vec3(0.0f);
+	glm::vec3 forward = { 0,0,-1 };
+	glm::vec3 up = { 0,1,0 };
+	glm::vec3 right = { 1,0,0 };
 };
 
 class SampleAppWindow : public GUIWindow
@@ -95,7 +95,7 @@ public:
 
 public:
 	GLTexture m_viewport_texture;
-	DeveloperWindow developer_window;
+	DeveloperWindow m_developer_window;
 	Camera m_camera;
 	KittlesPT::Renderer m_renderer;
 };

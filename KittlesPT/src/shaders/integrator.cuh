@@ -3,6 +3,7 @@
 #include "sphere.cuh"
 #include "bsdf.cuh"
 #include "samplers.cuh"
+#include "material.cuh"
 #include "atmosphere.cuh"
 
 namespace KittlesPT
@@ -16,6 +17,7 @@ namespace KittlesPT
 			surfintr.world_position = ray.getPointAt(intr.distance);
 			surfintr.distance = intr.distance;
 			surfintr.world_normal = normalize(surfintr.world_position - sp.world_position);
+			surfintr.material_id = sp.material_id;
 
 			return surfintr;
 		}
@@ -70,8 +72,8 @@ namespace KittlesPT
 				float3 wo = -ray.getDirection();
 
 				SurfaceInteraction surfintr = closestHit(ray, intr, shader_data.scene_buffer.data[intr.instance_id]);
-
-				BSDF bsdf = BSDF(generateOrthonormalBasis(surfintr.world_normal), make_float3(0.8, 0, 0), 0.1);
+				const Material& mat = shader_data.materials_buffer.data[surfintr.material_id];
+				BSDF bsdf = BSDF(generateOrthonormalBasis(surfintr.world_normal), mat.albedo, mat.roughness);
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 
 				float3 wi = bs.wi;
