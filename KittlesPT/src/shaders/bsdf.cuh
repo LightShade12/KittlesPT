@@ -36,9 +36,7 @@ namespace KittlesPT
 	class BSDF {
 	public:
 
-		__device__ BSDF(float3 x, float3 y, float3 z) :tangent_matrix(Mat3(x, y, z)) {};
-
-		//BSDF(float3 tang, float3 bitan, float3 n) :tangentMatrix(Mat3(tang, bitan, n)) {};
+		__device__ BSDF(float3 t, float3 b, float3 n) :tangent_matrix(Mat3(t, b, n)) {};
 
 		__device__ BSDF(const Mat3& tangent_basis, float3 albedo, float roughness);
 

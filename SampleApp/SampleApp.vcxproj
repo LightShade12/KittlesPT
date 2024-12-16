@@ -114,7 +114,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include;$(SolutionDir)KittlesPT\include;$(SolutionDir)KittlesPT\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include;$(SolutionDir)KittlesPT\include;$(SolutionDir)KittlesPT\src;$(ProjectDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include;$(SolutionDir)KittlesPT\include;$(SolutionDir)KittlesPT\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)thirdparty;$(ProjectDir)thirdparty\glad\include;$(ProjectDir)thirdparty\imgui;$(ProjectDir)thirdparty\glfw\include;$(SolutionDir)KittlesPT\include;$(SolutionDir)KittlesPT\src;$(ProjectDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -154,7 +154,10 @@
     <ClCompile Include="src\gui_application.hpp" />
     <ClCompile Include="src\imgui_themes.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\sample_app.cpp" />
+    <ClCompile Include="src\sample_app\camera_controller.cpp" />
+    <ClCompile Include="src\sample_app\sample_app.cpp" />
+    <ClCompile Include="src\sample_app\texture.cpp" />
+    <ClCompile Include="src\sample_app\widgets.cpp" />
     <ClCompile Include="thirdparty\glad\src\glad.c" />
     <ClCompile Include="thirdparty\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="thirdparty\imgui\backends\imgui_impl_opengl3.cpp" />
@@ -166,7 +169,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\imgui_themes.hpp" />
-    <ClInclude Include="src\sample_app.hpp" />
+    <ClInclude Include="src\sample_app\camera_controller.hpp" />
+    <ClInclude Include="src\sample_app\sample_app.hpp" />
+    <ClInclude Include="src\sample_app\texture.hpp" />
+    <ClInclude Include="src\sample_app\widgets.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

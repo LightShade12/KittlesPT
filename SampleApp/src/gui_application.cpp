@@ -1,5 +1,5 @@
 #include "gui_application.hpp"
-#include "sample_app.hpp"//TOOO: backend does not need to know of implementations
+#include "sample_app/sample_app.hpp"//TOOO: backend does not need to know of implementations
 
 void ToggleableSideWindow::draw(GLFWwindow* glfw_main_window, const char* window_title)
 {
@@ -139,6 +139,9 @@ void GUIApplication::init()
 		window_settings.initial_window_width,
 		window_settings.initial_window_height,
 		window_settings.glsl_version_formatted);
+
+	glClearColor(0.f, 0.24f, 0.3f, 1.f);
+
 	main_window->onCreate();//TODO: wrap into single GUIWindow::init()
 };
 

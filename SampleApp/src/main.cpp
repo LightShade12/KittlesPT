@@ -1,4 +1,4 @@
-﻿#include "sample_app.hpp"
+﻿#include "sample_app/sample_app.hpp"
 
 #include <iostream>
 
@@ -30,7 +30,6 @@ int main()
 
 	//===========================================
 
-	glClearColor(0.f, 0.24f, 0.3f, 1.f);
 
 	fprintf(stdout, "starting mainloop..\n");
 
