@@ -1,20 +1,18 @@
 #pragma once
 #include "imgui.h"
 
-//TODO: this is re*arded. any better way?
+//TODO: should this be the way?
 namespace ImGuiThemes
 {
+	void NightTheme();
 
-    void NightTheme();
+	void DarkRudra();
 
-    void DarkRudra();
+	void UE4();
 
-    void UE4();
+	void VS();
 
-    void VS();
+	void Dark();
 
-    void Dark();
-
-    void EmbraceTheDarkness();
-
+	void EmbraceTheDarkness();
 }

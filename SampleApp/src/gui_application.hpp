@@ -1,38 +1,14 @@
 #pragma once
-#include "imgui/imgui.h"
-#include "imgui/backends/imgui_impl_glfw.h"
-#include "imgui/backends/imgui_impl_opengl3.h"
-
-#include "glad/include/glad/glad.h"
-#define GLFW_INCLUDE_NONE //glad loader instead of local gl
-#include "glfw/include/GLFW/glfw3.h"
-
-#include "glm/glm.hpp"
-#include "imgui_themes.hpp"
-
 #include <iostream>
 
-class ToggleableSideWindow
+struct GLFWwindow;
+struct ImGuiContext;
+
+enum class AppStatus
 {
-public:
-
-	ToggleableSideWindow() :m_window_size(256, 512), m_collapsed_window_size(0, 0) {};
-
-	void draw(GLFWwindow* glfw_main_window, const char* window_title);
-
-	//custom window content updating; manually called
-	virtual void updateUI() = 0;
-
-protected:
-	//custom window content rendering; called by draw()
-	virtual void renderUI() = 0;
-
-private:
-	int m_glfw_window_pos_x = 0, m_glfw_window_pos_y = 0;
-	int m_glfw_window_width = 0, m_glfw_window_height = 0;
-	ImVec2 m_collapsed_window_size;
-	bool m_is_toggled = false;
-	ImVec2 m_window_size;
+	NONE = 0,
+	FAILURE,
+	SUCCESS
 };
 
 class GUIWindow
@@ -46,7 +22,7 @@ public:
 		std::string window_title = "default title";
 	};
 
-	GUIWindow(WindowConfig window_config);
+	GUIWindow() = default;
 
 protected:
 	virtual void onCreate() = 0;
@@ -56,16 +32,16 @@ protected:
 	//custom gui content update handling
 	virtual void updateUI() = 0;
 public:
-	void init();//created because pure virtual function cannot run in constrcutor
+	AppStatus init(WindowConfig window_config);//created because pure virtual function cannot run in constrcutor
 	void processAndDraw();
 
 	void setCurrent();
 
-	bool shouldClose() { return glfwWindowShouldClose(m_window_ctx_handle); };
+	bool shouldClose();
 	void destroy();
 
 	bool isValid() { return m_window_ctx_handle != nullptr; }
-private:
+public:
 	int m_window_width = 0, m_window_height = 0;
 	ImGuiContext* m_imgui_ctx_handle = nullptr;
 	GLFWwindow* m_window_ctx_handle = nullptr;
@@ -75,7 +51,7 @@ class GUIApplication
 {
 public:
 
-	void init();
+	void init(std::shared_ptr<GUIWindow> window);
 
 	void run();
 

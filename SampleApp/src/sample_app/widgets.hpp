@@ -1,6 +1,8 @@
 #pragma once
 #include "gui_application.hpp"
+#include "gui_widgets.hpp"
 #include "texture.hpp"
+
 #include <chrono>
 
 class DeveloperWindow : public ToggleableSideWindow

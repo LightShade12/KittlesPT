@@ -1,4 +1,8 @@
 #include "widgets.hpp"
+#include "glad/include/glad/glad.h"
+#define GLFW_INCLUDE_NONE //glad loader instead of local gl
+#include "glfw/include/GLFW/glfw3.h"
+#include "glm/glm.hpp"
 
 //===========================================================================================
 //BACKGROUND TEXTURE

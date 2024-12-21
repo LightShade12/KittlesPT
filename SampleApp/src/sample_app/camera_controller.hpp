@@ -3,10 +3,10 @@
 
 struct GLFWwindow;
 
-class Camera
+class CameraController
 {
 public:
-	Camera() = default;
+	CameraController() = default;
 
 	bool processInput(GLFWwindow* window_ctx, float delta_ts_ms);
 	glm::mat4 getViewMatrix();

@@ -8,7 +8,7 @@
 constexpr static glm::vec3 global_up(0, 1, 0);
 static glm::vec2 last_mouse_pos;
 
-bool Camera::processInput(GLFWwindow* window_ctx, float delta_ts_ms)
+bool CameraController::processInput(GLFWwindow* window_ctx, float delta_ts_ms)
 {
 	double xpos, ypos;
 	glfwGetCursorPos(window_ctx, &xpos, &ypos);
@@ -81,7 +81,7 @@ bool Camera::processInput(GLFWwindow* window_ctx, float delta_ts_ms)
 	return m_moved;
 }
 
-glm::mat4 Camera::getViewMatrix()
+glm::mat4 CameraController::getViewMatrix()
 {
 	glm::mat4 view
 	(
@@ -94,7 +94,7 @@ glm::mat4 Camera::getViewMatrix()
 	return view;
 }
 
-float Camera::getVerticalFOV_Radians()
+float CameraController::getVerticalFOV_Radians()
 {
 	return m_fov_y_rad;
 }

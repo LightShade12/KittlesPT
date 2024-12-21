@@ -1,56 +1,25 @@
 #include "gui_application.hpp"
-#include "sample_app/sample_app.hpp"
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
 
-//TODO: backend does not need to know of implementations
+#include "glad/include/glad/glad.h"
+#define GLFW_INCLUDE_NONE //glad loader instead of local gl
+#include "glfw/include/GLFW/glfw3.h"
 
-void ToggleableSideWindow::draw(GLFWwindow* glfw_main_window, const char* window_title)
+#include "glm/glm.hpp"
+#include "imgui_themes.hpp"
+
+AppStatus GUIWindow::init(WindowConfig window_config)
 {
-	glfwGetFramebufferSize(glfw_main_window, &m_glfw_window_width, &m_glfw_window_height);
-	glfwGetWindowPos(glfw_main_window, &m_glfw_window_pos_x, &m_glfw_window_pos_y);
-
-	ImGui::SetNextWindowPos({ m_glfw_window_pos_x + m_glfw_window_width - ((!m_is_toggled) ? m_window_size.x : m_collapsed_window_size.x),
-							  m_glfw_window_pos_y + (m_glfw_window_height / 2.0f) - (((!m_is_toggled) ? m_window_size.y : m_collapsed_window_size.y) / 2.0f) });
-
-	if (!m_is_toggled)
-	{
-		ImGui::SetNextWindowSize(ImVec2(
-			glm::clamp(m_window_size.x, 0.0f, (float)m_glfw_window_width),
-			glm::clamp(m_window_size.y, 0.0f, (float)m_glfw_window_height)));
-		ImGui::Begin(window_title);
-		if (ImGui::Button("Hide window")) { m_is_toggled = !m_is_toggled; }
-		ImGui::Separator();
-
-		renderUI();
-
-		m_window_size = ImGui::GetWindowSize();
-		ImGui::End();
-	}
-	else
-	{
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0);
-		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75);
-
-		ImGui::Begin("###hidden_toggle_window", (bool*)0,
-			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
-		m_collapsed_window_size = ImGui::GetWindowSize();
-		if (ImGui::Button("Show window")) { m_is_toggled = !m_is_toggled; }
-		ImGui::End();
-		ImGui::PopStyleVar(2);
-	}
-}
-
-GUIWindow::GUIWindow(WindowConfig window_config)
-	:m_window_width(window_config.initial_window_width),
-	m_window_height(window_config.initial_window_height)
-{
+	m_window_width = window_config.initial_window_width;
+	m_window_height = window_config.initial_window_height;
 	m_window_ctx_handle = glfwCreateWindow(m_window_width, m_window_height, window_config.window_title.c_str(),
 		NULL, NULL);
 
 	if (!isValid())
 	{
-		glfwTerminate();
-		printf("failed to create window\n");
-		exit(EXIT_FAILURE);
+		return AppStatus::FAILURE;
 	}
 
 	setCurrent();
@@ -69,12 +38,11 @@ GUIWindow::GUIWindow(WindowConfig window_config)
 
 	ImGui_ImplOpenGL3_Init(window_config.glsl_version_formatted);
 	ImGui_ImplGlfw_InitForOpenGL(m_window_ctx_handle, true);
-}
 
-void GUIWindow::init()
-{
 	glClearColor(0.f, 0.24f, 0.3f, 1.f);
 	onCreate();
+
+	return AppStatus::SUCCESS;
 }
 
 void GUIWindow::processAndDraw()
@@ -121,6 +89,11 @@ void GUIWindow::setCurrent()
 		ImGui::SetCurrentContext(m_imgui_ctx_handle);
 	}
 }
+bool GUIWindow::shouldClose()
+{
+	return glfwWindowShouldClose(m_window_ctx_handle);
+}
+
 void GUIWindow::destroy()
 {
 	onDestroy();
@@ -132,8 +105,10 @@ static void glfw_error_callback(int error, const char* description)
 	fprintf(stderr, "GLFW Error: %s\n", description);
 }
 
-void GUIApplication::init()
+void GUIApplication::init(std::shared_ptr<GUIWindow> window)
 {
+	main_window = window;
+
 	glfwSetErrorCallback(glfw_error_callback);
 
 	if (!glfwInit()) {
@@ -146,10 +121,13 @@ void GUIApplication::init()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
-	window_settings.window_title = "main window";
-
-	main_window = std::make_shared<SampleAppWindow>(window_settings);
-	main_window->init();
+	AppStatus stat = main_window->init(window_settings);
+	if (stat == AppStatus::FAILURE)
+	{
+		printf("failed to create window\n");
+		glfwTerminate();
+		exit(EXIT_FAILURE);
+	}
 };
 
 void GUIApplication::run()

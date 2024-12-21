@@ -4,10 +4,12 @@
 
 int main()
 {
-	GUIApplication application;
-
 	fprintf(stdout, "Initializing app\n");
-	application.init();
+
+	GUIApplication application;
+	application.window_settings.window_title = "main window";
+
+	application.init(std::make_shared<SampleAppWindow>());
 
 	//logging--------
 	int gl_ver_minor, gl_ver_major, gl_extensions_num;

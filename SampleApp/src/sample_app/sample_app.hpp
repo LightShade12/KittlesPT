@@ -21,6 +21,6 @@ public:
 	GLTexture m_viewport_texture;
 	DeveloperWindow m_developer_window;
 	BackgroundTexture m_viewport;
-	Camera m_camera;
+	CameraController m_camera;
 	KittlesPT::Renderer m_renderer;
 };
