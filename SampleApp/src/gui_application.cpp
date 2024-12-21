@@ -96,7 +96,11 @@ bool GUIWindow::shouldClose()
 
 void GUIWindow::destroy()
 {
+	//order matters
 	onDestroy();
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 	glfwDestroyWindow(m_window_ctx_handle);
 };
 
@@ -140,10 +144,6 @@ void GUIApplication::run()
 
 void GUIApplication::destroy()
 {
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
-
 	main_window->destroy();
 	glfwTerminate();
 };
