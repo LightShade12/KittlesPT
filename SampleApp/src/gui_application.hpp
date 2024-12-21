@@ -20,11 +20,11 @@ public:
 
 	void draw(GLFWwindow* glfw_main_window, const char* window_title);
 
-	//custom window content updating
+	//custom window content updating; manually called
 	virtual void updateUI() = 0;
 
-private:
-	//custom window content rendering
+protected:
+	//custom window content rendering; called by draw()
 	virtual void renderUI() = 0;
 
 private:
@@ -35,43 +35,45 @@ private:
 	ImVec2 m_window_size;
 };
 
-class GUIWindow {
+class GUIWindow
+{
 public:
+	struct WindowConfig
+	{
+		const int initial_window_width = 640 + 16;
+		const int initial_window_height = 700;
+		const char* glsl_version_formatted = "#version 460";
+		std::string window_title = "default title";
+	};
 
-	GUIWindow(const char* title, int initial_width, int initial_height, const char* glsl_version_formatted);
+	GUIWindow(WindowConfig window_config);
 
+protected:
 	virtual void onCreate() = 0;
 	virtual void onDestroy() = 0;
 	//custom gui content rendering
 	virtual void renderUI() = 0;
 	//custom gui content update handling
 	virtual void updateUI() = 0;
-
+public:
+	void init();//created because pure virtual function cannot run in constrcutor
 	void processAndDraw();
 
 	void setCurrent();
 
 	bool shouldClose() { return glfwWindowShouldClose(m_window_ctx_handle); };
 	void destroy();
-	
 
 	bool isValid() { return m_window_ctx_handle != nullptr; }
-
-public:
+private:
 	int m_window_width = 0, m_window_height = 0;
 	ImGuiContext* m_imgui_ctx_handle = nullptr;
 	GLFWwindow* m_window_ctx_handle = nullptr;
 };
 
-class GUIApplication {
+class GUIApplication
+{
 public:
-	//TODO: this should be owned by window?
-	struct WindowConfig
-	{
-		const int initial_window_width = 640 + 16;
-		const int initial_window_height = 700;
-		const char* glsl_version_formatted = "#version 460";
-	};
 
 	void init();
 
@@ -81,6 +83,6 @@ public:
 
 public:
 
-	WindowConfig window_settings;
+	GUIWindow::WindowConfig window_settings;
 	std::shared_ptr<GUIWindow> main_window;
 };

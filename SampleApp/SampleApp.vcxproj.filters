@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
+    <ClCompile Include="src\sample_app\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="thirdparty\glad\src\glad.c">

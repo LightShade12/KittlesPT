@@ -1,4 +1,4 @@
-﻿#include "sample_app/sample_app.hpp"
+﻿#include "sample_app.hpp"
 
 #include <iostream>
 
@@ -29,7 +29,6 @@ int main()
 	//------logging
 
 	//===========================================
-
 
 	fprintf(stdout, "starting mainloop..\n");
 

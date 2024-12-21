@@ -1,8 +1,9 @@
 #pragma once
 #include "imgui.h"
 
-//TODO: this is "regarded"
-namespace ImGuiThemes {
+//TODO: this is re*arded. any better way?
+namespace ImGuiThemes
+{
 
     void NightTheme();
 

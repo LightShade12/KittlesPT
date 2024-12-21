@@ -1,5 +1,7 @@
 #include "gui_application.hpp"
-#include "sample_app/sample_app.hpp"//TOOO: backend does not need to know of implementations
+#include "sample_app/sample_app.hpp"
+
+//TODO: backend does not need to know of implementations
 
 void ToggleableSideWindow::draw(GLFWwindow* glfw_main_window, const char* window_title)
 {
@@ -37,10 +39,13 @@ void ToggleableSideWindow::draw(GLFWwindow* glfw_main_window, const char* window
 	}
 }
 
-GUIWindow::GUIWindow(const char* title, int initial_width, int initial_height, const char* glsl_version_formatted)
-	:m_window_width(initial_width), m_window_height(initial_height)
+GUIWindow::GUIWindow(WindowConfig window_config)
+	:m_window_width(window_config.initial_window_width),
+	m_window_height(window_config.initial_window_height)
 {
-	m_window_ctx_handle = glfwCreateWindow(m_window_width, m_window_height, title, NULL, NULL);
+	m_window_ctx_handle = glfwCreateWindow(m_window_width, m_window_height, window_config.window_title.c_str(),
+		NULL, NULL);
+
 	if (!isValid())
 	{
 		glfwTerminate();
@@ -62,8 +67,14 @@ GUIWindow::GUIWindow(const char* title, int initial_width, int initial_height, c
 
 	ImGuiThemes::DarkRudra();
 
-	ImGui_ImplOpenGL3_Init(glsl_version_formatted);
+	ImGui_ImplOpenGL3_Init(window_config.glsl_version_formatted);
 	ImGui_ImplGlfw_InitForOpenGL(m_window_ctx_handle, true);
+}
+
+void GUIWindow::init()
+{
+	glClearColor(0.f, 0.24f, 0.3f, 1.f);
+	onCreate();
 }
 
 void GUIWindow::processAndDraw()
@@ -135,14 +146,10 @@ void GUIApplication::init()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
-	main_window = std::make_shared<SampleAppWindow>("main_window",
-		window_settings.initial_window_width,
-		window_settings.initial_window_height,
-		window_settings.glsl_version_formatted);
+	window_settings.window_title = "main window";
 
-	glClearColor(0.f, 0.24f, 0.3f, 1.f);
-
-	main_window->onCreate();//TODO: wrap into single GUIWindow::init()
+	main_window = std::make_shared<SampleAppWindow>(window_settings);
+	main_window->init();
 };
 
 void GUIApplication::run()
