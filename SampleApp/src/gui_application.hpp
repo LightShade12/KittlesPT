@@ -4,61 +4,64 @@
 struct GLFWwindow;
 struct ImGuiContext;
 
-enum class AppStatus
+namespace SampleAppGUI
 {
-	NONE = 0,
-	FAILURE,
-	SUCCESS
-};
-
-class GUIWindow
-{
-public:
-	struct WindowConfig
+	enum class AppStatus
 	{
-		const int initial_window_width = 640 + 16;
-		const int initial_window_height = 700;
-		const char* glsl_version_formatted = "#version 460";
-		std::string window_title = "default title";
+		NONE = 0,
+		FAILURE,
+		SUCCESS
 	};
 
-	GUIWindow() = default;
+	class GUIWindow
+	{
+	public:
+		struct WindowConfig
+		{
+			const int initial_window_width = 640 + 16;
+			const int initial_window_height = 700;
+			const char* glsl_version_formatted = "#version 460";
+			std::string window_title = "default title";
+		};
 
-protected:
-	virtual void onCreate() = 0;
-	virtual void onDestroy() = 0;
-	//custom gui content rendering
-	virtual void renderUI() = 0;
-	//custom gui content update handling
-	virtual void updateUI() = 0;
-public:
-	AppStatus init(WindowConfig window_config);//created because pure virtual function cannot run in constrcutor
-	void processAndDraw();
+		GUIWindow() = default;
 
-	void setCurrent();
+	protected:
+		virtual void onCreate() = 0;
+		virtual void onDestroy() = 0;
+		//custom gui content rendering
+		virtual void renderUI() = 0;
+		//custom gui content update handling
+		virtual void updateUI() = 0;
+	public:
+		AppStatus init(WindowConfig window_config);//created because pure virtual function cannot run in constrcutor
+		void processAndDraw();
 
-	bool shouldClose();
-	void destroy();
+		void setCurrent();
 
-	bool isValid() { return m_window_ctx_handle != nullptr; }
-public:
-	int m_window_width = 0, m_window_height = 0;
-	ImGuiContext* m_imgui_ctx_handle = nullptr;
-	GLFWwindow* m_window_ctx_handle = nullptr;
-};
+		bool shouldClose();
+		void destroy();
 
-class GUIApplication
-{
-public:
+		bool isValid() { return m_window_ctx_handle != nullptr; }
+	public:
+		int m_window_width = 0, m_window_height = 0;
+		ImGuiContext* m_imgui_ctx_handle = nullptr;
+		GLFWwindow* m_window_ctx_handle = nullptr;
+	};
 
-	void init(std::shared_ptr<GUIWindow> window);
+	class GUIApplication
+	{
+	public:
 
-	void run();
+		void init(std::shared_ptr<GUIWindow> window);
 
-	void destroy();
+		void run();
 
-public:
+		void destroy();
 
-	GUIWindow::WindowConfig window_settings;
-	std::shared_ptr<GUIWindow> main_window;
-};
+	public:
+
+		GUIWindow::WindowConfig window_settings;
+		std::shared_ptr<GUIWindow> main_window;
+	};
+}

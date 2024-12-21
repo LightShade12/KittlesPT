@@ -4,23 +4,26 @@
 #include "widgets.hpp"
 #include "kittles_pt/kittles_pt.hpp"
 
-class SampleAppWindow : public GUIWindow
+namespace SampleApp
 {
-public:
+	class SampleAppWindow : public SampleAppGUI::GUIWindow
+	{
+	public:
 
-	using GUIWindow::GUIWindow;
+		using GUIWindow::GUIWindow;
 
-	void onCreate() override;
-	void onDestroy() override;
+		void onCreate() override;
+		void onDestroy() override;
 
-	void renderUI() override;
+		void renderUI() override;
 
-	void updateUI() override;
+		void updateUI() override;
 
-public:
-	GLTexture m_viewport_texture;
-	DeveloperWindow m_developer_window;
-	BackgroundTexture m_viewport;
-	CameraController m_camera;
-	KittlesPT::Renderer m_renderer;
-};
+	public:
+		GLTexture m_viewport_texture;
+		DeveloperWindow m_developer_window;
+		BackgroundTexture m_viewport;
+		CameraController m_camera;
+		KittlesPT::Renderer m_renderer;
+	};
+}

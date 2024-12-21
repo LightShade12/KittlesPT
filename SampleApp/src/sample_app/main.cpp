@@ -1,15 +1,14 @@
 ﻿#include "sample_app.hpp"
-
 #include <iostream>
 
 int main()
 {
 	fprintf(stdout, "Initializing app\n");
 
-	GUIApplication application;
+	SampleAppGUI::GUIApplication application;
 	application.window_settings.window_title = "main window";
 
-	application.init(std::make_shared<SampleAppWindow>());
+	application.init(std::make_shared<SampleApp::SampleAppWindow>());
 
 	//logging--------
 	int gl_ver_minor, gl_ver_major, gl_extensions_num;

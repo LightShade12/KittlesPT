@@ -5,32 +5,35 @@
 
 #include <chrono>
 
-class DeveloperWindow : public ToggleableSideWindow
+namespace SampleApp
 {
-public:
-	void updateUI() override;
-	float getDeltaTS() const { return delta_time_secs.count(); };
-private:
+	class DeveloperWindow : public SampleAppGUI::ToggleableSideWindow
+	{
+	public:
+		void updateUI() override;
+		float getDeltaTS() const { return delta_time_secs.count(); };
+	private:
 
-	void renderUI() override;
+		void renderUI() override;
 
-private:
-	float start_time_secs = std::chrono::duration_cast<std::chrono::duration<float>>(
-		std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-	std::chrono::time_point<std::chrono::steady_clock> last_frame_time_point;
-	std::chrono::duration<float> delta_time_secs;
-	float average_fps = 0;
-};
+	private:
+		float start_time_secs = std::chrono::duration_cast<std::chrono::duration<float>>(
+			std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+		std::chrono::time_point<std::chrono::steady_clock> last_frame_time_point;
+		std::chrono::duration<float> delta_time_secs;
+		float average_fps = 0;
+	};
 
-class BackgroundTexture
-{
-public:
+	class BackgroundTexture
+	{
+	public:
 
-	void init(GLTexture bg_texture);
+		void init(GLTexture bg_texture);
 
-	//no custom RenderUI() content
-	void draw(GLFWwindow* window_ctx);
+		//no custom RenderUI() content
+		void draw(GLFWwindow* window_ctx);
 
-private:
-	GLTexture m_background_texture;
-};
+	private:
+		GLTexture m_background_texture;
+	};
+}
