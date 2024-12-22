@@ -8,7 +8,7 @@ namespace KittlesPT
 	class Film
 	{
 	public:
-		__device__ float3 getDisplayL(float3 HDR_radiance) const;
+		__device__ float3 getDisplayRGB(float3 HDR_radiance) const;
 	};
 
 	class Camera

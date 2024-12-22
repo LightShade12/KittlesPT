@@ -1,10 +1,13 @@
 #pragma once
 
 #include "ray.cuh"
-#include "../maths/linear_algebra.cuh"
+#include "bsdf.cuh"
+#include "maths/linear_algebra.cuh"
 
 namespace KittlesPT
 {
+	struct GlobalShaderData;
+
 	struct Intersection
 	{
 		__device__ bool operator ! ();
@@ -16,8 +19,12 @@ namespace KittlesPT
 	{
 		float distance = -1;
 		float3 world_position;
-		float3 world_normal;
+		float3 world_geometric_normal;
 		int material_id = -1;
+
+		__device__ BSDF getBSDF(const GlobalShaderData& shader_data);
+
+		__device__ Ray spawnRay(float3 wi);
 	};
 
 	class Sphere

@@ -123,7 +123,7 @@ namespace KittlesPT
 		}
 	}
 
-	__device__ float3 KittlesPT::Film::getDisplayL(float3 HDR_radiance) const
+	__device__ float3 KittlesPT::Film::getDisplayRGB(float3 HDR_radiance) const
 	{
 		float3 display_color = AgxMinimal::agx_fitted(HDR_radiance);
 		display_color = AgxMinimal::agxLook(display_color);

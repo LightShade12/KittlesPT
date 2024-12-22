@@ -38,7 +38,10 @@ namespace KittlesPT
 
 		__device__ BSDF(float3 t, float3 b, float3 n) :tangent_matrix(Mat3(t, b, n)) {};
 
-		__device__ BSDF(const Mat3& tangent_basis, float3 albedo, float roughness);
+		__device__ BSDF(const Mat3& tangent_basis,
+			float3 albedo,
+			float metallicity,
+			float roughness);
 
 		__device__ float3 f(float3 r_wo, float3 r_wi) const;
 
@@ -48,19 +51,19 @@ namespace KittlesPT
 
 	private:
 
-		__device__ float3 sampleGlossyMicrofacetBRDF_VNDF(float3 wo, float2 u2) const;
-
-		__device__ float3 fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
-
-		__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
-
 		//------
-
 		__device__ BSDFSample sampleOpaqueDielectric(float3 wo, float2 u2, float X) const;
 
 		__device__ float3 fOpaqueDielectric(float3 wo, float3 wi) const;
 
 		__device__ float pdfOpaqueDielectric(float3 wo, float3 wi) const;
+
+		//---------
+		__device__ BSDFSample sampleConductor(float3 wo, float2 u2, float X) const;
+
+		__device__ float3 fConductor(float3 wo, float3 wi, float3 albedo) const;
+
+		__device__ float pdfConductor(float3 wo, float3 wi) const;
 
 		//diffuse brdf
 		__device__ float3 sampleDiffuseBRDF(float2 u2) const;
@@ -69,9 +72,19 @@ namespace KittlesPT
 
 		__device__ float pdfDiffuseBRDF(float3 wo, float3 wi) const;
 
+		//microfacet glossy brdf
+		__device__ float3 sampleGlossyMicrofacetBRDF_VNDF(float3 wo, float2 u2) const;
+
+		__device__ float3 fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
+
+		__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
+
 	public:
 		float3 albedo_factor = make_float3(1, 0, 0);
 		float roughness = 0.5f;
+		float metallicity = 0.0f;
+
+		float alpha = 1.0f;//roughness sq
 		float ior = 1.45f;
 		Mat3 tangent_matrix;
 	};

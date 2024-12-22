@@ -45,24 +45,22 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	//============================================
 	float2 ndc_coord = uv_coord * 2 - 1;
 	IndependentSampler sampler;
-	sampler.initPixelSeed(pixel_coord, frame_res.x, shader_data.frame_index + 1);
+	sampler.initPixelSeed(pixel_coord, frame_res.x, shader_data.frame_index + 1);//TODO: make sample index internally non-zero
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(ndc_coord, frame_res);
 
-	float3 frag_color = make_float3(ndc_coord.x, ndc_coord.y, 0.25);
+	//evaluate integral(f(x)/p(x)) at Xi
+	float3 sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray, sampler);
 
-	frag_color = Integrator::sensorL(shader_data, primary_ray, sampler);
-
-	//accum
+	//Monte-Carlo estimation; static accumulation
 	shader_data.accumulation_texture.textureWrite(
-		make_float4(frag_color + make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)), 1),
+		make_float4(sensor_radiance + make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)), 1),
 		pixel_coord);
+	sensor_radiance = make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)) / ((float)shader_data.frame_index + 1);
 
-	frag_color = make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)) / ((float)shader_data.frame_index + 1);
-
-	//post proc
-	frag_color *= 2.5f;
-	frag_color = shader_data.scene_camera.film.getDisplayL(frag_color);
+	//post process
+	sensor_radiance *= 2.5f;
+	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(sensor_radiance);
 
 	shader_data.main_texture.textureWrite(make_float4(frag_color, 1), pixel_coord);
 }

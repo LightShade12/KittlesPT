@@ -4,8 +4,13 @@
 
 namespace KittlesPT
 {
-	BSDF::BSDF(const Mat3& tangent_basis, float3 albedo, float roughness) :
-		albedo_factor(albedo), roughness(roughness)
+	BSDF::BSDF(const Mat3& tangent_basis,
+		float3 albedo,
+		float metallicity,
+		float roughness) :
+		albedo_factor(albedo),
+		metallicity(metallicity),
+		roughness(roughness)
 	{
 		tangent_matrix = tangent_basis;
 	}
@@ -31,7 +36,20 @@ namespace KittlesPT
 	{
 		float path_probability = X2.x;
 		float3 wo = tangent_matrix.inverse() * w_wo;
-		BSDFSample bs = sampleOpaqueDielectric(wo, u2, X2.y);
+
+		float prob_metallic = metallicity;
+
+		BSDFSample bs;
+
+		if (path_probability < prob_metallic)
+		{
+			bs = sampleConductor(wo, u2, X2.y);
+		}
+		else
+		{
+			bs = sampleOpaqueDielectric(wo, u2, X2.y);
+		}
+
 		bs.wi = tangent_matrix * bs.wi;
 		return bs;
 	}
@@ -211,5 +229,49 @@ namespace KittlesPT
 		float pDiffuse = pdfDiffuseBRDF(wo, wi);
 		//return pDiffuse;
 		return (0.5f) * (pSpec + pDiffuse);
+	}
+
+	//===========================================================================================================
+	//CONDUCTOR BSDF
+	//===========================================================================================================
+	__device__ float3 fresnelSchlick(float VoH, float3 F0)
+	{
+		float3 F = F0 + (1.0 - F0) * ::powf(1.0 - VoH, 5.0);
+		return clamp(F, 0, 1);
+	}
+
+	__device__ BSDFSample BSDF::sampleConductor(float3 wo, float2 u2, float X) const
+	{
+		float path_probability = X;
+
+		float3 wi = sampleDiffuseBRDF(u2);
+		float3 f = fConductor(wo, wi, albedo_factor);
+		float pdf = pdfDiffuseBRDF(wo, wi);
+
+		return BSDFSample(BSDFSample::Diffuse | BSDFSample::Reflected, f, wi, pdf);
+	}
+	__device__ float3 BSDF::fConductor(float3 wo, float3 wi, float3 albedo) const
+	{
+		float3 h = normalize(wo + wi);
+		float NoV = clamp(wo.z, 0.f, 1.f);
+		float NoL = clamp(wi.z, 0.f, 1.f);
+		if (NoV == 0 || NoL == 0)
+		{
+			return make_float3(0);
+		}
+
+		float VoH = clamp(dot(wo, h), 0.f, 1.f);
+		float3 M = make_float3(0);
+		if (NoL > 0 && VoH > 0)
+		{
+			float3 F = fresnelSchlick(VoH, albedo);
+			M = F * microFacetBRDF(wo, wi, h, roughness);
+		}
+		return M;
+	}
+
+	__device__ float BSDF::pdfConductor(float3 wo, float3 wi) const
+	{
+		return 1.0f;
 	}
 }
