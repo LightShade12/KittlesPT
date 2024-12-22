@@ -88,8 +88,8 @@ namespace KittlesPT
 		float dotNL = fabs(wi.z);
 		float dotNV = fmaxf(0, wo.z);
 
-		float denomA = dotNV * sqrtf(a2 + (1.0f - a2) * dotNL * dotNL);
-		float denomB = dotNL * sqrtf(a2 + (1.0f - a2) * dotNV * dotNV);
+		float denomA = dotNV * sqrtf(a2 + (1.0f - a2) * Sqr(dotNL));
+		float denomB = dotNL * sqrtf(a2 + (1.0f - a2) * Sqr(dotNV));
 
 		return 2.0f * dotNL * dotNV / (denomA + denomB);
 	}
@@ -134,10 +134,7 @@ namespace KittlesPT
 		//below expects squared roughness
 		float D = D_GGX(NoH, roughness);
 		float G = G2_Smith(wo, wi, roughness);
-		//printf("<%.3f>", NoL);
-		//NoL = 1.0f;
 		float out = (D * G) / (4 * fmaxf(NoV, 0.0001f) * NoL);
-		//float out = (G * AbsDot(wo, h)) / (fmaxf(NoV, 0.0001f) * NoH);
 		if (wi.z <= 0.0f || dot(wi, h) <= 0)
 		{
 			out = 0.0f;
@@ -149,10 +146,6 @@ namespace KittlesPT
 	__device__ float3 BSDF::fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const
 	{
 		float Mss = microFacetBRDF(wo, wi, h, roughness);
-		/*	if (isinf(Mss))
-			{
-				printf("<inf:Mss>");
-			}*/
 
 		float Fss = fresnelDielectric(dot(wo, h), ior);
 		float3 F = make_float3(Fss * Mss);
@@ -195,17 +188,31 @@ namespace KittlesPT
 	{
 		float path_probability = Xi;
 
+		float glossy_prob = 0.5;
+
+		if (path_probability < glossy_prob)
+		{
+			//Glossy scatter path----------------------
+
+			float3 h = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
+			float3 wi = reflect(-wo, h);
+
+			float3 f = fGlossyMicrofacetBRDF(wo, wi, h);
+			f *= (1.0f / glossy_prob);
+
+			float pdf = pdfGlossyMicrofacetBRDF(wo, wi, h);
+
+			return BSDFSample(BSDFSample::Diffuse | BSDFSample::Reflected, f, wi, pdf);
+		}
+
 		//Diffuse scatter path----------------------
 
 		float3 wi = sampleDiffuseBRDF(u2);
-		float3 f = albedo_factor * fDiffuseBRDF(wo, wi);
-		float pdf = pdfDiffuseBRDF(wo, wi);
 
-		//Glossy
-		float3 h = normalize(wi + wo);
-		float3 spec = fGlossyMicrofacetBRDF(wo, wi, h);
-		f *= (1.0f - spec);
-		f += spec;
+		float3 f = albedo_factor * fDiffuseBRDF(wo, wi);
+		f *= (1.0f / (1.0f - glossy_prob));
+
+		float pdf = pdfDiffuseBRDF(wo, wi);
 
 		return BSDFSample(BSDFSample::Diffuse | BSDFSample::Reflected, f, wi, pdf);
 	}
@@ -218,6 +225,7 @@ namespace KittlesPT
 		float3 cDiffuse = (1.0f - glossy);
 
 		float3 diffuse = cDiffuse * albedo_factor * fDiffuseBRDF(wo, wi);
+
 		return diffuse + glossy;
 	}
 
@@ -227,7 +235,7 @@ namespace KittlesPT
 		float pSpec = pdfGlossyMicrofacetBRDF(wo, wi, h);
 
 		float pDiffuse = pdfDiffuseBRDF(wo, wi);
-		//return pDiffuse;
+
 		return (0.5f) * (pSpec + pDiffuse);
 	}
 
@@ -244,9 +252,10 @@ namespace KittlesPT
 	{
 		float path_probability = X;
 
-		float3 wi = sampleDiffuseBRDF(u2);
+		float3 h = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
+		float3 wi = reflect(-wo, h);
 		float3 f = fConductor(wo, wi, albedo_factor);
-		float pdf = pdfDiffuseBRDF(wo, wi);
+		float pdf = pdfGlossyMicrofacetBRDF(wo, wi, h);
 
 		return BSDFSample(BSDFSample::Diffuse | BSDFSample::Reflected, f, wi, pdf);
 	}
@@ -272,6 +281,7 @@ namespace KittlesPT
 
 	__device__ float BSDF::pdfConductor(float3 wo, float3 wi) const
 	{
-		return 1.0f;
+		float3 h = normalize(wo + wi);
+		return pdfGlossyMicrofacetBRDF(wo, wi, h);
 	}
 }

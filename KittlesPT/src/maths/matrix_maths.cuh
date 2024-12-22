@@ -330,4 +330,5 @@ namespace KittlesPT
 	using Mat3 = Matrix3x3;
 
 	__device__ Mat3 generateOrthonormalBasis(const float3& normal);
+	__device__ Mat3 generateONBFrisvad(float3 normal);
 }

@@ -30,7 +30,7 @@ namespace KittlesPT
 	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data)
 	{
 		const Material& mat = shader_data.materials_buffer.data[material_id];
-		BSDF bsdf = BSDF(generateOrthonormalBasis(world_geometric_normal),
+		BSDF bsdf = BSDF(generateONBFrisvad(world_geometric_normal),
 			mat.albedo,
 			mat.metallicity,
 			mat.roughness);

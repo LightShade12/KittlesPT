@@ -39,9 +39,9 @@ namespace KittlesPT
 		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3), 1));
 
 		m_renderer_data->scene_materials.push_back(Material(
-			make_float3(0.8, 0.8, 0.8),
+			make_float3(0.3, 0.3, 0.3),
 			0.0,
-			0.3));
+			0.2));
 
 		m_renderer_data->scene_materials.push_back(Material(
 			make_float3(0.6, 0.6, 0.6),
