@@ -41,7 +41,8 @@ namespace KittlesPT
 		__device__ BSDF(const Mat3& tangent_basis,
 			float3 albedo,
 			float metallicity,
-			float roughness);
+			float roughness,
+			float transmission);
 
 		__device__ float3 f(float3 r_wo, float3 r_wi) const;
 
@@ -50,21 +51,22 @@ namespace KittlesPT
 		__device__ BSDFSample sampleBSDF(float3 w_wo, float2 u2, float2 X2) const;
 
 	private:
-
-		//------
+		//BSDFs========================================================
+		//Opaque Dielectric BSDF--------------
 		__device__ BSDFSample sampleOpaqueDielectric(float3 wo, float2 u2, float X) const;
 
 		__device__ float3 fOpaqueDielectric(float3 wo, float3 wi) const;
 
 		__device__ float pdfOpaqueDielectric(float3 wo, float3 wi) const;
 
-		//---------
+		//Conductor BSDF---------
 		__device__ BSDFSample sampleConductor(float3 wo, float2 u2, float X) const;
 
 		__device__ float3 fConductor(float3 wo, float3 wi, float3 albedo) const;
 
 		__device__ float pdfConductor(float3 wo, float3 wi) const;
 
+		//BRDFs========================================================
 		//diffuse brdf
 		__device__ float3 sampleDiffuseBRDF(float2 u2) const;
 
@@ -83,9 +85,10 @@ namespace KittlesPT
 		float3 albedo_factor = make_float3(1, 0, 0);
 		float roughness = 0.5f;
 		float metallicity = 0.0f;
+		float transmission = 0.0f;
+		float ior = 1.45f;
 
 		float alpha = 1.0f;//roughness sq
-		float ior = 1.45f;
 		Mat3 tangent_matrix;
 	};
 }

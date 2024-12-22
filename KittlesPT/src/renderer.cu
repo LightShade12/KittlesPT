@@ -1,8 +1,8 @@
 #include "renderer.hpp"
 
 #include "maths/vector_maths.cuh"
-#include "shaders/device_texture_buffer.cuh"
 #include "containers.cuh"
+#include "shaders/device_texture_buffer.cuh"
 #include "shaders/kernels.cuh"
 #include "shaders/material.cuh"
 
@@ -35,18 +35,34 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
 
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 0));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(-1.5, 0, -3), 0));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 2));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(1.5, 0, -3), 3));
 		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3), 1));
 
 		m_renderer_data->scene_materials.push_back(Material(
-			make_float3(0.3, 0.3, 0.3),
+			make_float3(0.95, 0.1, 0.1),
 			0.0,
-			0.2));
+			0.1,
+			0.0f));
 
 		m_renderer_data->scene_materials.push_back(Material(
-			make_float3(0.6, 0.6, 0.6),
+			make_float3(0.8, 0.8, 0.8),
 			0.0,
-			1.0));
+			0.8,
+			0.0f));
+
+		m_renderer_data->scene_materials.push_back(Material(
+			make_float3(0.8, 0.8, 0.8),
+			1.0,
+			0.2,
+			0.0f));
+
+		m_renderer_data->scene_materials.push_back(Material(
+			make_float3(0.9, 0.9, 0.9),
+			0.0,
+			0.1,
+			1.0f));
 
 		//submit
 

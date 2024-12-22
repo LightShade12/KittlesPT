@@ -7,10 +7,12 @@ namespace KittlesPT
 	BSDF::BSDF(const Mat3& tangent_basis,
 		float3 albedo,
 		float metallicity,
-		float roughness) :
+		float roughness,
+		float transmission) :
 		albedo_factor(albedo),
 		metallicity(metallicity),
-		roughness(roughness)
+		roughness(roughness),
+		transmission(transmission)
 	{
 		tangent_matrix = tangent_basis;
 	}

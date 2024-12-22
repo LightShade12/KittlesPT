@@ -5,8 +5,8 @@ namespace KittlesPT
 {
 	struct Material
 	{
-		__device__ __host__ Material(float3 albedo, float metallicity, float roughness) :
-			albedo(albedo), metallicity(metallicity), roughness(roughness) {}
+		__device__ __host__ Material(float3 albedo, float metallicity, float roughness, float transmission) :
+			albedo(albedo), metallicity(metallicity), roughness(roughness), transmission(transmission) {}
 
 		//----
 		float3 albedo = make_float3(0.8);
