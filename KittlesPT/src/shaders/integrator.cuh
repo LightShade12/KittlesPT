@@ -49,7 +49,7 @@ namespace KittlesPT
 		{
 			float3 light = make_float3(0);
 			float3 throughput = make_float3(1);
-			Atmosphere atmosphere(normalize(make_float3(1, 1, 1)), 20.0f);
+			Atmosphere atmosphere(normalize(make_float3(-1, 1, -1)), 20.0f);
 
 			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
 			Ray ray = ray_in;

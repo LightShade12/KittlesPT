@@ -27,7 +27,19 @@ namespace KittlesPT
 		//float3 wo = w_wo;
 		float3 wi = tangent_matrix.inverse() * w_wi;
 
-		return fOpaqueDielectric(wo, wi);
+		float cMetallic = metallicity;
+		float cTransmissiveDielectric = (1.f - cMetallic) * transmission;
+		float cOpaqueDielectric = (1.f - cMetallic) * (1.f - transmission);
+
+		float3 out = make_float3(0);
+
+		if (cMetallic > 0.f) out += cMetallic * fConductor(wo, wi);
+		if (cTransmissiveDielectric > 0.f) out += cTransmissiveDielectric * fTransparentDielectric(wo, wi);
+		if (cOpaqueDielectric > 0.f) out += cOpaqueDielectric * fOpaqueDielectric(wo, wi);
+
+		return out;
+
+		//return fOpaqueDielectric(wo, wi);
 	}
 
 	__device__ float BSDF::pdf(float3 w_wo, float3 w_wi) const
@@ -35,7 +47,19 @@ namespace KittlesPT
 		float3 wi = tangent_matrix.inverse() * w_wi;
 		//float3 wo = w_wo;
 		float3 wo = tangent_matrix.inverse() * w_wo;
-		return pdfOpaqueDielectric(wo, wi);
+
+		float pMetallic = metallicity;
+		float pTransmissiveDielectric = (1.f - pMetallic) * transmission;
+		float pOpaqueDielectric = (1.f - pMetallic) * (1.f - transmission);
+
+		float pdf = 0;
+		if (pMetallic > 0.f)pdf += pMetallic * pdfConductor(wo, wi);
+		if (pTransmissiveDielectric > 0.f)pdf += pTransmissiveDielectric * pdfTransparentDielectric(wo, wi);
+		if (pOpaqueDielectric > 0.f)pdf += pOpaqueDielectric * pdfOpaqueDielectric(wo, wi);
+
+		return pdf;
+
+		//return pdfOpaqueDielectric(wo, wi);
 	}
 
 	__device__ BSDFSample BSDF::sampleBSDF(float3 w_wo, float2 u2, float2 X2) const
@@ -265,12 +289,12 @@ namespace KittlesPT
 
 		float3 h = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
 		float3 wi = reflect(-wo, h);
-		float3 f = fConductor(wo, wi, albedo_factor);
+		float3 f = fConductor(wo, wi);
 		float pdf = pdfGlossyMicrofacetBRDF(wo, wi, h);
 
 		return BSDFSample(BSDFSample::Glossy | BSDFSample::Reflected, f, wi, pdf);
 	}
-	__device__ float3 BSDF::fConductor(float3 wo, float3 wi, float3 albedo) const
+	__device__ float3 BSDF::fConductor(float3 wo, float3 wi) const
 	{
 		float3 h = normalize(wo + wi);
 		float NoV = clamp(wo.z, 0.f, 1.f);
@@ -284,7 +308,7 @@ namespace KittlesPT
 		float3 M = make_float3(0);
 		if (NoL > 0 && VoH > 0)
 		{
-			float3 F = fresnelSchlick(VoH, albedo);
+			float3 F = fresnelSchlick(VoH, albedo_factor);
 			M = F * microFacetBRDF(wo, wi, h, roughness);
 		}
 		return M;

@@ -64,7 +64,7 @@ namespace KittlesPT
 		//Conductor BSDF---------
 		__device__ BSDFSample sampleConductor(float3 wo, float2 u2, float X) const;
 
-		__device__ float3 fConductor(float3 wo, float3 wi, float3 albedo) const;
+		__device__ float3 fConductor(float3 wo, float3 wi) const;
 
 		__device__ float pdfConductor(float3 wo, float3 wi) const;
 
