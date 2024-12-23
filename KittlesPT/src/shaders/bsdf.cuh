@@ -42,7 +42,9 @@ namespace KittlesPT
 			float3 albedo,
 			float metallicity,
 			float roughness,
-			float transmission);
+			float transmission,
+			float ior,
+			bool is_backface);
 
 		__device__ float3 f(float3 r_wo, float3 r_wi) const;
 
@@ -66,6 +68,13 @@ namespace KittlesPT
 
 		__device__ float pdfConductor(float3 wo, float3 wi) const;
 
+		//Transparent Dielectric BSDF--------------
+		__device__ BSDFSample sampleTransparentDielectric(float3 wo, float2 u2, float X) const;
+
+		__device__ float3 fTransparentDielectric(float3 wo, float3 wi) const;
+
+		__device__ float pdfTransparentDielectric(float3 wo, float3 wi) const;
+
 		//BRDFs========================================================
 		//diffuse brdf
 		__device__ float3 sampleDiffuseBRDF(float2 u2) const;
@@ -86,7 +95,8 @@ namespace KittlesPT
 		float roughness = 0.5f;
 		float metallicity = 0.0f;
 		float transmission = 0.0f;
-		float ior = 1.45f;
+		float IOR = 1.45f;
+		bool backface = false;
 
 		float alpha = 1.0f;//roughness sq
 		Mat3 tangent_matrix;

@@ -13,11 +13,29 @@ namespace KittlesPT
 		float discriminant = h * h - a * c;
 
 		Intersection intr;
-		if (discriminant < 0) {
+		if (discriminant < 0)
+		{
 			intr.distance = -1.0;
 		}
-		else {
-			intr.distance = (h - sqrtf(discriminant)) / a;
+		else
+		{
+			float sqrtD = sqrtf(discriminant);
+			float t1 = (h - sqrtD) / a; // Smaller root
+			float t2 = (h + sqrtD) / a; // Larger root
+
+			// Choose the closest positive root
+			if (t1 > 0.0f)
+			{
+				intr.distance = t1;
+			}
+			else if (t2 > 0.0f)
+			{
+				intr.distance = t2;
+			}
+			else
+			{
+				intr.distance = -1.0f; // Both roots are negative
+			}
 		}
 		return intr;
 	}
@@ -33,12 +51,24 @@ namespace KittlesPT
 		BSDF bsdf = BSDF(generateONBFrisvad(world_geometric_normal),
 			mat.albedo,
 			mat.metallicity,
-			mat.roughness);
+			mat.roughness,
+			mat.transmission,
+			mat.ior,
+			backface);
 		return bsdf;
 	}
-	__device__ Ray SurfaceInteraction::spawnRay(float3 wi)
+
+	__device__ Ray SurfaceInteraction::spawnRay(float3 wi, int scatter_flags)
 	{
-		float3 ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
+		float3 ray_orig;
+		if (scatter_flags & BSDFSample::Scatter::Transmitted)
+		{
+			ray_orig = world_position;
+		}
+		else
+		{
+			ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
+		}
 		return Ray(ray_orig, wi);
 	}
 }

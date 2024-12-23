@@ -21,10 +21,11 @@ namespace KittlesPT
 		float3 world_position;
 		float3 world_geometric_normal;
 		int material_id = -1;
+		bool backface = false;
 
 		__device__ BSDF getBSDF(const GlobalShaderData& shader_data);
 
-		__device__ Ray spawnRay(float3 wi);
+		__device__ Ray spawnRay(float3 wi, int scatter_flags);
 	};
 
 	class Sphere

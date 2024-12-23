@@ -13,10 +13,15 @@ namespace KittlesPT
 		__device__ SurfaceInteraction closestHit(const Ray& ray, const Intersection& intr, const Sphere& sp)
 		{
 			SurfaceInteraction surfintr;
-
+			float3 wo = -ray.getDirection();
 			surfintr.world_position = ray.getPointAt(intr.distance);
 			surfintr.distance = intr.distance;
 			surfintr.world_geometric_normal = normalize(surfintr.world_position - sp.world_position);
+			if (dot(surfintr.world_geometric_normal, wo) < 0)
+			{
+				surfintr.world_geometric_normal *= -1.0f;
+				surfintr.backface = true;
+			}
 			surfintr.material_id = sp.material_id;
 
 			return surfintr;
@@ -46,7 +51,7 @@ namespace KittlesPT
 			float3 throughput = make_float3(1);
 			Atmosphere atmosphere(normalize(make_float3(1, 1, 1)), 20.0f);
 
-			constexpr int MAX_RAY_DEPTH = 3;//TODO: put in a constants file or sumn?
+			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
 			Ray ray = ray_in;
 
 			for (int bounce_depth = 0; bounce_depth < MAX_RAY_DEPTH; bounce_depth++)
@@ -72,15 +77,17 @@ namespace KittlesPT
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 
+				if (bs.scatterTypeIs(BSDFSample::Absorbed)) { break; }
+
 				float3 wi = bs.wi;
 				float pdf = bs.pdf;
 
-				float3 fcos = bs.f * dot(surfintr.world_geometric_normal, wi);
-				if (!fcos) break;
+				float3 fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);
+				if (!fcos) { break; }
 
 				throughput *= (fcos / pdf);
 
-				ray = surfintr.spawnRay(wi);
+				ray = surfintr.spawnRay(wi, bs.scatter);
 			}
 
 			return light;

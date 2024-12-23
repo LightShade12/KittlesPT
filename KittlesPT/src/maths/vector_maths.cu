@@ -12,9 +12,9 @@ namespace KittlesPT
 		return fabsf(dot(a, b));
 	}
 
-	__device__ bool refract(const float3& wi, float3 normal, float ior, float3& wt)
+	__device__ bool refract(const float3& wo, float3 normal, float ior, float3& wt)
 	{
-		float cosTheta = dot(wi, normal);
+		float cosTheta = dot(wo, normal);
 
 		if (cosTheta < 0.0f) {
 			ior = 1.0f / ior;
@@ -27,7 +27,7 @@ namespace KittlesPT
 		if (sin2Theta_t >= 1.0f) return false;
 
 		float cosTheta_t = sqrtf(1.0f - sin2Theta_t);
-		wt = (-1.f * wi) / ior + (cosTheta / ior - cosTheta_t) * normal;
+		wt = (-1.f * wo) / ior + (cosTheta / ior - cosTheta_t) * normal;
 		return true;
 	}
 
@@ -50,6 +50,8 @@ namespace KittlesPT
 	{
 		return make_float3(::powf(a.x, b.x), ::powf(a.y, b.y), ::powf(a.z, b.z));
 	}
+
+	//TODO: is z-up only for tangent space; fix inconsistency
 	__device__ float3 sphericalToCartesian(float theta, float phi)
 	{
 		float3 wm;
