@@ -300,6 +300,32 @@ namespace KittlesPT
 	//TRANSPARENT DIELECTRIC BSDF
 	//===========================================================================================================
 
+	__device__ float BSDF::pdfGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
+	{
+		const float temp = dot(wi, ht) * ior + dot(wo, ht);
+		const float dwm_dwi = AbsDot(wi, ht) / (temp * temp);
+
+		const float NoH = fabs(ht.z);
+		const float D = D_GGX(NoH, roughness);
+		float Fss = fresnelDielectric(AbsDot(wo, ht), ior);
+		const float pdf = (D * NoH) * dwm_dwi * (1.0f - Fss);
+
+		return pdf;
+	}
+	__device__ float3 BSDF::fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
+	{
+		const float NoH = fabs(ht.z);
+		const float temp = dot(wi, ht) * ior + dot(wo, ht);
+		float Fss = fresnelDielectric(AbsDot(wo, ht), ior);
+		const float Tss =
+			D_GGX(NoH, roughness) * G2_Smith(wo, wi, roughness) *
+			fabs(dot(wi, ht) * dot(wo, ht) / (wi.z * wo.z * temp * temp));
+
+		float3 f = (1.0f - Fss) * Tss * albedo_factor;
+
+		return f;
+	}
+
 	__device__ BSDFSample BSDF::sampleTransparentDielectric(float3 wo, float2 u2, float X) const
 	{
 		float path_probability = X;
@@ -311,15 +337,16 @@ namespace KittlesPT
 
 		float3 wi;
 		bool tir = !refract(wo, ht, ior, wi);
+
 		if ((path_probability < Fss) || tir)
 		{
 			//Reflection path---------
 
 			wi = reflect(-wo, ht);
-			/*if (!sameHemisphere(wi, wo, make_float3(0, 0, 1)))
+			if (!sameHemisphere(wi, wo, make_float3(0, 0, 1)))
 			{
 				return BSDFSample(BSDFSample::Absorbed, { 0,0,0 }, { 0,0,0 }, 0);
-			}*/
+			}
 
 			float Mss = microFacetBRDF(wo, wi, ht, roughness);
 			float3 f = make_float3(Fss * Mss);
@@ -328,26 +355,17 @@ namespace KittlesPT
 			return BSDFSample(BSDFSample::Reflected | BSDFSample::Glossy, f, wi, pdf);
 		}
 		//Refraction path---------
-		/*if (tir || sameHemisphere(wi, wo, make_float3(0, 0, 1)) || wi.z == 0.0f)
+		if (tir || sameHemisphere(wi, wo, make_float3(0, 0, 1)) || wi.z == 0.0f)
 		{
 			return BSDFSample(BSDFSample::Absorbed, { 0,0,0 }, { 0,0,0 }, 0);
-		}*/
+		}
 
 		//BTDF
 		const float temp = dot(wi, ht) * ior + dot(wo, ht);
-		const float dwm_dwi = AbsDot(wi, ht) / (temp * temp);
 
-		const float VoH = fmaxf(dot(wo, ht), 0.0f);
-		const float NoH = fabs(ht.z);
-		const float D = D_GGX(NoH, roughness);
-		const float pdf = (D * NoH) * dwm_dwi * (1.0f - Fss);
+		const float pdf = pdfGlossyMicrofacetBTDF(wo, wi, ht, ior);
 
-		// Single-scattering BSDF
-		const float Tss =
-			D_GGX(NoH, roughness) * G2_Smith(wo, wi, roughness) *
-			fabs(dot(wi, ht) * dot(wo, ht) / (wi.z * wo.z * temp * temp));
-
-		float3 f = (1.0f - Fss) * Tss * albedo_factor;
+		float3 f = fGlossyMicrofacetBTDF(wo, wi, ht, ior);
 		/*refract(wo, make_float3(0, 0, 1), ior, wi);
 		f = make_float3(1);
 		pdf = 1.0f;*/

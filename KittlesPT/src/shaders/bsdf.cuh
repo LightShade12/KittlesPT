@@ -90,6 +90,11 @@ namespace KittlesPT
 
 		__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
 
+		//microfacet glossy btdf
+		__device__ float pdfGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
+
+		__device__ float3 fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
+
 	public:
 		float3 albedo_factor = make_float3(1, 0, 0);
 		float roughness = 0.5f;

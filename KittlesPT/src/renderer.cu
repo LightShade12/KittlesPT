@@ -62,7 +62,7 @@ namespace KittlesPT
 			1.45f));
 
 		m_renderer_data->scene_materials.push_back(Material(
-			make_float3(1.0, 1.0, 1.0),
+			make_float3(0.0, 1.0, 0.0),
 			0.0,
 			0.15,
 			1.0f,
