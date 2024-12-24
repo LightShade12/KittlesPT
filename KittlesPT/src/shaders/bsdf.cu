@@ -385,14 +385,8 @@ namespace KittlesPT
 		}
 
 		//BTDF
-		const float temp = dot(wi, ht) * ior + dot(wo, ht);
-
 		const float pdf = pdfGlossyMicrofacetBTDF(wo, wi, ht, ior);
-
 		float3 f = fGlossyMicrofacetBTDF(wo, wi, ht, ior);
-		/*refract(wo, make_float3(0, 0, 1), ior, wi);
-		f = make_float3(1);
-		pdf = 1.0f;*/
 		return BSDFSample(BSDFSample::Transmitted | BSDFSample::Glossy, f, wi, pdf);
 	}
 	__device__ float3 BSDF::fTransparentDielectric(float3 wo, float3 wi) const

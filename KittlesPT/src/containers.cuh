@@ -22,7 +22,7 @@ namespace KittlesPT
 		int2 frame_resolution;
 		int frame_index = 0;
 		float frame_delta = 0.0f;
-		Buffer<Sphere> scene_buffer;
+		Buffer<Sphere> geometry_buffer;
 		Buffer<Material> materials_buffer;
 		Camera scene_camera;
 		DeviceTextureBuffer main_texture;

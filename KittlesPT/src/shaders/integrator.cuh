@@ -32,9 +32,9 @@ namespace KittlesPT
 			Intersection closest;
 			closest.distance = INFINITY;
 
-			for (int instance_id = 0; instance_id < shader_data.scene_buffer.num; instance_id++)
+			for (int instance_id = 0; instance_id < shader_data.geometry_buffer.num; instance_id++)
 			{
-				const Sphere& sphere = shader_data.scene_buffer.data[instance_id];
+				const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
 				Intersection intr = sphere.intersect(ray);
 				if (intr.distance < closest.distance && intr.distance >= 0)
 				{
@@ -63,23 +63,23 @@ namespace KittlesPT
 				if (!intr)
 				{
 					//miss
-
-					float3 color = atmosphere.Le(make_float3(0, atmosphere.m_earthRadius + 1, 0),
+					float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earthRadius + 1, 0);
+					float3 sky_radiance = atmosphere.Le(atmosphere_observer_position,
 						normalize(ray.getDirection()), 0, FLT_MAX);
-					light += color * throughput;
+					light += sky_radiance * throughput;
 					break;
 				}
 
 				//hit
 				float3 wo = -ray.getDirection();
 
-				SurfaceInteraction surfintr = closestHit(ray, intr, shader_data.scene_buffer.data[intr.instance_id]);
+				SurfaceInteraction surfintr = closestHit(ray, intr, shader_data.geometry_buffer.data[intr.instance_id]);
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 
 				if (bs.scatterTypeIs(BSDFSample::Absorbed)) { break; }
 
-				float3 wi = bs.wi;
+				const float3& wi = bs.wi;
 				float pdf = bs.pdf;
 
 				float3 fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);

@@ -68,9 +68,9 @@ namespace KittlesPT
 			1.0f,
 			1.85f));
 
-		//submit
+		//submit---------
 
-		m_renderer_data->shader_global_data.scene_buffer =
+		m_renderer_data->shader_global_data.geometry_buffer =
 			Buffer<Sphere>(thrust::raw_pointer_cast(
 				m_renderer_data->scene_spheres.data()),
 				m_renderer_data->scene_spheres.size());
