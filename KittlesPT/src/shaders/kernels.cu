@@ -24,7 +24,7 @@ namespace KittlesPT
 			shader_data.frame_resolution.y / thread_block_y + 1);
 
 		computePathTraceSamples << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data);
-
+		cudaDeviceSynchronize();
 		checkCudaErrors(cudaGetLastError());
 	}
 }

@@ -18,7 +18,7 @@ namespace SampleApp
 	// Custom hash function for Event
 	struct EventHash
 	{
-		std::size_t operator()(const Event& event) const;
+		std::size_t operator()(const Event& event_) const;
 	};
 
 	class Listener
@@ -35,13 +35,13 @@ namespace SampleApp
 	class EventDispatcher
 	{
 	public:
-		void registerListener(const Event& event, const Listener& listener);
+		void registerListener(const Event& event_, const Listener& listener);
 
 		template<typename T>
-		void emitSignal(const Event& event, const T& data)
+		void emitSignal(const Event& event_, const T& data)
 		{
-			if (m_listeners.find(event) != m_listeners.end()) {
-				for (const Listener& listener : m_listeners[event]) {
+			if (m_listeners.find(event_) != m_listeners.end()) {
+				for (const Listener& listener : m_listeners[event_]) {
 					listener.invoke(std::make_any<T>(data));
 				}
 			}

@@ -4,6 +4,7 @@
 #include "texture.hpp"
 #include "event_dispatcher.hpp"
 #include "camera_controller.hpp"
+#include "shared_state.hpp"
 
 #include <chrono>
 
@@ -13,10 +14,11 @@ namespace SampleApp
 	{
 	public:
 		void updateUI() override;
-		void init(EventDispatcher* dispatcher, CameraController* camera)
+		void init(EventDispatcher* dispatcher, CameraController* camera, ApplicationData* app_data)
 		{
 			event_dispatcher_ref = dispatcher;
 			camera_controller_ref = camera;
+			shared_data_ref = app_data;
 		};
 		float getDeltaTS() const { return delta_time_secs.count(); };
 	private:
@@ -24,6 +26,7 @@ namespace SampleApp
 		void renderUI() override;
 
 	private:
+		ApplicationData* shared_data_ref = nullptr;
 		EventDispatcher* event_dispatcher_ref = nullptr;
 		CameraController* camera_controller_ref = nullptr;
 		float start_time_secs = std::chrono::duration_cast<std::chrono::duration<float>>(

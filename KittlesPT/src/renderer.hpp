@@ -20,6 +20,23 @@ namespace KittlesPT
 
 		void getRenderTargetTexture(GLuint r_texture);
 
+		bool setMaterial(int idx,
+			glm::vec3 albedo_factor,
+			float metallicity,
+			float roughness,
+			float transmission,
+			float ior
+		);
+		bool getMaterial(int idx,
+			glm::vec3* albedo_factor,
+			float* metallicity,
+			float* roughness,
+			float* transmission,
+			float* ior
+		);
+
+		int getMaterialsCount();
+
 		void setExposure(float exposure);
 
 		void resetAccumulation();

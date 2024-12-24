@@ -142,6 +142,47 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"].copyTo(r_texture);
 	}
 
+	bool Renderer::setMaterial(int idx, glm::vec3 albedo_factor, float metallicity, float roughness, float transmission, float ior)
+	{
+		if (idx >= m_renderer_data->scene_materials.size())
+		{
+			return false;
+		}
+
+		Material material(
+			make_float3(albedo_factor.r, albedo_factor.g, albedo_factor.b),
+			metallicity,
+			roughness,
+			transmission,
+			ior);
+		m_renderer_data->scene_materials[idx] = material;
+
+		resetAccumulation();
+
+		return true;
+	}
+
+	bool Renderer::getMaterial(int idx, glm::vec3* albedo_factor, float* metallicity, float* roughness, float* transmission, float* ior)
+	{
+		if (idx >= m_renderer_data->scene_materials.size())
+		{
+			return false;
+		}
+		Material mat = m_renderer_data->scene_materials[idx];
+		*albedo_factor = glm::vec3(mat.albedo.x, mat.albedo.y, mat.albedo.z);
+		*metallicity = mat.metallicity;
+		*roughness = mat.roughness;
+		*transmission = mat.transmission;
+		*ior = mat.ior;
+
+		return true;
+	}
+
+	int Renderer::getMaterialsCount()
+	{
+		return m_renderer_data->scene_materials.size();
+	}
+
 	void Renderer::setExposure(float exposure)
 	{
 		m_renderer_data->shader_global_data.scene_camera.film.exposure = exposure;

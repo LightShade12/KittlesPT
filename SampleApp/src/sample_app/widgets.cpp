@@ -1,4 +1,6 @@
 #include "widgets.hpp"
+
+#include "shared_state.hpp"
 #include "glad/include/glad/glad.h"
 #define GLFW_INCLUDE_NONE //glad loader instead of local gl
 #include "glfw/include/GLFW/glfw3.h"
@@ -52,8 +54,6 @@ namespace SampleApp
 		last_frame_time_point = current_frame_time_point;
 	}
 
-	static glm::vec3 color;
-
 	void DeveloperWindow::renderUI()
 	{
 		ImGui::Text("Delta ms(last frame): %.3f ms", delta_time_secs.count() * 1000.0f);
@@ -87,11 +87,22 @@ namespace SampleApp
 			};
 		}
 		ImGui::SeparatorText("Material edit");
-		ImGui::SliderInt("Object selection:", (int*)&color.r, 0, 1);
-		ImGui::ColorEdit3("Albedo factor", &color.r);
-		ImGui::SliderFloat("Metallicity", &color.r, 0, 1);
-		ImGui::SliderFloat("Isotropic roughness", &color.r, 0, 1);
-		ImGui::SliderFloat("Transmission", &color.r, 0, 1);
-		ImGui::SliderFloat("IOR", &color.r, 0, 2);
+		bool material_updated = false;
+		if (ImGui::SliderInt("Material selection:", &shared_data_ref->editable_material_idx,
+			0, shared_data_ref->materials_count - 1))
+		{
+			event_dispatcher_ref->emitSignal(Event("material_changed"), true);
+		};
+
+		Material material = shared_data_ref->editable_material;
+		material_updated |= ImGui::ColorEdit3("Albedo factor", &material.albedo.r);
+		material_updated |= ImGui::SliderFloat("Metallicity", &material.metallicity, 0, 1);
+		material_updated |= ImGui::SliderFloat("Isotropic roughness", &material.roughness, 0, 1);
+		material_updated |= ImGui::SliderFloat("Transmission", &material.transmission, 0, 1);
+		material_updated |= ImGui::SliderFloat("IOR", &material.ior, 0, 2);
+		if (material_updated)
+		{
+			event_dispatcher_ref->emitSignal(Event("material_updated"), material);
+		}
 	}
 }

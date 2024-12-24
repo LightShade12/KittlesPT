@@ -13,11 +13,49 @@ namespace SampleApp
 		m_viewport_texture.init(m_window_width, m_window_height);
 		m_viewport.init(m_viewport_texture);
 		m_renderer.init();
+		m_application_data.editable_material;
+		m_renderer.getMaterial(m_application_data.editable_material_idx,
+			&m_application_data.editable_material.albedo,
+			&m_application_data.editable_material.metallicity,
+			&m_application_data.editable_material.roughness,
+			&m_application_data.editable_material.transmission,
+			&m_application_data.editable_material.ior
+		);
+
+		m_application_data.materials_count = m_renderer.getMaterialsCount();
+
 		m_event_dispatcher.registerListener(Event("exposure_changed"),
 			Listener([this](const std::any& data)
 				{
 					m_camera.setExposure(std::any_cast<float>(data));
 					m_renderer.setExposure(m_camera.getExposure());
+				}));
+
+		m_event_dispatcher.registerListener(Event("material_changed"),
+			Listener([this](const std::any& data)
+				{
+					m_renderer.getMaterial(m_application_data.editable_material_idx,
+						&m_application_data.editable_material.albedo,
+						&m_application_data.editable_material.metallicity,
+						&m_application_data.editable_material.roughness,
+						&m_application_data.editable_material.transmission,
+						&m_application_data.editable_material.ior
+						);
+				}));
+
+		m_event_dispatcher.registerListener(Event("material_updated"),
+			Listener([this](const std::any& data)
+				{
+					m_application_data.editable_material = std::any_cast<Material>(data);
+					const Material& mat = m_application_data.editable_material;
+
+					m_renderer.setMaterial(
+						m_application_data.editable_material_idx,
+						mat.albedo,
+						mat.metallicity,
+						mat.roughness,
+						mat.transmission,
+						mat.ior);
 				}));
 
 		m_event_dispatcher.registerListener(Event("fov_changed"),
@@ -30,7 +68,8 @@ namespace SampleApp
 					m_renderer.setView(proj, glm::inverse(view));
 				}));
 
-		m_developer_window.init(&m_event_dispatcher, &m_camera);
+		m_developer_window.init(&m_event_dispatcher, &m_camera,
+			&m_application_data);
 	}
 
 	void SampleAppWindow::onDestroy()

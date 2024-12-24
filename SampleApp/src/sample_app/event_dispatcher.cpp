@@ -2,9 +2,9 @@
 
 namespace SampleApp
 {
-	std::size_t EventHash::operator()(const Event& event) const
+	std::size_t EventHash::operator()(const Event& event_) const
 	{
-		return std::hash<std::string>{}(event.signal);
+		return std::hash<std::string>{}(event_.signal);
 	}
 
 	bool Event::operator==(const Event& other) const
@@ -15,8 +15,12 @@ namespace SampleApp
 	{
 		callback(data);
 	}
-	void EventDispatcher::registerListener(const Event& event, const Listener& listener)
+	void EventDispatcher::registerListener(const Event& event_, const Listener& listener)
 	{
-		m_listeners[event].emplace_back(listener);
+		if (m_listeners.find(event_) == m_listeners.end())
+		{
+			m_listeners[event_] = std::vector<Listener>();
+		}
+		m_listeners[event_].emplace_back(listener);
 	}
 }
