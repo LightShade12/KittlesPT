@@ -9,6 +9,8 @@ namespace KittlesPT
 	{
 	public:
 		__device__ float3 getDisplayRGB(float3 HDR_radiance) const;
+
+		float exposure = 1.0f;
 	};
 
 	class Camera

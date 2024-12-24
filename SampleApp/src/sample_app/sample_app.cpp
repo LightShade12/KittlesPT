@@ -13,6 +13,24 @@ namespace SampleApp
 		m_viewport_texture.init(m_window_width, m_window_height);
 		m_viewport.init(m_viewport_texture);
 		m_renderer.init();
+		m_event_dispatcher.registerListener(Event("exposure_changed"),
+			Listener([this](const std::any& data)
+				{
+					m_camera.setExposure(std::any_cast<float>(data));
+					m_renderer.setExposure(m_camera.getExposure());
+				}));
+
+		m_event_dispatcher.registerListener(Event("fov_changed"),
+			Listener([this](const std::any& data)
+				{
+					m_camera.setVerticalFOV_Radians(std::any_cast<float>(data));
+					glm::mat4 view = m_camera.getViewMatrix();
+					glm::mat4 proj = glm::perspectiveFovLH(m_camera.getVerticalFOV_Radians(),
+						float(m_window_width), float(m_window_height), 1.f, 100.f);
+					m_renderer.setView(proj, glm::inverse(view));
+				}));
+
+		m_developer_window.init(&m_event_dispatcher, &m_camera);
 	}
 
 	void SampleAppWindow::onDestroy()
@@ -36,9 +54,9 @@ namespace SampleApp
 	{
 		m_developer_window.updateUI();
 
-		bool view_moved = m_camera.processInput(m_window_ctx_handle, m_developer_window.getDeltaTS());
+		bool view_updated = m_camera.processInput(m_window_ctx_handle, m_developer_window.getDeltaTS());
 
-		if (view_moved)
+		if (view_updated)
 		{
 			glm::mat4 view = m_camera.getViewMatrix();
 			glm::mat4 proj = glm::perspectiveFovLH(m_camera.getVerticalFOV_Radians(),

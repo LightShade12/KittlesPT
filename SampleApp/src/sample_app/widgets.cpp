@@ -73,8 +73,19 @@ namespace SampleApp
 		ImGui::Separator();
 
 		ImGui::SeparatorText("Camera edit");
-		ImGui::SliderFloat("Exposure", &color.r, 0.0, 100.0, "%.3f unitless", ImGuiSliderFlags_Logarithmic);
-		ImGui::SliderAngle("FOV", &color.r, 0.0, 120.0);
+		if (camera_controller_ref != nullptr)
+		{
+			float fov_y_rad = camera_controller_ref->getVerticalFOV_Radians();
+			float exposure = camera_controller_ref->getExposure();
+			if (ImGui::SliderAngle("FOV", &fov_y_rad, 0.0, 120.0))
+			{
+				event_dispatcher_ref->emitSignal(Event("fov_changed"), fov_y_rad);
+			};
+			if (ImGui::SliderFloat("Exposure", &exposure, 0.0, 100.0,
+				"%.3f unitless", ImGuiSliderFlags_Logarithmic)) {
+				event_dispatcher_ref->emitSignal(Event("exposure_changed"), exposure);
+			};
+		}
 		ImGui::SeparatorText("Material edit");
 		ImGui::SliderInt("Object selection:", (int*)&color.r, 0, 1);
 		ImGui::ColorEdit3("Albedo factor", &color.r);

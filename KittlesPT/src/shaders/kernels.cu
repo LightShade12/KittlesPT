@@ -59,7 +59,7 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	sensor_radiance = make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)) / ((float)shader_data.frame_index + 1);
 
 	//post process
-	sensor_radiance *= 2.5f;
+	sensor_radiance *= shader_data.scene_camera.film.exposure;
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(sensor_radiance);
 	//frag_color = sensor_radiance / 2.5f;
 

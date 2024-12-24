@@ -92,6 +92,7 @@ namespace KittlesPT
 		m_renderer_data->scene_spheres.clear();//TODO: put this in destroy/destructor
 		m_renderer_data->scene_materials.clear();//TODO: put this in destroy/destructor
 		delete m_renderer_data;
+		m_renderer_data = nullptr;
 	}
 
 	void Renderer::resizeFrame(int width, int height)
@@ -141,6 +142,18 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"].copyTo(r_texture);
 	}
 
+	void Renderer::setExposure(float exposure)
+	{
+		m_renderer_data->shader_global_data.scene_camera.film.exposure = exposure;
+		resetAccumulation();
+	}
+
+	void Renderer::resetAccumulation()
+	{
+		glClearTexImage(m_renderer_data->m_frame_textures["accumulation_texture"].m_GL_texture, 0, GL_RGBA, GL_FLOAT, NULL);
+		m_renderer_data->shader_global_data.frame_index = 0;
+	}
+
 	void Renderer::setView(glm::mat4 projection_mat, glm::mat4 view_mat)
 	{
 		//TODO: skip inversion
@@ -148,7 +161,6 @@ namespace KittlesPT
 		Mat4 view = Mat4(view_mat);
 		m_renderer_data->shader_global_data.scene_camera.setView(proj.inverse(), view.inverse());
 		//reset accum
-		glClearTexImage(m_renderer_data->m_frame_textures["accumulation_texture"].m_GL_texture, 0, GL_RGBA, GL_FLOAT, NULL);
-		m_renderer_data->shader_global_data.frame_index = 0;
+		resetAccumulation();
 	}
 }

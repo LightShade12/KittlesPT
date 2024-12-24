@@ -100,4 +100,16 @@ namespace SampleApp
 	{
 		return m_fov_y_rad;
 	}
+	float CameraController::getExposure()
+	{
+		return m_exposure;
+	}
+	void CameraController::setExposure(float exposure)
+	{
+		m_exposure = exposure;
+	}
+	void CameraController::setVerticalFOV_Radians(float fov_y_rad)
+	{
+		m_fov_y_rad = fov_y_rad;
+	}
 }
