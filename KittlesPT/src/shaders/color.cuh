@@ -174,7 +174,8 @@ namespace KittlesPT
 		//UTILITIES
 		//================================================================================================================
 
-		//TODO:add clampOutput()
+		//max val=1000
+		__device__ RGBSpectrum clampOutput();
 
 		__device__  float maxComponentValue()
 		{

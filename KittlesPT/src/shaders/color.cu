@@ -55,4 +55,18 @@ namespace KittlesPT
 	{
 		return convertXYZ2RGB(convertYxy2XYZ(_Yxy));
 	}
+
+	//RGB SPECTRUM=========================================================
+
+	__device__ RGBSpectrum RGBSpectrum::clampOutput()
+	{
+		if ((checkNaN(toFloat3())) || (checkINF(toFloat3())))
+		{
+			return RGBSpectrum(0);
+		}
+		else
+		{
+			return RGBSpectrum(clamp(toFloat3(), 0, 1000));
+		}
+	}
 }

@@ -50,13 +50,13 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	Ray primary_ray = shader_data.scene_camera.generateRay(ndc_coord, frame_res);
 
 	//evaluate integral(f(x)/p(x)) at Xi
-	float3 sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray, sampler).toFloat3();
+	RGBSpectrum sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray, sampler);
 
 	//Monte-Carlo estimation; static accumulation
 	shader_data.accumulation_texture.textureWrite(
-		make_float4(sensor_radiance + make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)), 1),
+		make_float4(sensor_radiance.toFloat3() + make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)), 1),
 		pixel_coord);
-	sensor_radiance = make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)) / ((float)shader_data.frame_index + 1);
+	sensor_radiance = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(pixel_coord)) / ((float)shader_data.frame_index + 1);
 
 	//post process
 	sensor_radiance *= shader_data.scene_camera.film.exposure;
