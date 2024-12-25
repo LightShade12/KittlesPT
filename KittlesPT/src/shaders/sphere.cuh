@@ -8,13 +8,6 @@ namespace KittlesPT
 {
 	struct GlobalShaderData;
 
-	struct Intersection
-	{
-		__device__ bool operator ! ();
-		float distance = -1;
-		int instance_id = -1;
-	};
-
 	struct SurfaceInteraction
 	{
 		float distance = -1;
@@ -26,6 +19,16 @@ namespace KittlesPT
 		__device__ BSDF getBSDF(const GlobalShaderData& shader_data);
 
 		__device__ Ray spawnRay(float3 wi, int scatter_flags);
+	};
+
+	struct Intersection
+	{
+		__device__ bool operator ! ();
+		float distance = -1;
+		int instance_id = -1;
+
+		//closest hit shader
+		__device__ SurfaceInteraction getSurfaceInteraction(const GlobalShaderData& shader_data, const Ray& ray);
 	};
 
 	class Sphere

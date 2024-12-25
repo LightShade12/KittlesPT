@@ -45,6 +45,25 @@ namespace KittlesPT
 		return (instance_id < 0);
 	}
 
+	__device__ SurfaceInteraction Intersection::getSurfaceInteraction(const GlobalShaderData& shader_data, const Ray& ray)
+	{
+		SurfaceInteraction surfintr;
+		const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
+		float3 wo = -ray.getDirection();
+
+		surfintr.distance = distance;
+		surfintr.material_id = sphere.material_id;
+		surfintr.world_position = ray.getPointAt(distance);
+		surfintr.world_geometric_normal = normalize(surfintr.world_position - sphere.world_position);
+		if (dot(surfintr.world_geometric_normal, wo) < 0)
+		{
+			surfintr.world_geometric_normal *= -1.0f;
+			surfintr.backface = true;
+		}
+
+		return surfintr;
+	}
+
 	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data)
 	{
 		const Material& mat = shader_data.materials_buffer.data[material_id];

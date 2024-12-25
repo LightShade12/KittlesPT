@@ -27,12 +27,12 @@ namespace KittlesPT
 
 		float m_sun_intensity = 1;
 		float3 m_sun_position;             // The sun direction (normalized)
-		float m_earthRadius = 6360e3;      // In the paper this is usually Rg or Re (radius ground, eart)
-		float m_atmosphereRadius = 6420e3; // In the paper this is usually R or Ra (radius atmosphere)
+		float m_earth_radius = 6360e3;      // In the paper this is usually Rg or Re (radius ground, eart)
+		float m_atmosphere_radius = 6420e3; // In the paper this is usually R or Ra (radius atmosphere)
 		float Hr = 7994;                   // Thickness of the atmosphere if density was uniform (Hr)
 		float Hm = 1200;                   // Same as above but for Mie scattering (Hm)
 
-		const float3 beta_R_scattering = make_float3(3.8e-6f, 13.5e-6f, 33.1e-6f);
-		const float3 beta_M_scattering = make_float3(21e-6f);
+		const float3 betaR_scattering_coeff = make_float3(3.8e-6f, 13.5e-6f, 33.1e-6f);
+		const float3 betaM_scattering_coeff = make_float3(21e-6f);
 	};
 }

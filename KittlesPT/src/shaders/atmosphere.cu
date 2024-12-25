@@ -44,7 +44,7 @@ namespace KittlesPT
 	{
 		float t0, t1;
 		// miss atmosphere
-		if (!intersectSphere(t_orig, t_dir, make_float3(0), m_atmosphereRadius, t0, t1) || t1 < 0)
+		if (!intersectSphere(t_orig, t_dir, make_float3(0), m_atmosphere_radius, t0, t1) || t1 < 0)
 		{
 			return make_float3(0);
 		}
@@ -72,7 +72,7 @@ namespace KittlesPT
 		for (uint32_t i = 0; i < m_num_samples; ++i)
 		{
 			const float3 sample_position = t_orig + (current_t + step_length * 0.5f) * t_dir;
-			const float height = length(sample_position) - m_earthRadius;
+			const float height = length(sample_position) - m_earth_radius;
 
 			// compute optical depth for this step
 			const float hr = exp(-height / Hr) * step_length;
@@ -83,7 +83,7 @@ namespace KittlesPT
 			// optical depth sum for light for this step
 			float t0_light, t1_light;
 			intersectSphere(sample_position, sun_dir, make_float3(0),
-				m_atmosphereRadius, t0_light, t1_light);
+				m_atmosphere_radius, t0_light, t1_light);
 			const float step_length_light = t1_light / m_num_samples_light;
 
 			float current_t_light = 0;
@@ -94,7 +94,7 @@ namespace KittlesPT
 			for (j = 0; j < m_num_samples_light; ++j)
 			{
 				const float3 sample_position_light = sample_position + (current_t_light + step_length_light * 0.5f) * sun_dir;
-				const float height_light = length(sample_position_light) - m_earthRadius;
+				const float height_light = length(sample_position_light) - m_earth_radius;
 				if (height_light < 0) // if sun dir points/sample_pos is below horizon/earth
 					break;
 				sum_R_optical_depth_light += exp(-height_light / Hr) * step_length_light;
@@ -103,8 +103,8 @@ namespace KittlesPT
 			}
 			if (j == m_num_samples_light) // last iter
 			{
-				float3 beta_R_extinction = beta_R_scattering;
-				float3 beta_M_extinction = beta_M_scattering * 1.1f;
+				float3 beta_R_extinction = betaR_scattering_coeff;
+				float3 beta_M_extinction = betaM_scattering_coeff * 1.1f;
 
 				// transmittance; grouping optical_depth sum for sunlight and view transmittance calcs
 				float3 tau = beta_R_extinction * (sum_R_optical_depth + sum_R_optical_depth_light) + beta_M_extinction * (sum_M_optical_depth + sum_M_optical_depth_light);
@@ -118,9 +118,9 @@ namespace KittlesPT
 			current_t += step_length;
 		}
 
-		float3 col = (sum_R_transmission * beta_R_scattering * phaseR + sum_M_transmission * beta_M_scattering * phaseM) * m_sun_intensity;
-		//float3 col = (sum_R_transmission * beta_R_scattering * phaseR) * m_sun_intensity;//rayleigh only
-		//float3 col = (sum_M_transmission * beta_M_scattering * phaseM) * m_sun_intensity; //mie only
+		float3 col = (sum_R_transmission * betaR_scattering_coeff * phaseR + sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity;
+		//float3 col = (sum_R_transmission * betaR_scattering_coeff * phaseR) * m_sun_intensity;//rayleigh only
+		//float3 col = (sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity; //mie only
 		return col;
 	}
 }

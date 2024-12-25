@@ -10,23 +10,6 @@ namespace KittlesPT
 {
 	namespace Integrator
 	{
-		__device__ SurfaceInteraction closestHit(const Ray& ray, const Intersection& intr, const Sphere& sp)
-		{
-			SurfaceInteraction surfintr;
-			float3 wo = -ray.getDirection();
-			surfintr.world_position = ray.getPointAt(intr.distance);
-			surfintr.distance = intr.distance;
-			surfintr.world_geometric_normal = normalize(surfintr.world_position - sp.world_position);
-			if (dot(surfintr.world_geometric_normal, wo) < 0)
-			{
-				surfintr.world_geometric_normal *= -1.0f;
-				surfintr.backface = true;
-			}
-			surfintr.material_id = sp.material_id;
-
-			return surfintr;
-		}
-
 		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray)
 		{
 			Intersection closest;
@@ -63,7 +46,7 @@ namespace KittlesPT
 				if (!intr)
 				{
 					//miss
-					float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earthRadius + 1, 0);
+					float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 					float3 sky_radiance = atmosphere.Le(atmosphere_observer_position,
 						normalize(ray.getDirection()), 0, FLT_MAX);
 					light += sky_radiance * throughput;
@@ -73,7 +56,7 @@ namespace KittlesPT
 				//hit
 				float3 wo = -ray.getDirection();
 
-				SurfaceInteraction surfintr = closestHit(ray, intr, shader_data.geometry_buffer.data[intr.instance_id]);
+				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 
