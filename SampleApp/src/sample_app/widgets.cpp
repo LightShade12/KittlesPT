@@ -99,7 +99,7 @@ namespace SampleApp
 		material_updated |= ImGui::SliderFloat("Metallicity", &material.metallicity, 0, 1);
 		material_updated |= ImGui::SliderFloat("Isotropic roughness", &material.roughness, 0, 1);
 		material_updated |= ImGui::SliderFloat("Transmission", &material.transmission, 0, 1);
-		material_updated |= ImGui::SliderFloat("IOR", &material.ior, 0, 2);
+		material_updated |= ImGui::SliderFloat("IOR", &material.ior, 1, 3);
 		if (material_updated)
 		{
 			event_dispatcher_ref->emitSignal(Event("material_updated"), material);

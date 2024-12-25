@@ -5,6 +5,7 @@
 #include "shaders/device_texture_buffer.cuh"
 #include "shaders/kernels.cuh"
 #include "shaders/material.cuh"
+#include "shaders/light.cuh"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -21,6 +22,7 @@ namespace KittlesPT
 	{
 		thrust::universal_vector<Sphere> scene_spheres;
 		thrust::universal_vector<Material> scene_materials;
+		thrust::universal_vector<Light> scene_lights;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
 	};
@@ -35,50 +37,79 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
 
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(-1.5, 0, -3), 2));
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 0));
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(1.5, 0, -3), 3));
-		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3), 1));
+		//Scene instantiation----------------------------------------------
 
 		m_renderer_data->scene_materials.push_back(Material(
 			make_float3(0.95, 0.1, 0.1),
 			0.0,
 			0.1,
 			0.0f,
-			1.45f));
+			1.45f,
+			make_float3(0),
+			1.0));
 
 		m_renderer_data->scene_materials.push_back(Material(
 			make_float3(0.8, 0.8, 0.8),
 			0.0,
 			0.8,
 			0.0f,
-			1.45f));
+			1.45f,
+			make_float3(0),
+			1.0));
 
 		m_renderer_data->scene_materials.push_back(Material(
 			make_float3(0.8, 0.8, 0.8),
 			1.0,
 			0.1,
 			0.0f,
-			1.45f));
+			1.45f,
+			make_float3(0),
+			1.0));
 
 		m_renderer_data->scene_materials.push_back(Material(
 			make_float3(0.0, 1.0, 0.0),
 			0.0,
 			0.15,
 			1.0f,
-			1.85f));
+			1.85f,
+			make_float3(0),
+			1.0));
+
+		//emissive material
+		m_renderer_data->scene_materials.push_back(Material(
+			make_float3(0.0, 1.0, 0.0),
+			0.0,
+			0.85,
+			0.0f,
+			1.45f,
+			make_float3(1),
+			50.0));
+
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(-1.5, 0, -3), 2));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 0));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(1.5, 0, -3), 3));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 1.5, -3), 4));//light source
+		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3), 1));
+
+		Material emissive_mat = m_renderer_data->scene_materials[4];
+		m_renderer_data->scene_lights.push_back(Light(&(m_renderer_data->scene_spheres[3]), 3,
+			emissive_mat.emissive_factor, emissive_mat.emission_scale));
 
 		//submit---------
-
 		m_renderer_data->shader_global_data.geometry_buffer =
-			Buffer<Sphere>(thrust::raw_pointer_cast(
-				m_renderer_data->scene_spheres.data()),
+			Buffer<Sphere>(
+				thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),
 				m_renderer_data->scene_spheres.size());
 
 		m_renderer_data->shader_global_data.materials_buffer =
-			Buffer<Material>(thrust::raw_pointer_cast(
-				m_renderer_data->scene_materials.data()),
+			Buffer<Material>(
+				thrust::raw_pointer_cast(m_renderer_data->scene_materials.data()),
 				m_renderer_data->scene_materials.size());
+
+		m_renderer_data->shader_global_data.lights_buffer =
+			Buffer<Light>(
+				thrust::raw_pointer_cast(m_renderer_data->scene_lights.data()),
+				m_renderer_data->scene_lights.size());
 
 		m_renderer_data->shader_global_data.scene_camera = Camera(make_float3(0), make_float3(0, 0, -1));
 	}
@@ -91,6 +122,7 @@ namespace KittlesPT
 
 		m_renderer_data->scene_spheres.clear();//TODO: put this in destroy/destructor
 		m_renderer_data->scene_materials.clear();//TODO: put this in destroy/destructor
+		m_renderer_data->scene_lights.clear();
 		delete m_renderer_data;
 		m_renderer_data = nullptr;
 	}
@@ -149,12 +181,15 @@ namespace KittlesPT
 			return false;
 		}
 
+		Material old_mat = m_renderer_data->scene_materials[idx];
 		Material material(
 			make_float3(albedo_factor.r, albedo_factor.g, albedo_factor.b),
 			metallicity,
 			roughness,
 			transmission,
-			ior);
+			ior,
+			old_mat.emissive_factor,
+			old_mat.emission_scale);
 		m_renderer_data->scene_materials[idx] = material;
 
 		resetAccumulation();

@@ -4,7 +4,7 @@
 
 namespace KittlesPT
 {
-	__device__ Intersection Sphere::intersect(const Ray& ray) const
+	__device__ Intersection Sphere::intersect(const Ray& ray, float tmax) const
 	{
 		float3 oc = world_position - ray.getOrigin();
 		float a = Sqr(length(ray.getDirection()));
@@ -24,11 +24,11 @@ namespace KittlesPT
 			float t2 = (h + sqrtD) / a; // Larger root
 
 			// Choose the closest positive root
-			if (t1 > 0.0f)
+			if (t1 > 0.0f && t1 < tmax)
 			{
 				intr.distance = t1;
 			}
-			else if (t2 > 0.0f)
+			else if (t2 > 0.0f && t2 < tmax)
 			{
 				intr.distance = t2;
 			}
@@ -64,7 +64,15 @@ namespace KittlesPT
 		return surfintr;
 	}
 
-	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data)
+	__device__ RGBSpectrum SurfaceInteraction::Le(const GlobalShaderData& shader_data, const Ray& ray) const
+	{
+		const Material& mat = shader_data.materials_buffer.data[material_id];
+		RGBSpectrum emission(0);
+		emission = RGBSpectrum(mat.emissive_factor * mat.emission_scale);
+		return emission;
+	}
+
+	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data) const
 	{
 		const Material& mat = shader_data.materials_buffer.data[material_id];
 		BSDF bsdf = BSDF(generateONBFrisvad(world_geometric_normal),
@@ -77,7 +85,7 @@ namespace KittlesPT
 		return bsdf;
 	}
 
-	__device__ Ray SurfaceInteraction::spawnRay(float3 wi, int scatter_flags)
+	__device__ Ray SurfaceInteraction::spawnRay(float3 wi, int scatter_flags) const
 	{
 		float3 ray_orig;
 		if (scatter_flags & BSDFSample::Scatter::Transmitted)
@@ -89,5 +97,10 @@ namespace KittlesPT
 			ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
 		}
 		return Ray(ray_orig, wi);
+	}
+	__device__ Ray SurfaceInteraction::spawnRayTo(float3 target) const
+	{
+		float3 ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
+		return Ray(ray_orig, normalize(target - ray_orig));
 	}
 }

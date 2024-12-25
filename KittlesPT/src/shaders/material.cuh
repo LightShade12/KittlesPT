@@ -10,12 +10,16 @@ namespace KittlesPT
 			float metallicity,
 			float roughness,
 			float transmission,
-			float ior) :
+			float ior,
+			float3 emission_factor,
+			float emission_scale) :
 			albedo(albedo),
 			metallicity(metallicity),
 			roughness(roughness),
 			transmission(transmission),
-			ior(ior)
+			ior(ior),
+			emissive_factor(emission_factor),
+			emission_scale(emission_scale)
 		{}
 
 		//----
@@ -24,5 +28,7 @@ namespace KittlesPT
 		float roughness = 0.5f;
 		float transmission = 0.0f;
 		float ior = 1.45f;
+		float3 emissive_factor = make_float3(0);
+		float emission_scale = 1.0f;
 	};
 }
