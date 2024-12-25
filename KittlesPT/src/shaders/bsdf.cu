@@ -21,31 +21,27 @@ namespace KittlesPT
 		tangent_matrix = tangent_basis;
 	}
 
-	__device__ float3 BSDF::f(float3 w_wo, float3 w_wi) const
+	__device__ RGBSpectrum BSDF::f(float3 w_wo, float3 w_wi) const
 	{
 		float3 wo = tangent_matrix.inverse() * w_wo;
-		//float3 wo = w_wo;
 		float3 wi = tangent_matrix.inverse() * w_wi;
 
 		float cMetallic = metallicity;
 		float cTransmissiveDielectric = (1.f - cMetallic) * transmission;
 		float cOpaqueDielectric = (1.f - cMetallic) * (1.f - transmission);
 
-		float3 out = make_float3(0);
+		RGBSpectrum out(0);
 
-		if (cMetallic > 0.f) out += cMetallic * fConductor(wo, wi);
-		if (cTransmissiveDielectric > 0.f) out += cTransmissiveDielectric * fTransparentDielectric(wo, wi);
-		if (cOpaqueDielectric > 0.f) out += cOpaqueDielectric * fOpaqueDielectric(wo, wi);
+		if (cMetallic > 0.f) out += (fConductor(wo, wi) * cMetallic);
+		if (cTransmissiveDielectric > 0.f) out += (fTransparentDielectric(wo, wi) * cTransmissiveDielectric);
+		if (cOpaqueDielectric > 0.f) out += (fOpaqueDielectric(wo, wi) * cOpaqueDielectric);
 
 		return out;
-
-		//return fOpaqueDielectric(wo, wi);
 	}
 
 	__device__ float BSDF::pdf(float3 w_wo, float3 w_wi) const
 	{
 		float3 wi = tangent_matrix.inverse() * w_wi;
-		//float3 wo = w_wo;
 		float3 wo = tangent_matrix.inverse() * w_wo;
 
 		float pMetallic = metallicity;
@@ -58,8 +54,6 @@ namespace KittlesPT
 		if (pOpaqueDielectric > 0.f)pdf += pOpaqueDielectric * pdfOpaqueDielectric(wo, wi);
 
 		return pdf;
-
-		//return pdfOpaqueDielectric(wo, wi);
 	}
 
 	__device__ BSDFSample BSDF::sampleBSDF(float3 w_wo, float2 u2, float2 X2) const
@@ -178,12 +172,12 @@ namespace KittlesPT
 	}
 	//-----
 
-	__device__ float3 BSDF::fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const
+	__device__ RGBSpectrum BSDF::fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const
 	{
 		float Mss = microFacetBRDF(wo, wi, h, roughness);
 
 		float Fss = fresnelDielectric(dot(wo, h), IOR);
-		float3 F = make_float3(Fss * Mss);
+		RGBSpectrum F = RGBSpectrum(Fss * Mss);
 		return F;
 	}
 
@@ -232,7 +226,7 @@ namespace KittlesPT
 			float3 h = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
 			float3 wi = reflect(-wo, h);
 
-			float3 f = fGlossyMicrofacetBRDF(wo, wi, h);
+			RGBSpectrum f = fGlossyMicrofacetBRDF(wo, wi, h);
 			f *= (1.0f / glossy_prob);
 
 			float pdf = pdfGlossyMicrofacetBRDF(wo, wi, h);
@@ -244,7 +238,7 @@ namespace KittlesPT
 
 		float3 wi = sampleDiffuseBRDF(u2);
 
-		float3 f = albedo_factor * fDiffuseBRDF(wo, wi);
+		RGBSpectrum f = albedo_factor * fDiffuseBRDF(wo, wi);
 		f *= (1.0f / (1.0f - glossy_prob));
 
 		float pdf = pdfDiffuseBRDF(wo, wi);
@@ -252,14 +246,14 @@ namespace KittlesPT
 		return BSDFSample(BSDFSample::Diffuse | BSDFSample::Reflected, f, wi, pdf);
 	}
 
-	__device__ float3 BSDF::fOpaqueDielectric(float3 wo, float3 wi) const
+	__device__ RGBSpectrum BSDF::fOpaqueDielectric(float3 wo, float3 wi) const
 	{
 		float3 h = normalize(wo + wi);
 
-		float3 glossy = fGlossyMicrofacetBRDF(wo, wi, h);
-		float3 cDiffuse = (1.0f - glossy);
+		RGBSpectrum glossy = fGlossyMicrofacetBRDF(wo, wi, h);
+		RGBSpectrum cDiffuse = RGBSpectrum(1.0f - glossy);
 
-		float3 diffuse = cDiffuse * albedo_factor * fDiffuseBRDF(wo, wi);
+		RGBSpectrum diffuse = cDiffuse * (albedo_factor * fDiffuseBRDF(wo, wi));
 
 		return diffuse + glossy;
 	}
@@ -289,26 +283,26 @@ namespace KittlesPT
 
 		float3 h = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
 		float3 wi = reflect(-wo, h);
-		float3 f = fConductor(wo, wi);
+		RGBSpectrum f = fConductor(wo, wi);
 		float pdf = pdfGlossyMicrofacetBRDF(wo, wi, h);
 
 		return BSDFSample(BSDFSample::Glossy | BSDFSample::Reflected, f, wi, pdf);
 	}
-	__device__ float3 BSDF::fConductor(float3 wo, float3 wi) const
+	__device__ RGBSpectrum BSDF::fConductor(float3 wo, float3 wi) const
 	{
 		float3 h = normalize(wo + wi);
 		float NoV = clamp(wo.z, 0.f, 1.f);
 		float NoL = clamp(wi.z, 0.f, 1.f);
 		if (NoV == 0 || NoL == 0)
 		{
-			return make_float3(0);
+			return RGBSpectrum(0);
 		}
 
 		float VoH = clamp(dot(wo, h), 0.f, 1.f);
-		float3 M = make_float3(0);
+		RGBSpectrum M(0);
 		if (NoL > 0 && VoH > 0)
 		{
-			float3 F = fresnelSchlick(VoH, albedo_factor);
+			RGBSpectrum F = RGBSpectrum(fresnelSchlick(VoH, albedo_factor.toFloat3()));
 			M = F * microFacetBRDF(wo, wi, h, roughness);
 		}
 		return M;
@@ -336,7 +330,7 @@ namespace KittlesPT
 
 		return pdf;
 	}
-	__device__ float3 BSDF::fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
+	__device__ RGBSpectrum BSDF::fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
 	{
 		const float NoH = fabs(ht.z);
 		const float temp = dot(wi, ht) * ior + dot(wo, ht);
@@ -345,7 +339,7 @@ namespace KittlesPT
 			D_GGX(NoH, roughness) * G2_Smith(wo, wi, roughness) *
 			fabs(dot(wi, ht) * dot(wo, ht) / (wi.z * wo.z * temp * temp));
 
-		float3 f = (1.0f - Fss) * Tss * albedo_factor;
+		RGBSpectrum f = albedo_factor * (1.0f - Fss) * Tss;
 
 		return f;
 	}
@@ -373,7 +367,7 @@ namespace KittlesPT
 			}
 
 			float Mss = microFacetBRDF(wo, wi, ht, roughness);
-			float3 f = make_float3(Fss * Mss);
+			RGBSpectrum f = RGBSpectrum(Fss * Mss);
 			float pdf = pdfGlossyMicrofacetBRDF(wo, wi, ht);
 
 			return BSDFSample(BSDFSample::Reflected | BSDFSample::Glossy, f, wi, pdf);
@@ -386,10 +380,10 @@ namespace KittlesPT
 
 		//BTDF
 		const float pdf = pdfGlossyMicrofacetBTDF(wo, wi, ht, ior);
-		float3 f = fGlossyMicrofacetBTDF(wo, wi, ht, ior);
+		RGBSpectrum  f = fGlossyMicrofacetBTDF(wo, wi, ht, ior);
 		return BSDFSample(BSDFSample::Transmitted | BSDFSample::Glossy, f, wi, pdf);
 	}
-	__device__ float3 BSDF::fTransparentDielectric(float3 wo, float3 wi) const
+	__device__ RGBSpectrum BSDF::fTransparentDielectric(float3 wo, float3 wi) const
 	{
 		const float cos_theta_o = wo.z, cos_theta_i = wi.z;
 		const bool is_reflection = cos_theta_o * cos_theta_i > 0.0f;
@@ -405,7 +399,7 @@ namespace KittlesPT
 
 		if (dot(h, wi) * cos_theta_i < 0.0f || dot(h, wo) * cos_theta_o < 0.0f)
 		{
-			return make_float3(0); // Discard back-facing microsurfaces
+			return RGBSpectrum(0); // Discard back-facing microsurfaces
 		}
 
 		const float Fss = fresnelDielectric(fabs(dot(wo, h)), ior);
@@ -416,7 +410,7 @@ namespace KittlesPT
 			// Single-scattering term
 			const float Mss = microFacetBRDF(wo, wi, h, roughness);
 
-			return make_float3(Fss * Mss);
+			return RGBSpectrum(Fss * Mss);
 		}
 
 		//Refraction---------------
@@ -428,7 +422,7 @@ namespace KittlesPT
 		const float Tss = D_GGX(h.z, roughness) * G2_Smith(wo, wi, roughness) * dwm_dwi /
 			(fabs(cos_theta_i * cos_theta_o));
 
-		return T * albedo_factor * Tss;
+		return RGBSpectrum(T * albedo_factor * Tss);
 	}
 	__device__ float BSDF::pdfTransparentDielectric(float3 wo, float3 wi) const
 	{

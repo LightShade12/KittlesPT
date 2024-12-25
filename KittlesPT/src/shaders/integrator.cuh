@@ -5,6 +5,7 @@
 #include "samplers.cuh"
 #include "material.cuh"
 #include "atmosphere.cuh"
+#include "color.cuh"
 
 namespace KittlesPT
 {
@@ -28,10 +29,10 @@ namespace KittlesPT
 			return closest;
 		}
 
-		__device__ float3 sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler)
+		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler)
 		{
-			float3 light = make_float3(0);
-			float3 throughput = make_float3(1);
+			RGBSpectrum light(0.0f);
+			RGBSpectrum throughput(1.0f);
 			Atmosphere atmosphere(normalize(make_float3(-1, 1, -1)), 20.0f);
 
 			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
@@ -47,7 +48,7 @@ namespace KittlesPT
 				{
 					//miss
 					float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
-					float3 sky_radiance = atmosphere.Le(atmosphere_observer_position,
+					RGBSpectrum sky_radiance = atmosphere.Le(atmosphere_observer_position,
 						normalize(ray.getDirection()), 0, FLT_MAX);
 					light += sky_radiance * throughput;
 					break;
@@ -65,7 +66,7 @@ namespace KittlesPT
 				const float3& wi = bs.wi;
 				float pdf = bs.pdf;
 
-				float3 fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);
+				RGBSpectrum fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);
 				if (!fcos) { break; }
 
 				throughput *= (fcos / pdf);

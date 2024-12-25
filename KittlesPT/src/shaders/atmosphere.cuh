@@ -1,6 +1,7 @@
 #pragma once
-#include "../maths/linear_algebra.cuh"
-#include "../maths/constants.cuh"
+#include "maths/linear_algebra.cuh"
+#include "maths/constants.cuh"
+#include "color.cuh"
 #include <cuda/std/span>
 
 namespace KittlesPT
@@ -18,7 +19,7 @@ namespace KittlesPT
 
 	public:
 
-		__device__ float3 Le(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const;
+		__device__ RGBSpectrum Le(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const;
 
 	public:
 
@@ -32,7 +33,7 @@ namespace KittlesPT
 		float Hr = 7994;                   // Thickness of the atmosphere if density was uniform (Hr)
 		float Hm = 1200;                   // Same as above but for Mie scattering (Hm)
 
-		const float3 betaR_scattering_coeff = make_float3(3.8e-6f, 13.5e-6f, 33.1e-6f);
-		const float3 betaM_scattering_coeff = make_float3(21e-6f);
+		const RGBSpectrum betaR_scattering_coeff = RGBSpectrum(3.8e-6f, 13.5e-6f, 33.1e-6f);
+		const RGBSpectrum betaM_scattering_coeff = RGBSpectrum(21e-6f);
 	};
 }

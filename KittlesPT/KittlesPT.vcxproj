@@ -110,6 +110,7 @@
     <CudaCompile Include="src\shaders\atmosphere.cu" />
     <CudaCompile Include="src\shaders\bsdf.cu" />
     <CudaCompile Include="src\shaders\camera.cu" />
+    <CudaCompile Include="src\shaders\color.cu" />
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
     <CudaCompile Include="src\shaders\samplers.cu" />
     <CudaCompile Include="src\shaders\sphere.cu" />

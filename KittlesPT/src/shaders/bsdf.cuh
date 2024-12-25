@@ -1,13 +1,14 @@
 #pragma once
 #include "maths/matrix_maths.cuh"
 #include "maths/constants.cuh"
+#include "color.cuh"
 
 namespace KittlesPT
 {
 	struct BSDFSample
 	{
 		__device__ BSDFSample() = default;
-		__device__ BSDFSample(int scatter, float3 f, float3 wi, float pdf) :scatter(scatter), f(f), wi(wi), pdf(pdf) {};
+		__device__ BSDFSample(int scatter, RGBSpectrum f, float3 wi, float pdf) :scatter(scatter), f(f), wi(wi), pdf(pdf) {};
 
 		__device__ bool scatterTypeIs(int flag) const
 		{
@@ -26,14 +27,13 @@ namespace KittlesPT
 		};
 
 		int scatter = Absorbed;
-		float3 f{};
+		RGBSpectrum f = RGBSpectrum(0);
 		float3 wi{};
 		float pdf = 0;
 	};
 
-	struct DeviceMaterial;
-
-	class BSDF {
+	class BSDF
+	{
 	public:
 
 		__device__ BSDF(float3 t, float3 b, float3 n) :tangent_matrix(Mat3(t, b, n)) {};
@@ -46,7 +46,7 @@ namespace KittlesPT
 			float ior,
 			bool is_backface);
 
-		__device__ float3 f(float3 r_wo, float3 r_wi) const;
+		__device__ RGBSpectrum f(float3 r_wo, float3 r_wi) const;
 
 		__device__ float pdf(float3 r_wo, float3 r_wi) const;
 
@@ -57,21 +57,21 @@ namespace KittlesPT
 		//Opaque Dielectric BSDF--------------
 		__device__ BSDFSample sampleOpaqueDielectric(float3 wo, float2 u2, float X) const;
 
-		__device__ float3 fOpaqueDielectric(float3 wo, float3 wi) const;
+		__device__ RGBSpectrum fOpaqueDielectric(float3 wo, float3 wi) const;
 
 		__device__ float pdfOpaqueDielectric(float3 wo, float3 wi) const;
 
 		//Conductor BSDF---------
 		__device__ BSDFSample sampleConductor(float3 wo, float2 u2, float X) const;
 
-		__device__ float3 fConductor(float3 wo, float3 wi) const;
+		__device__ RGBSpectrum fConductor(float3 wo, float3 wi) const;
 
 		__device__ float pdfConductor(float3 wo, float3 wi) const;
 
 		//Transparent Dielectric BSDF--------------
 		__device__ BSDFSample sampleTransparentDielectric(float3 wo, float2 u2, float X) const;
 
-		__device__ float3 fTransparentDielectric(float3 wo, float3 wi) const;
+		__device__ RGBSpectrum fTransparentDielectric(float3 wo, float3 wi) const;
 
 		__device__ float pdfTransparentDielectric(float3 wo, float3 wi) const;
 
@@ -86,17 +86,17 @@ namespace KittlesPT
 		//microfacet glossy brdf
 		__device__ float3 sampleGlossyMicrofacetBRDF_VNDF(float3 wo, float2 u2) const;
 
-		__device__ float3 fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
+		__device__ RGBSpectrum  fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
 
 		__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
 
 		//microfacet glossy btdf
 		__device__ float pdfGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
 
-		__device__ float3 fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
+		__device__ RGBSpectrum fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
 
 	public:
-		float3 albedo_factor = make_float3(1, 0, 0);
+		RGBSpectrum albedo_factor = RGBSpectrum(1, 0, 0);
 		float roughness = 0.5f;
 		float metallicity = 0.0f;
 		float transmission = 0.0f;

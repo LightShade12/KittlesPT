@@ -1,7 +1,7 @@
 #include "kernels.cuh"
 
-#include "../error_check.cuh"
-#include "../maths/linear_algebra.cuh"
+#include "error_check.cuh"
+#include "maths/linear_algebra.cuh"
 #include "ray.cuh"
 #include "bsdf.cuh"
 #include "samplers.cuh"
@@ -50,7 +50,7 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	Ray primary_ray = shader_data.scene_camera.generateRay(ndc_coord, frame_res);
 
 	//evaluate integral(f(x)/p(x)) at Xi
-	float3 sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray, sampler);
+	float3 sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray, sampler).toFloat3();
 
 	//Monte-Carlo estimation; static accumulation
 	shader_data.accumulation_texture.textureWrite(

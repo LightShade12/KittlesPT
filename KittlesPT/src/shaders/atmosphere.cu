@@ -40,24 +40,26 @@ namespace KittlesPT
 		return 2.0f * distance * tanf(angle_rad / 2.0f);
 	}
 
-	__device__ float3 Atmosphere::Le(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const
+	__device__ RGBSpectrum Atmosphere::Le(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const
 	{
 		float t0, t1;
 		// miss atmosphere
 		if (!intersectSphere(t_orig, t_dir, make_float3(0), m_atmosphere_radius, t0, t1) || t1 < 0)
 		{
-			return make_float3(0);
+			return RGBSpectrum(0);
 		}
 		// hit atmosphere
-		if (t0 > t_tmin && t0 > 0)
+		if (t0 > t_tmin && t0 > 0) {
 			t_tmin = t0; // increase tmin
-		if (t1 < t_tmax)
+		}
+		if (t1 < t_tmax) {
 			t_tmax = t1; // reduce tmax
+		}
 
 		const float step_length = (t_tmax - t_tmin) / m_num_samples;
 		float current_t = t_tmin;
-		float3 sum_R_transmission = make_float3(0);
-		float3 sum_M_transmission = make_float3(0);             // integrated mie and rayleigh contribution
+		RGBSpectrum sum_R_transmission = RGBSpectrum(0);
+		RGBSpectrum sum_M_transmission = RGBSpectrum(0);             // integrated mie and rayleigh contribution
 		float sum_R_optical_depth = 0, sum_M_optical_depth = 0; // discrete integration for transmittance
 
 		const float3 sun_dir = normalize(m_sun_position);
@@ -103,12 +105,12 @@ namespace KittlesPT
 			}
 			if (j == m_num_samples_light) // last iter
 			{
-				float3 beta_R_extinction = betaR_scattering_coeff;
-				float3 beta_M_extinction = betaM_scattering_coeff * 1.1f;
+				RGBSpectrum beta_R_extinction = betaR_scattering_coeff;
+				RGBSpectrum beta_M_extinction = betaM_scattering_coeff * 1.1f;
 
 				// transmittance; grouping optical_depth sum for sunlight and view transmittance calcs
-				float3 tau = beta_R_extinction * (sum_R_optical_depth + sum_R_optical_depth_light) + beta_M_extinction * (sum_M_optical_depth + sum_M_optical_depth_light);
-				float3 transmittance = make_float3(exp(-tau.x), exp(-tau.y), exp(-tau.z));
+				RGBSpectrum tau = beta_R_extinction * (sum_R_optical_depth + sum_R_optical_depth_light) + beta_M_extinction * (sum_M_optical_depth + sum_M_optical_depth_light);
+				RGBSpectrum transmittance = RGBSpectrum(exp(-tau.r), exp(-tau.g), exp(-tau.b));
 
 				const float& optical_depthR = hr, optical_depthM = hm;
 				// transmittance * optical_depth sum; later multiplied with beta to compute beta(h)=beta(0)*optical_depth(h)
@@ -118,7 +120,7 @@ namespace KittlesPT
 			current_t += step_length;
 		}
 
-		float3 col = (sum_R_transmission * betaR_scattering_coeff * phaseR + sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity;
+		RGBSpectrum col = (sum_R_transmission * betaR_scattering_coeff * phaseR + sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity;
 		//float3 col = (sum_R_transmission * betaR_scattering_coeff * phaseR) * m_sun_intensity;//rayleigh only
 		//float3 col = (sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity; //mie only
 		return col;
