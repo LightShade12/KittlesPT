@@ -31,17 +31,12 @@ namespace KittlesPT
 			return closest;
 		}
 
-		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax, int light_id)
+		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax)
 		{
-			Intersection intr;
 			for (int instance_id = 0; instance_id < shader_data.geometry_buffer.num; instance_id++)
 			{
-				if (instance_id == light_id)
-				{
-					continue;
-				}
-
 				const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
+				Intersection intr;
 				intr = sphere.intersect(ray, tmax);
 				if (intr.distance >= 0 && intr.distance < tmax)
 				{
@@ -51,13 +46,13 @@ namespace KittlesPT
 			return false;
 		}
 
-		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target, int light_id)
+		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target)
 		{
 			//return true;
 			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
 			Ray ray = surface.spawnRayTo(target);
 			float tmax = length(target - ray.getOrigin()) - SHADOWRAY_EPSILON;
-			return !(intersectShadow(shader_data, ray, tmax, light_id));
+			return !(intersectShadow(shader_data, ray, tmax));
 		}
 
 		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
@@ -84,7 +79,7 @@ namespace KittlesPT
 			RGBSpectrum fcos = bsdf.f(wo, wi) * fmaxf(dot(wi, surface.world_geometric_normal), 0.0f);
 			//fcos = RGBSpectrum(fmaxf(dot(wi, surface.world_geometric_normal), 0.0f));
 
-			if (!fcos || !Unoccluded(shader_data, surface, ls.wpos_light, sampled_light.light->prim_id))
+			if (!fcos || !Unoccluded(shader_data, surface, ls.wpos_light))
 			{
 				return Ld;
 			}
@@ -109,7 +104,8 @@ namespace KittlesPT
 			RGBSpectrum light(0.0f);
 			RGBSpectrum throughput(1.0f);
 
-			Atmosphere atmosphere(normalize(make_float3(-1, 1, -1)), 50.0f);
+			float3 sun_direction = normalize(make_float3(-1, 1, -1));
+			Atmosphere atmosphere(sun_direction, 50.0f);
 			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
 			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
@@ -126,7 +122,7 @@ namespace KittlesPT
 					//miss
 					float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 					RGBSpectrum sky_radiance = atmosphere.Le(atmosphere_observer_position,
-						normalize(ray.getDirection()), 0, FLT_MAX);
+						ray.getDirection(), 0, FLT_MAX);
 					light += sky_radiance * throughput;
 					break;
 				}
@@ -136,12 +132,27 @@ namespace KittlesPT
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
+				light += surfintr.Le(shader_data, ray) * throughput;
 				if (bounce_depth == 0 && false)
 				{
-					light += surfintr.Le(shader_data, ray) * throughput;
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
+
+				{
+					float3 target = sun_direction * SUN_DISTANCE_METERS;
+					float3 sample_offset = make_float3(sampler.get2D() * 2 - 1, sampler.get1D() * 2 - 1);
+					float sun_diameter = angularDiameterToPhysicalDiameter(deg2rad(1.5), SUN_DISTANCE_METERS);
+					bool unoccluded = Unoccluded(shader_data, surfintr, target + (sample_offset * (sun_diameter / 2.0f)));
+					if (unoccluded)
+					{
+						float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
+						RGBSpectrum sun_radiance = bsdf.f(wo, sun_direction) * fmaxf(0, dot(sun_direction, surfintr.world_geometric_normal));
+						RGBSpectrum sun_color = atmosphere.Le(atmosphere_observer_position, sun_direction, 0, FLT_MAX);
+						sun_radiance *= sun_color + RGBSpectrum(50.0f);
+						light += sun_radiance * throughput;
+					}
+				}
 
 				//light += sampleLd(shader_data, ray,
 				//	bsdf, surfintr, light_sampler, sampler) * throughput;

@@ -51,7 +51,7 @@ namespace KittlesPT
 		m_renderer_data->scene_materials.push_back(Material(
 			make_float3(0.8, 0.8, 0.8),
 			0.0,
-			0.8,
+			0.65,
 			0.0f,
 			1.45f,
 			make_float3(0),
@@ -82,8 +82,8 @@ namespace KittlesPT
 			0.85,
 			0.0f,
 			1.45f,
-			make_float3(1),
-			50.0));
+			make_float3(0.2, 0.7, 1),
+			35.0));
 
 		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(-1.5, 0, -3), 2));
 		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 0));

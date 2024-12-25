@@ -35,7 +35,7 @@ namespace KittlesPT
 		return true; // Ray intersects the sphere
 	}
 
-	__device__ float AngularDiameterToPhysicalDiameter(float angle_rad, float distance)
+	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance)
 	{
 		return 2.0f * distance * tanf(angle_rad / 2.0f);
 	}

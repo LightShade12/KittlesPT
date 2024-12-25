@@ -32,13 +32,13 @@ namespace KittlesPT
 
 		RGBSpectrum F(0);
 
-		if (w_metallic > 0.f) {
+		if (w_metallic > 0.0f) {
 			F += (fConductor(wo, wi) * w_metallic);
 		}
-		if (w_transmissive_dielectric > 0.f) {
+		if (w_transmissive_dielectric > 0.0f) {
 			F += (fTransparentDielectric(wo, wi) * w_transmissive_dielectric);
 		}
-		if (w_opaque_dielectric > 0.f) {
+		if (w_opaque_dielectric > 0.0f) {
 			F += (fOpaqueDielectric(wo, wi) * w_opaque_dielectric);
 		}
 
@@ -368,8 +368,9 @@ namespace KittlesPT
 
 		float3 wi;
 		bool tir = !refract(wo, ht, ior, wi);
+		float glossy_prob = 0.5;
 
-		if ((path_probability < Fss) || tir)
+		if ((path_probability < glossy_prob) || tir)
 		{
 			//Reflection path---------
 
@@ -381,6 +382,8 @@ namespace KittlesPT
 
 			float Mss = microFacetBRDF(wo, wi, ht, roughness);
 			RGBSpectrum f = RGBSpectrum(Fss * Mss);
+			f *= (1.0f / glossy_prob);
+
 			float pdf = pdfGlossyMicrofacetBRDF(wo, wi, ht);
 
 			return BSDFSample(BSDFSample::Reflected | BSDFSample::Glossy, f, wi, pdf);
@@ -394,13 +397,16 @@ namespace KittlesPT
 		//BTDF
 		const float pdf = pdfGlossyMicrofacetBTDF(wo, wi, ht, ior);
 		RGBSpectrum  f = fGlossyMicrofacetBTDF(wo, wi, ht, ior);
+		f *= (1.0f / (1.0f - glossy_prob));
+
 		return BSDFSample(BSDFSample::Transmitted | BSDFSample::Glossy, f, wi, pdf);
 	}
 	__device__ RGBSpectrum BSDF::fTransparentDielectric(float3 wo, float3 wi) const
 	{
 		const float cos_theta_o = wo.z, cos_theta_i = wi.z;
-		const bool is_reflection = cos_theta_o * cos_theta_i > 0.0f;
+		const bool is_reflection = (cos_theta_o * cos_theta_i) > 0.0f;
 		float ior = 1.0f;
+
 		if (!is_reflection)
 		{
 			ior = (cos_theta_o > 0.0f) ? IOR : 1.0f / IOR;//entry exit determination
@@ -410,12 +416,12 @@ namespace KittlesPT
 		float3 h = (ior * wi + wo);
 		h = normalize((h.z > 0) ? h : -h);
 
-		if (dot(h, wi) * cos_theta_i < 0.0f || dot(h, wo) * cos_theta_o < 0.0f)
+		if ((dot(h, wi) * cos_theta_i < 0.0f) || (dot(h, wo) * cos_theta_o < 0.0f))
 		{
 			return RGBSpectrum(0); // Discard back-facing microsurfaces
 		}
 
-		const float Fss = fresnelDielectric(fabs(dot(wo, h)), ior);
+		const float Fss = fresnelDielectric(fabs(dot(wo, h)), IOR);
 		const float T = 1.0f - Fss;
 
 		if (is_reflection)

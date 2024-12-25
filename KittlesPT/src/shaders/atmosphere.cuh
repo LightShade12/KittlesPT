@@ -10,7 +10,7 @@ namespace KittlesPT
 
 	__constant__ constexpr float SUN_DISTANCE_METERS = 100.0f;
 
-	__device__ float AngularDiameterToPhysicalDiameter(float angle_rad, float distance);
+	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance);
 
 	struct Atmosphere
 	{
