@@ -462,7 +462,7 @@ namespace KittlesPT
 			return 0.0f; // Discard back-facing microsurfaces
 		}
 
-		const float Fss = fresnelDielectric(fabs(dot(wo, h)), ior);
+		const float Fss = fresnelDielectric(fabs(dot(wo, h)), IOR);
 		const float T = 1.0f - Fss;
 
 		float pdf;

@@ -104,7 +104,7 @@ namespace KittlesPT
 			RGBSpectrum light(0.0f);
 			RGBSpectrum throughput(1.0f);
 
-			float3 sun_direction = normalize(make_float3(-1, 1, -1));
+			float3 sun_direction = normalize(make_float3(-1, 0.05, -1));
 			Atmosphere atmosphere(sun_direction, 50.0f);
 			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
