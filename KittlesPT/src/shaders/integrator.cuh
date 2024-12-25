@@ -31,11 +31,16 @@ namespace KittlesPT
 			return closest;
 		}
 
-		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax)
+		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax, int light_id)
 		{
 			Intersection intr;
 			for (int instance_id = 0; instance_id < shader_data.geometry_buffer.num; instance_id++)
 			{
+				if (instance_id == light_id)
+				{
+					continue;
+				}
+
 				const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
 				intr = sphere.intersect(ray, tmax);
 				if (intr.distance >= 0 && intr.distance < tmax)
@@ -46,13 +51,13 @@ namespace KittlesPT
 			return false;
 		}
 
-		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target)
+		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target, int light_id)
 		{
-			return true;
-			constexpr float SHADOWRAY_EPSILON = 0.011f;//TODO: put this in a constants file
+			//return true;
+			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
 			Ray ray = surface.spawnRayTo(target);
 			float tmax = length(target - ray.getOrigin()) - SHADOWRAY_EPSILON;
-			return !(intersectShadow(shader_data, ray, tmax));
+			return !(intersectShadow(shader_data, ray, tmax, light_id));
 		}
 
 		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
@@ -61,6 +66,7 @@ namespace KittlesPT
 			RGBSpectrum Ld(0);
 
 			SampledLight sampled_light = light_sampler.sample(sampler.get1D());
+
 			//empty buffer
 			if (!sampled_light)
 			{
@@ -75,9 +81,10 @@ namespace KittlesPT
 
 			float3 wi = ls.wi;
 			float3 wo = -ray.getDirection();
-			RGBSpectrum fcos = bsdf.f(wo, wi) * AbsDot(wi, surface.world_geometric_normal);
+			RGBSpectrum fcos = bsdf.f(wo, wi) * fmaxf(dot(wi, surface.world_geometric_normal), 0.0f);
+			//fcos = RGBSpectrum(fmaxf(dot(wi, surface.world_geometric_normal), 0.0f));
 
-			if (!fcos || !Unoccluded(shader_data, surface, ls.wpos_light))
+			if (!fcos || !Unoccluded(shader_data, surface, ls.wpos_light, sampled_light.light->prim_id))
 			{
 				return Ld;
 			}
@@ -85,12 +92,14 @@ namespace KittlesPT
 			float dist = length(surface.world_position - ls.wpos_light);
 			float cos_theta_emitter = AbsDot(wi, ls.geo_wnorm);
 			float p_l = (sampled_light.probability * ls.pdf) * (1 / cos_theta_emitter) * Sqr(dist);
-			p_l = 1;
+			p_l = Sqr(dist) * sampled_light.probability * ls.pdf;
+
 			//float p_b = bsdf.pdf(wo, wi);
 			//float w_l = powerHeuristic(1, p_l, 1, p_b);
 			//Ld = fcos * w_l * ls.L / p_l;
 
-			Ld = (fcos * ls.L) / p_l;
+			Ld = (ls.L * fcos) / (2.0f * p_l);
+			//Ld = (ls.L / 2.0f) / p_l;
 
 			return Ld;
 		}
@@ -100,7 +109,7 @@ namespace KittlesPT
 			RGBSpectrum light(0.0f);
 			RGBSpectrum throughput(1.0f);
 
-			Atmosphere atmosphere(normalize(make_float3(-1, 1, -1)), 20.0f);
+			Atmosphere atmosphere(normalize(make_float3(-1, 1, -1)), 50.0f);
 			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
 			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
@@ -127,15 +136,15 @@ namespace KittlesPT
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
-				if (bounce_depth == 0)
+				if (bounce_depth == 0 && false)
 				{
 					light += surfintr.Le(shader_data, ray) * throughput;
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
-				light += sampleLd(shader_data, ray,
-					bsdf, surfintr, light_sampler, sampler) * throughput;
+				//light += sampleLd(shader_data, ray,
+				//	bsdf, surfintr, light_sampler, sampler) * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 

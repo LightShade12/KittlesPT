@@ -56,7 +56,7 @@ namespace KittlesPT
 			ShapeSample ss;
 			ss.point = world_position + (radius * sampleUniformSphere(u2));
 			ss.geo_w_normal = normalize(ss.point = world_position);
-			ss.pdf = 1.0f / getArea();
+			ss.pdf = 1.0f / getProjectedArea();
 			return ss;
 		}
 		__host__ __device__ float getArea() const

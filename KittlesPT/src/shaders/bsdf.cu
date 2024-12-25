@@ -26,17 +26,23 @@ namespace KittlesPT
 		float3 wo = tangent_matrix.inverse() * w_wo;
 		float3 wi = tangent_matrix.inverse() * w_wi;
 
-		float cMetallic = metallicity;
-		float cTransmissiveDielectric = (1.f - cMetallic) * transmission;
-		float cOpaqueDielectric = (1.f - cMetallic) * (1.f - transmission);
+		float w_metallic = metallicity;
+		float w_transmissive_dielectric = (1.0f - w_metallic) * transmission;
+		float w_opaque_dielectric = (1.0f - w_metallic) * (1.0f - transmission);
 
-		RGBSpectrum out(0);
+		RGBSpectrum F(0);
 
-		if (cMetallic > 0.f) out += (fConductor(wo, wi) * cMetallic);
-		if (cTransmissiveDielectric > 0.f) out += (fTransparentDielectric(wo, wi) * cTransmissiveDielectric);
-		if (cOpaqueDielectric > 0.f) out += (fOpaqueDielectric(wo, wi) * cOpaqueDielectric);
+		if (w_metallic > 0.f) {
+			F += (fConductor(wo, wi) * w_metallic);
+		}
+		if (w_transmissive_dielectric > 0.f) {
+			F += (fTransparentDielectric(wo, wi) * w_transmissive_dielectric);
+		}
+		if (w_opaque_dielectric > 0.f) {
+			F += (fOpaqueDielectric(wo, wi) * w_opaque_dielectric);
+		}
 
-		return out;
+		return F;
 	}
 
 	__device__ float BSDF::pdf(float3 w_wo, float3 w_wi) const
@@ -44,14 +50,20 @@ namespace KittlesPT
 		float3 wi = tangent_matrix.inverse() * w_wi;
 		float3 wo = tangent_matrix.inverse() * w_wo;
 
-		float pMetallic = metallicity;
-		float pTransmissiveDielectric = (1.f - pMetallic) * transmission;
-		float pOpaqueDielectric = (1.f - pMetallic) * (1.f - transmission);
+		float w_metallic = metallicity;
+		float w_transmissive_dielectric = (1.0f - w_metallic) * transmission;
+		float w_opaque_dielectric = (1.0f - w_metallic) * (1.0f - transmission);
 
 		float pdf = 0;
-		if (pMetallic > 0.f)pdf += pMetallic * pdfConductor(wo, wi);
-		if (pTransmissiveDielectric > 0.f)pdf += pTransmissiveDielectric * pdfTransparentDielectric(wo, wi);
-		if (pOpaqueDielectric > 0.f)pdf += pOpaqueDielectric * pdfOpaqueDielectric(wo, wi);
+		if (w_metallic > 0.f) {
+			pdf += w_metallic * pdfConductor(wo, wi);
+		}
+		if (w_transmissive_dielectric > 0.f) {
+			pdf += w_transmissive_dielectric * pdfTransparentDielectric(wo, wi);
+		}
+		if (w_opaque_dielectric > 0.f) {
+			pdf += w_opaque_dielectric * pdfOpaqueDielectric(wo, wi);
+		}
 
 		return pdf;
 	}
@@ -62,7 +74,7 @@ namespace KittlesPT
 		float3 wo = tangent_matrix.inverse() * w_wo;
 
 		float prob_metallic = metallicity;
-		float prob_trans = (1.0f - metallicity) * transmission;
+		float prob_trans = (1.0f - prob_metallic) * transmission;
 
 		BSDFSample bs;
 
@@ -261,6 +273,7 @@ namespace KittlesPT
 	__device__ float BSDF::pdfOpaqueDielectric(float3 wo, float3 wi) const
 	{
 		float3 h = normalize(wo + wi);
+
 		float pSpec = pdfGlossyMicrofacetBRDF(wo, wi, h);
 
 		float pDiffuse = pdfDiffuseBRDF(wo, wi);

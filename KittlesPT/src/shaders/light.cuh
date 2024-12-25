@@ -69,9 +69,8 @@ namespace KittlesPT
 
 		__device__ float pdf_Li(const LightSampleContext& ctx, float3 wo, float3 confirmed_hit_wpos, float3 confirmed_hit_geo_norm) const;
 
-	private:
-
 		int prim_id = -1;
+	private:
 		RGBSpectrum L_emit;
 		float emission_scale;
 		float area;
