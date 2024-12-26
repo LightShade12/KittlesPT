@@ -59,7 +59,7 @@ namespace KittlesPT
 		const float step_length = (t_tmax - t_tmin) / m_num_samples;
 		float current_t = t_tmin;
 		RGBSpectrum sum_R_transmission = RGBSpectrum(0);
-		RGBSpectrum sum_M_transmission = RGBSpectrum(0);             // integrated mie and rayleigh contribution
+		RGBSpectrum sum_M_transmission = RGBSpectrum(0);        // integrated mie and rayleigh contribution
 		float sum_R_optical_depth = 0, sum_M_optical_depth = 0; // discrete integration for transmittance
 
 		const float3 sun_dir = normalize(m_sun_position);
@@ -98,7 +98,9 @@ namespace KittlesPT
 				const float3 sample_position_light = sample_position + (current_t_light + step_length_light * 0.5f) * sun_dir;
 				const float height_light = length(sample_position_light) - m_earth_radius;
 				if (height_light < 0) // if sun dir points/sample_pos is below horizon/earth
+				{
 					break;
+				}
 				sum_R_optical_depth_light += exp(-height_light / Hr) * step_length_light;
 				sum_M_optical_depth_light += exp(-height_light / Hm) * step_length_light;
 				current_t_light += step_length_light;
