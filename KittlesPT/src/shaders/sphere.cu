@@ -1,4 +1,9 @@
 #include "sphere.cuh"
+#include "bsdf.cuh"
+
+#include "samplers.cuh"
+#include "ray.cuh"
+#include "maths/linear_algebra.cuh"
 #include "containers.cuh"
 #include "material.cuh"
 
@@ -40,6 +45,27 @@ namespace KittlesPT
 		return intr;
 	}
 
+	__device__ ShapeSample Sphere::sample(float2 u2) const
+	{
+		ShapeSample ss;
+		ss.point = world_position + (radius * sampleUniformSphere(u2));
+		ss.geo_w_normal = normalize(ss.point = world_position);
+		ss.pdf = 1.0f / getProjectedArea();
+		return ss;
+	}
+
+	__host__ __device__ float Sphere::getArea() const
+	{
+		return 4.0f * Constants::PI * Sqr(radius);
+	}
+
+	__host__ __device__ float Sphere::getProjectedArea() const
+	{
+		return Constants::PI * Sqr(radius);
+	}
+
+	//=========================================================================================
+
 	__device__ bool Intersection::operator!()
 	{
 		return (instance_id < 0);
@@ -63,6 +89,8 @@ namespace KittlesPT
 
 		return surfintr;
 	}
+
+	//=========================================================================================
 
 	__device__ RGBSpectrum SurfaceInteraction::Le(const GlobalShaderData& shader_data, const Ray& ray) const
 	{

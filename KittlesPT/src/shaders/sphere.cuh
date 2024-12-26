@@ -1,13 +1,13 @@
 #pragma once
 
-#include "ray.cuh"
-#include "bsdf.cuh"
-#include "samplers.cuh"
-#include "maths/linear_algebra.cuh"
+#include <vector_types.h>
 
 namespace KittlesPT
 {
 	struct GlobalShaderData;
+	class RGBSpectrum;
+	class Ray;
+	class BSDF;
 
 	struct SurfaceInteraction
 	{
@@ -51,23 +51,13 @@ namespace KittlesPT
 
 		__device__ Intersection intersect(const Ray& ray, float tmax) const;
 
-		__device__ ShapeSample sample(float2 u2) const
-		{
-			ShapeSample ss;
-			ss.point = world_position + (radius * sampleUniformSphere(u2));
-			ss.geo_w_normal = normalize(ss.point = world_position);
-			ss.pdf = 1.0f / getProjectedArea();
-			return ss;
-		}
-		__host__ __device__ float getArea() const
-		{
-			return 4.0f * Constants::PI * Sqr(radius);
-		}
-		__host__ __device__ float getProjectedArea() const
-		{
-			return Constants::PI * Sqr(radius);
-		}
+		__device__ ShapeSample sample(float2 u2) const;
 
+		__host__ __device__ float getArea() const;
+
+		__host__ __device__ float getProjectedArea() const;
+
+	public:
 		int material_id = -1;
 		float3 world_position;
 		float radius = 1;
