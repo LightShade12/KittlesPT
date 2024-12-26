@@ -17,11 +17,12 @@ namespace KittlesPT
 		{
 			Intersection closest;
 			closest.distance = INFINITY;
+			Intersection intr;
 
 			for (int instance_id = 0; instance_id < shader_data.geometry_buffer.num; instance_id++)
 			{
 				const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
-				Intersection intr = sphere.intersect(ray, tmax);
+				intr = sphere.intersect(ray, tmax);//currently only returns a float; triangle will return struct
 				if (intr.distance < closest.distance && intr.distance >= 0 && intr.distance < tmax)
 				{
 					closest.distance = intr.distance;
@@ -33,10 +34,10 @@ namespace KittlesPT
 
 		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax)
 		{
+			Intersection intr;
 			for (int instance_id = 0; instance_id < shader_data.geometry_buffer.num; instance_id++)
 			{
 				const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
-				Intersection intr;
 				intr = sphere.intersect(ray, tmax);
 				if (intr.distance >= 0 && intr.distance < tmax)
 				{
@@ -68,6 +69,7 @@ namespace KittlesPT
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 
 			RGBSpectrum fcos = bsdf.f(wo, sun_direction) * fmaxf(0, dot(sun_direction, surface.world_geometric_normal));
+
 			if (!fcos)
 			{
 				return Ld;
