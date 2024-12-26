@@ -55,6 +55,39 @@ namespace KittlesPT
 			return !(intersectShadow(shader_data, ray, tmax));
 		}
 
+		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, float3 sun_direction, const BSDF& bsdf,
+			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler)
+		{
+			RGBSpectrum Ld(0);
+			float3 sun_position = sun_direction * SUN_DISTANCE_METERS;
+			float sun_radius = angularDiameterToPhysicalDiameter(deg2rad(1.5), SUN_DISTANCE_METERS) / 2.0f;
+			float3 sample_offset = make_float3(sampler.get2D() * 2 - 1, sampler.get1D() * 2 - 1);
+			float3 target = sun_position + (sample_offset * sun_radius);
+
+			float3 wo = -ray.getDirection();
+			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
+
+			RGBSpectrum fcos = bsdf.f(wo, sun_direction) * fmaxf(0, dot(sun_direction, surface.world_geometric_normal));
+			if (!fcos)
+			{
+				return Ld;
+			}
+
+			RGBSpectrum sun_color = atmosphere.Le(atmosphere_observer_position, sun_direction, 0, INFINITY);
+
+			if (!sun_color)
+			{
+				return Ld;
+			}
+
+			bool unoccluded = Unoccluded(shader_data, surface, target);
+			if (unoccluded)
+			{
+				Ld = fcos * sun_color * 10.0f;
+			}
+			return Ld;
+		}
+
 		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const LightSampler& light_sampler, IndependentSampler& sampler)
 		{
@@ -132,28 +165,16 @@ namespace KittlesPT
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
-				light += surfintr.Le(shader_data, ray) * throughput;
+				//light += surfintr.Le(shader_data, ray) * throughput;
 				if (bounce_depth == 0 && false)
 				{
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
-				{
-					float3 target = sun_direction * SUN_DISTANCE_METERS;
-					float3 sample_offset = make_float3(sampler.get2D() * 2 - 1, sampler.get1D() * 2 - 1);
-					float sun_diameter = angularDiameterToPhysicalDiameter(deg2rad(1.5), SUN_DISTANCE_METERS);
-					bool unoccluded = Unoccluded(shader_data, surfintr, target + (sample_offset * (sun_diameter / 2.0f)));
-					if (unoccluded)
-					{
-						float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
-						RGBSpectrum sun_radiance = bsdf.f(wo, sun_direction) * fmaxf(0, dot(sun_direction, surfintr.world_geometric_normal));
-						RGBSpectrum sun_color = atmosphere.Le(atmosphere_observer_position, sun_direction, 0, FLT_MAX);
-						sun_radiance *= sun_color + RGBSpectrum(50.0f);
-						light += sun_radiance * throughput;
-					}
-				}
-
+				RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
+					bsdf, surfintr, atmosphere, sampler);
+				light += sun_Ld * throughput;
 				//light += sampleLd(shader_data, ray,
 				//	bsdf, surfintr, light_sampler, sampler) * throughput;
 
