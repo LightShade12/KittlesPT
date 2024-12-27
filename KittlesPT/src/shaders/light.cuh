@@ -17,7 +17,7 @@ namespace KittlesPT
 		__device__ LightLiSample(
 			const RGBSpectrum& L, const float3& wi, const float3& pLight,
 			const float3& gwn, float pdf)
-			: L(L), wi(wi), wpos_light(pLight), geo_wnorm(gwn), pdf(pdf)
+			: L(L), wi(wi), wpos_light(pLight), wgnorm(gwn), pdf(pdf)
 		{}
 
 		//---------------------------------------
@@ -31,7 +31,7 @@ namespace KittlesPT
 
 		//TODO: can add float2 uv, float3 wo via Interaction struct
 		float3 wpos_light;
-		float3 geo_wnorm;
+		float3 wgnorm;
 
 		RGBSpectrum L;
 		float3 wi;
@@ -49,7 +49,7 @@ namespace KittlesPT
 
 		//---------------------
 		float3 w_pos{};
-		float3 geo_wnorm{};
+		float3 wgnorm{};
 		float3 s_wnorm{};
 	};
 

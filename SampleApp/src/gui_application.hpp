@@ -18,8 +18,8 @@ namespace SampleAppGUI
 	public:
 		struct WindowConfig
 		{
-			const int initial_window_width = 640 + 16;
-			const int initial_window_height = 700;
+			int initial_window_width = 640 + 16;
+			int initial_window_height = 700;
 			const char* glsl_version_formatted = "#version 460";
 			std::string window_title = "default title";
 		};

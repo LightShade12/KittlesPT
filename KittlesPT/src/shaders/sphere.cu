@@ -7,6 +7,8 @@
 #include "containers.cuh"
 #include "material.cuh"
 
+#include <cuda/std/span>
+
 namespace KittlesPT
 {
 	__device__ Intersection Sphere::intersect(const Ray& ray, float tmax) const
@@ -48,10 +50,37 @@ namespace KittlesPT
 	__device__ ShapeSample Sphere::sample(float2 u2) const
 	{
 		ShapeSample ss;
-		ss.point = world_position + (radius * sampleUniformSphere(u2));
-		ss.geo_w_normal = normalize(ss.point = world_position);
-		ss.pdf = 1.0f / getProjectedArea();
+		ss.wpos = world_position + (radius * sampleUniformSphere(u2));
+		ss.gwnorm = normalize(ss.wpos - world_position);
+		ss.pdf = 1.0f / getArea();
 		return ss;
+	}
+
+	__device__ ShapeSample Sphere::sample(float2 u2, ShapeSampleContext ctx) const
+	{
+		float sinThetaMax = radius / length(ctx.wpos - world_position);
+		float sin2ThetaMax = Sqr(sinThetaMax);
+		float cosThetaMax = sqrtf(1 - sin2ThetaMax);
+		float oneMinusCosThetaMax = 1 - cosThetaMax;
+
+		float cosTheta = (cosThetaMax - 1) * u2.x + 1;
+		float sin2Theta = 1 - Sqr(cosTheta);
+
+		float cosAlpha = sin2Theta / sinThetaMax +
+			cosTheta * sqrtf(1 - sin2Theta / Sqr(sinThetaMax));
+		float sinAlpha = sqrtf(1 - Sqr(cosAlpha));
+
+		float phi = u2.y * 2 * Constants::PI;
+		float3 w = toSphericalDirection(sinAlpha, cosAlpha, phi);
+
+		Mat3 samplingFrame = generateONBFrisvad(normalize(world_position - ctx.wpos));
+		float3 n = samplingFrame.inverse() * (-w);
+		cuda::std::swap(n.y, n.z);
+
+		float3 p = world_position + radius * n;
+		float pdf = 1.0f / (2.0f * Constants::PI * oneMinusCosThetaMax);
+
+		return ShapeSample(p, n, pdf);
 	}
 
 	__host__ __device__ float Sphere::getArea() const

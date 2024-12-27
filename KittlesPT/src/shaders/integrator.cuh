@@ -51,9 +51,9 @@ namespace KittlesPT
 		{
 			//return true;
 			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
-			Ray ray = surface.spawnRayTo(target);
-			float tmax = length(target - ray.getOrigin()) - SHADOWRAY_EPSILON;
-			return (!intersectShadow(shader_data, ray, tmax));
+			Ray shadow_ray = surface.spawnRayTo(target);
+			float tmax = length(target - shadow_ray.getOrigin()) - SHADOWRAY_EPSILON;
+			return (!intersectShadow(shader_data, shadow_ray, tmax));
 		}
 
 		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, float3 sun_direction, const BSDF& bsdf,
@@ -112,26 +112,28 @@ namespace KittlesPT
 			float3 wi = ls.wi;
 			float3 wo = -ray.getDirection();
 			RGBSpectrum fcos = bsdf.f(wo, wi) * fmaxf(dot(wi, surface.world_geometric_normal), 0.0f);
-			//fcos = RGBSpectrum(fmaxf(dot(wi, surface.world_geometric_normal), 0.0f));
 
-			if (!fcos || !Unoccluded(shader_data, surface, ls.wpos_light))
+			if (!fcos)
 			{
 				return Ld;
 			}
 
+			if (!Unoccluded(shader_data, surface, ls.wpos_light)) {
+				return Ld;
+			}
+
 			float dist = length(surface.world_position - ls.wpos_light);
-			float cos_theta_emitter = AbsDot(wi, ls.geo_wnorm);
+			float cos_theta_emitter = AbsDot(-wi, ls.wgnorm);
 			float p_l = (sampled_light.probability * ls.pdf) * (1 / cos_theta_emitter) * Sqr(dist);
 
-			p_l = Sqr(dist) * sampled_light.probability * ls.pdf;
+			//float p_l = sampled_light.probability * ls.pdf;
 
 			//float p_b = bsdf.pdf(wo, wi);
 			//float w_l = powerHeuristic(1, p_l, 1, p_b);
 			//Ld = fcos * w_l * ls.L / p_l;
 
-			Ld = (ls.L * fcos) / (2.0f * p_l);
-			//Ld = (ls.L / 2.0f) / p_l;
-
+			Ld = (ls.L * fcos) / p_l;
+			//Ld = ls.L/p_l;
 			return Ld;
 		}
 
@@ -168,19 +170,19 @@ namespace KittlesPT
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
-				//light += surfintr.Le(shader_data, ray) * throughput;
-				if (bounce_depth == 0 && false)
+				light += surfintr.Le(shader_data, ray) * throughput;
+				if (bounce_depth == 0 && true)
 				{
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
+				//light += sampleLd(shader_data, ray,
+				//	bsdf, surfintr, light_sampler, sampler) * throughput;
+
 				RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
 					bsdf, surfintr, atmosphere, sampler);
 				light += sun_Ld * throughput;
-
-				//light += sampleLd(shader_data, ray,
-				//	bsdf, surfintr, light_sampler, sampler) * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 

@@ -7,6 +7,7 @@ int main()
 
 	SampleAppGUI::GUIApplication application;
 	application.window_settings.window_title = "main window";
+	application.window_settings.initial_window_width = 764;
 
 	application.init(std::make_shared<SampleApp::SampleAppWindow>());
 

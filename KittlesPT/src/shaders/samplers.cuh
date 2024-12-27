@@ -29,7 +29,16 @@ namespace KittlesPT
 	};
 
 	//TODO: learn more about these
+	__device__ float2 sampleUniformDiskPolar(float2 u);
+
+	//NOTE: All this sampling is done in tangent space
+	__device__ float3 sampleUniformHemisphere(float2 u);
+
 	__device__ float3 sampleUniformSphere(float2 xi);
 
 	__device__ float3 sampleCosineWeightedHemisphere(float2 xi);
+
+	__device__ float3 toSphericalDirection(float sin_theta, float cos_theta, float phi);
+
+	__device__ float3 sampleUniformCone(float2 u, float cos_theta_max);
 }

@@ -5,11 +5,9 @@
 
 namespace KittlesPT
 {
-	__device__ LightSampleContext::LightSampleContext(const SurfaceInteraction& si)
-	{
-		w_pos = si.world_position;
-		geo_wnorm = si.world_geometric_normal;
-	};
+	__device__ LightSampleContext::LightSampleContext(const SurfaceInteraction& si) :
+		w_pos(si.world_position), wgnorm(si.world_geometric_normal)
+	{};
 
 	__host__ __device__ Light::Light(Sphere* primitive, int prim_id, float3 color, float power)
 		:L_emit(color), emission_scale(power), prim_id(prim_id)
@@ -33,9 +31,9 @@ namespace KittlesPT
 	{
 		ShapeSample ss = shader_data.geometry_buffer.data[prim_id].sample(u2);
 
-		float3 wi = normalize(ss.point - ctx.w_pos);
-		RGBSpectrum Le = L(ss.point, ss.geo_w_normal, wi);
+		float3 wi = normalize(ss.wpos - ctx.w_pos);
+		RGBSpectrum Le = L(ss.wpos, ss.gwnorm, wi);
 
-		return LightLiSample(Le, wi, ss.point, ss.geo_w_normal, ss.pdf);
+		return LightLiSample(Le, wi, ss.wpos, ss.gwnorm, ss.pdf);
 	}
 }
