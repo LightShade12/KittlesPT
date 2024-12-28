@@ -42,7 +42,8 @@ namespace KittlesPT
 			F += (fOpaqueDielectric(wo, wi) * w_opaque_dielectric);
 		}
 
-		return albedo_factor * fDiffuseBRDF(wo, wi);
+		//return albedo_factor * fDiffuseBRDF(wo, wi);
+		//return fTransparentDielectric(wo, wi);
 		return F;
 	}
 
@@ -65,7 +66,8 @@ namespace KittlesPT
 		if (w_opaque_dielectric > 0.f) {
 			pdf += w_opaque_dielectric * pdfOpaqueDielectric(wo, wi);
 		}
-		return pdfDiffuseBRDF(wo, wi);
+		//return pdfDiffuseBRDF(wo, wi);
+		//return pdfTransparentDielectric(wo, wi);
 		return pdf;
 	}
 
@@ -92,7 +94,8 @@ namespace KittlesPT
 			bs = sampleOpaqueDielectric(wo, u2, X2.y);
 		}
 
-		bs = sampleOpaqueDielectric(wo, u2, X2.y);
+		//bs = sampleOpaqueDielectric(wo, u2, X2.y);
+		//bs = sampleTransparentDielectric(wo, u2, X2.y);
 
 		bs.wi = tangent_matrix * bs.wi;
 		return bs;
@@ -124,6 +127,7 @@ namespace KittlesPT
 	//===========================================================================================================
 	//GLOSSY MICROFACET BRDF
 	//===========================================================================================================
+
 	//SmithGGXMaskingShadowing
 	__device__ float G2_Smith(float3 wo, float3 wi, float roughness)
 	{
@@ -138,7 +142,7 @@ namespace KittlesPT
 		return 2.0f * dotNL * dotNV / (denomA + denomB);
 	}
 
-	//clamps roughness
+	//GGX ndf; clamps roughness
 	__device__ float D_GGX(float NoH, float roughness)
 	{
 		roughness = fmaxf(roughness, Constants::MAT_MIN_ROUGHNESS);//needed TODO: switch to specular brdf below this threshold
@@ -148,7 +152,7 @@ namespace KittlesPT
 		float b = (NoH2 * (alpha2 - 1.0) + 1.0);
 		return alpha2 / (Constants::PI * Sqr(b));
 	}
-
+	//FrDielectric
 	__device__ float fresnelDielectric(float cosTheta, float ior)
 	{
 		cosTheta = clamp(cosTheta, -1.0f, 1.0f);
@@ -169,6 +173,7 @@ namespace KittlesPT
 		return (r_prl * r_prl + r_per * r_per) * 0.5f;
 	}
 
+	//Cook-Torrance microfacet brdf equation
 	__device__ float microFacetBRDF(float3 wo, float3 wi, float3 h, float roughness)
 	{
 		float NoH = clamp(h.z, 0.f, 1.f);
@@ -185,7 +190,7 @@ namespace KittlesPT
 		}
 		return out;
 	}
-	//-----
+	//--------------------------------------------------------
 
 	__device__ RGBSpectrum BSDF::fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const
 	{
@@ -209,13 +214,12 @@ namespace KittlesPT
 	{
 		float a = Sqr(roughness);
 		float a2 = a * a;
-		// -- Generate uniform random variables between 0 and 1
+
 		float e0 = u2.x;
 		float e1 = u2.y;
 
 		float theta = acosf(sqrtf((1.0f - e0) / ((a2 - 1.0f) * e0 + 1.0f)));
-		// Correct GGX sampling of theta using the inverse CDF
-		//float theta = atanf(a * sqrtf(e0 / (1.0f - e0)));
+		//float theta = atanf(a * sqrtf(e0 / (1.0f - e0)));//chatgpt
 		//float theta = acosf(sqrtf(a2 / e0 * (a2 - 1.0f) + 1.0f));//github
 		float phi = 2 * Constants::PI * e1;
 
@@ -232,7 +236,7 @@ namespace KittlesPT
 	{
 		float path_probability = Xi;
 
-		float glossy_prob = 0.0f;
+		float glossy_prob = 0.5f;
 
 		if (path_probability < glossy_prob)
 		{
@@ -287,15 +291,19 @@ namespace KittlesPT
 	//===========================================================================================================
 	//CONDUCTOR BSDF
 	//===========================================================================================================
+
+	//FrSchlick approximation
 	__device__ float3 fresnelSchlick(float VoH, float3 F0)
 	{
 		float3 F = F0 + (1.0 - F0) * ::powf(1.0 - VoH, 5.0);
 		return clamp(F, 0, 1);
 	}
 
+	//---------------
+
 	__device__ BSDFSample BSDF::sampleConductor(float3 wo, float2 u2, float X) const
 	{
-		float path_probability = X;
+		float path_probability = X;//TODO:unused
 
 		float3 h = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
 		float3 wi = reflect(-wo, h);
@@ -304,6 +312,7 @@ namespace KittlesPT
 
 		return BSDFSample(BSDFSample::Glossy | BSDFSample::Reflected, f, wi, pdf);
 	}
+
 	__device__ RGBSpectrum BSDF::fConductor(float3 wo, float3 wi) const
 	{
 		float3 h = normalize(wo + wi);
@@ -330,8 +339,10 @@ namespace KittlesPT
 		return pdfGlossyMicrofacetBRDF(wo, wi, h);
 	}
 
+	//--------------------------------------------------------------------------------------------------------------
+
 	//===========================================================================================================
-	//TRANSPARENT DIELECTRIC BSDF
+	//GLOSSY MICROFACET BTDF
 	//===========================================================================================================
 
 	__device__ float BSDF::pdfGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
@@ -346,6 +357,7 @@ namespace KittlesPT
 
 		return pdf;
 	}
+
 	__device__ RGBSpectrum BSDF::fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
 	{
 		const float NoH = fabs(ht.z);
@@ -360,38 +372,53 @@ namespace KittlesPT
 		return f;
 	}
 
+	//===========================================================================================================
+	//TRANSPARENT DIELECTRIC BSDF
+	//===========================================================================================================
+
 	__device__ BSDFSample BSDF::sampleTransparentDielectric(float3 wo, float2 u2, float X) const
 	{
 		float path_probability = X;
 
-		float ior = (backface) ? 1.0f / IOR : IOR;
+		const bool inside_volume = backface;
+
+		float ior = (inside_volume) ? (1.0f / IOR) : IOR;
 
 		float3 ht = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
-		float Fss = fresnelDielectric(AbsDot(wo, ht), ior);
 
 		float3 wi;
 		bool tir = !refract(wo, ht, ior, wi);
 		float glossy_prob = 0.5;
 
-		if ((path_probability < glossy_prob) || tir)
+		if ((path_probability < glossy_prob && !inside_volume) || (tir && inside_volume))
 		{
 			//Reflection path---------
 
 			wi = reflect(-wo, ht);
+
+			//if somehow reflection is not on same the hemisphere
 			if (!sameHemisphere(wi, wo, make_float3(0, 0, 1)))
 			{
 				return BSDFSample(BSDFSample::Absorbed, { 0,0,0 }, { 0,0,0 }, 0);
 			}
 
 			float Mss = microFacetBRDF(wo, wi, ht, roughness);
+			float Fss = fresnelDielectric(dot(wo, ht), ior);
 			RGBSpectrum f = RGBSpectrum(Fss * Mss);
-			f *= (1.0f / glossy_prob);
+
+			//factor glossy prob if not due to TIR
+			if (!tir) {
+				f *= (1.0f / glossy_prob);
+			}
 
 			float pdf = pdfGlossyMicrofacetBRDF(wo, wi, ht);
 
 			return BSDFSample(BSDFSample::Reflected | BSDFSample::Glossy, f, wi, pdf);
 		}
+
 		//Refraction path---------
+
+		//if somehow refraction is on same hemisphere or tir case slipped or degenerate wi
 		if (tir || sameHemisphere(wi, wo, make_float3(0, 0, 1)) || wi.z == 0.0f)
 		{
 			return BSDFSample(BSDFSample::Absorbed, { 0,0,0 }, { 0,0,0 }, 0);
@@ -400,19 +427,21 @@ namespace KittlesPT
 		//BTDF
 		const float pdf = pdfGlossyMicrofacetBTDF(wo, wi, ht, ior);
 		RGBSpectrum  f = fGlossyMicrofacetBTDF(wo, wi, ht, ior);
-		f *= (1.0f / (1.0f - glossy_prob));
+		if (!inside_volume) {
+			f *= (1.0f / (1.0f - glossy_prob));//factor glossy_prob if entry refraction
+		}
 
 		return BSDFSample(BSDFSample::Transmitted | BSDFSample::Glossy, f, wi, pdf);
 	}
 	__device__ RGBSpectrum BSDF::fTransparentDielectric(float3 wo, float3 wi) const
 	{
 		const float cos_theta_o = wo.z, cos_theta_i = wi.z;
-		const bool is_reflection = (cos_theta_o * cos_theta_i) > 0.0f;
+		const bool is_reflection = (cos_theta_o * cos_theta_i) > 0.0f;//same as sameHemisphere()
 		float ior = 1.0f;
 
 		if (!is_reflection)
 		{
-			ior = (cos_theta_o > 0.0f) ? IOR : 1.0f / IOR;//entry exit determination
+			ior = (!backface) ? IOR : (1.0f / IOR);//entry exit determination
 		}
 
 		// Calculate microfacet normal
@@ -446,6 +475,7 @@ namespace KittlesPT
 
 		return RGBSpectrum(T * albedo_factor * Tss);
 	}
+
 	__device__ float BSDF::pdfTransparentDielectric(float3 wo, float3 wi) const
 	{
 		const float cos_theta_o = wo.z, cos_theta_i = wi.z;
@@ -453,7 +483,7 @@ namespace KittlesPT
 		float ior = 1.0f;
 		if (!is_reflection)
 		{
-			ior = (cos_theta_o > 0.0f) ? IOR : 1.0f / IOR;//entry exit determination
+			ior = (!backface) ? IOR : 1.0f / IOR;//entry exit determination
 		}
 
 		// Calculate microfacet normal
@@ -485,6 +515,10 @@ namespace KittlesPT
 			float D = D_GGX(NoH, roughness);
 			pdf = D * NoH * dwm_dwi * T;
 		}
+		//if (!backface) 
+		//{
+		//	pdf *= 0.5;//factor glossy prob
+		//}
 
 		return pdf;
 	}

@@ -17,6 +17,7 @@ namespace KittlesPT
 
 	__device__ float3 powf(const float3 a, const float3 b);
 
+	//Z-up
 	__device__ float3 sphericalToCartesian(float theta, float phi);
 
 	__device__ bool sameHemisphere(const float3& a, const float3& b, const float3& n);

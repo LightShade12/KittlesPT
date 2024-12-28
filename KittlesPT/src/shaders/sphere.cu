@@ -130,7 +130,7 @@ namespace KittlesPT
 	__device__ RGBSpectrum SurfaceInteraction::Le(const GlobalShaderData& shader_data, const Ray& ray) const
 	{
 		RGBSpectrum emission(0);
-		if (!light) 
+		if (!light)
 		{
 			return emission;
 		}
@@ -158,7 +158,7 @@ namespace KittlesPT
 		float3 ray_orig;
 		if (scatter_flags & BSDFSample::Scatter::Transmitted)
 		{
-			ray_orig = world_position;
+			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
 		}
 		else
 		{

@@ -24,7 +24,9 @@ namespace KittlesPT
 
 		float sin2Theta = (1.0f - cosTheta * cosTheta);
 		float sin2Theta_t = sin2Theta / (ior * ior);
-		if (sin2Theta_t >= 1.0f) return false;
+		if (sin2Theta_t >= 1.0f) {
+			return false;
+		}
 
 		float cosTheta_t = sqrtf(1.0f - sin2Theta_t);
 		wt = (-1.f * wo) / ior + (cosTheta / ior - cosTheta_t) * normal;

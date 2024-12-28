@@ -242,4 +242,22 @@ namespace KittlesPT
 
 		float r = 0, g = 0, b = 0;
 	};
+
+	inline __device__ RGBSpectrum operator-(float b, RGBSpectrum a)
+	{
+		return RGBSpectrum(b - a.r, b - a.g, b - a.b);
+	}
+
+	inline __device__ RGBSpectrum operator+(float b, RGBSpectrum a)
+	{
+		return RGBSpectrum(b + a.r, b + a.g, b + a.b);
+	};
+	inline __device__ RGBSpectrum operator*(float b, RGBSpectrum a)
+	{
+		return RGBSpectrum(b * a.r, b * a.g, b * a.b);
+	};
+	inline __device__ RGBSpectrum operator/(float b, RGBSpectrum a)
+	{
+		return RGBSpectrum(b / a.r, b / a.g, b / a.b);
+	};
 }
