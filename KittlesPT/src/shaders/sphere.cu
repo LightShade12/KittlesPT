@@ -108,12 +108,18 @@ namespace KittlesPT
 
 		surfintr.distance = distance;
 		surfintr.material_id = sphere.material_id;
+
 		surfintr.world_position = ray.getPointAt(distance);
 		surfintr.world_geometric_normal = normalize(surfintr.world_position - sphere.world_position);
+
 		if (dot(surfintr.world_geometric_normal, wo) < 0)
 		{
 			surfintr.world_geometric_normal *= -1.0f;
 			surfintr.backface = true;
+		}
+
+		if (sphere.light_id >= 0) {
+			surfintr.light = &(shader_data.lights_buffer.data[sphere.light_id]);
 		}
 
 		return surfintr;
@@ -123,8 +129,13 @@ namespace KittlesPT
 
 	__device__ RGBSpectrum SurfaceInteraction::Le(const GlobalShaderData& shader_data, const Ray& ray) const
 	{
-		const Material& mat = shader_data.materials_buffer.data[material_id];
 		RGBSpectrum emission(0);
+		if (!light) 
+		{
+			return emission;
+		}
+
+		const Material& mat = shader_data.materials_buffer.data[material_id];
 		emission = RGBSpectrum(mat.emissive_factor * mat.emission_scale);
 		return emission;
 	}

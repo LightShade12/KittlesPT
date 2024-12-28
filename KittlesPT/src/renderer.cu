@@ -85,11 +85,11 @@ namespace KittlesPT
 			make_float3(0.2, 0.7, 1),
 			35.0));
 
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(-1.5, 0, -3), 2));
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 0));
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(1.5, 0, -3), 3));
-		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 1.5, -3), 4));//light source
-		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3), 1));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(-1.5, 0, -3), 2, -1));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 0, -3), 0, -1));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(1.5, 0, -3), 3, -1));
+		m_renderer_data->scene_spheres.push_back(Sphere(0.5, make_float3(0, 1.5, -3), 4, 0));//light source
+		m_renderer_data->scene_spheres.push_back(Sphere(100, make_float3(0, -100.5, -3), 1, -1));
 
 		Material emissive_mat = m_renderer_data->scene_materials[4];
 		m_renderer_data->scene_lights.push_back(Light(&(m_renderer_data->scene_spheres[3]), 3,

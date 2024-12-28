@@ -20,7 +20,7 @@ namespace KittlesPT
 			: L(L), wi(wi), wpos_light(pLight), wgnorm(gwn), pdf(pdf)
 		{}
 
-		//---------------------------------------
+		//op---------------------------------------
 
 		__device__ bool operator !()
 		{
@@ -47,7 +47,8 @@ namespace KittlesPT
 
 		__device__ LightSampleContext(const SurfaceInteraction& si);
 
-		//---------------------
+		//----------------------------------
+
 		float3 w_pos{};
 		float3 wgnorm{};
 		float3 s_wnorm{};
@@ -59,6 +60,7 @@ namespace KittlesPT
 	class Light
 	{
 	public:
+		//ctor-------------------------------------------------------------------------
 		__host__ __device__ Light(Sphere* primitive, int prim_id, float3 color, float power);
 
 		//----------------------------------------------------------------------------
@@ -67,7 +69,10 @@ namespace KittlesPT
 
 		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
 
-		__device__ float pdf_Li(const LightSampleContext& ctx, float3 wo, float3 confirmed_hit_wpos, float3 confirmed_hit_geo_norm) const;
+		__device__ float pdf_Li(const LightSampleContext& ctx, float3 wo,
+			float3 confirmed_hit_wpos, float3 confirmed_hit_wgnorm) const;
+
+		//-----------------------------------------------------------------------------
 
 		int prim_id = -1;
 	private:

@@ -123,15 +123,11 @@ namespace KittlesPT
 			}
 
 			float p_l = (sampled_light.probability * ls.pdf);
+			float p_b = bsdf.pdf(wo, wi);
+			float w_l = powerHeuristic(1, p_l, 1, p_b);
 
-			//float p_l = sampled_light.probability * ls.pdf;
+			Ld = (ls.L * fcos * w_l) / p_l;
 
-			//float p_b = bsdf.pdf(wo, wi);
-			//float w_l = powerHeuristic(1, p_l, 1, p_b);
-			//Ld = fcos * w_l * ls.L / p_l;
-
-			Ld = (ls.L * fcos) / p_l;
-			//Ld = ls.L/p_l;
 			return Ld;
 		}
 
@@ -162,6 +158,9 @@ namespace KittlesPT
 			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
 			float etaScale = 1.0;
+			float p_b = 1.0f;
+			LightSampleContext prev_ctx;
+
 			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
 			Ray ray = ray_in;
 
@@ -173,7 +172,7 @@ namespace KittlesPT
 
 				if (!intr)
 				{
-					//break;
+					break;
 					//miss
 					RGBSpectrum sky_radiance = atmosphere.Le(atmosphere_observer_position,
 						ray.getDirection(), 0, INFINITY);
@@ -188,18 +187,34 @@ namespace KittlesPT
 
 				if (bounce_depth == 0)
 				{
+					light += surfintr.Le(shader_data, ray) * throughput;
 				}
-				light += surfintr.Le(shader_data, ray) * throughput;
+				else
+				{
+					const Light* arealight = surfintr.light;
+					float w_l = 1.0f;
+
+					if (arealight)
+					{
+						float light_pdf = light_sampler.PMF(arealight) *
+							arealight->pdf_Li(prev_ctx, wo,
+								surfintr.world_position,
+								surfintr.world_geometric_normal);
+						w_l = powerHeuristic(1, p_b, 1, light_pdf);
+					}
+
+					light += surfintr.Le(shader_data, ray) * w_l * throughput;
+				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
-				//RGBSpectrum Ld = sampleLd(shader_data, ray,
-				//	bsdf, surfintr, light_sampler, sampler);
-				//light += Ld * throughput;
+				RGBSpectrum Ld = sampleLd(shader_data, ray,
+					bsdf, surfintr, light_sampler, sampler);
+				light += Ld * throughput;
 
-				RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
-					bsdf, surfintr, atmosphere, sampler);
-				light += sun_Ld * throughput;
+				//RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
+				//	bsdf, surfintr, atmosphere, sampler);
+				//light += sun_Ld * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 
@@ -219,7 +234,9 @@ namespace KittlesPT
 				}
 
 				throughput *= (fcos / pdf);
+				p_b = bsdf.pdf(wo, wi);
 
+				prev_ctx = surfintr;
 				ray = surfintr.spawnRay(wi, bs.scatter);
 
 				//russian roulette

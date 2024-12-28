@@ -42,7 +42,7 @@ namespace KittlesPT
 			F += (fOpaqueDielectric(wo, wi) * w_opaque_dielectric);
 		}
 
-		//return albedo_factor * fDiffuseBRDF(wo, wi);
+		return albedo_factor * fDiffuseBRDF(wo, wi);
 		return F;
 	}
 
@@ -65,7 +65,7 @@ namespace KittlesPT
 		if (w_opaque_dielectric > 0.f) {
 			pdf += w_opaque_dielectric * pdfOpaqueDielectric(wo, wi);
 		}
-		//return pdfDiffuseBRDF(wo, wi);
+		return pdfDiffuseBRDF(wo, wi);
 		return pdf;
 	}
 
@@ -91,6 +91,8 @@ namespace KittlesPT
 		{
 			bs = sampleOpaqueDielectric(wo, u2, X2.y);
 		}
+
+		bs = sampleOpaqueDielectric(wo, u2, X2.y);
 
 		bs.wi = tangent_matrix * bs.wi;
 		return bs;
@@ -230,7 +232,7 @@ namespace KittlesPT
 	{
 		float path_probability = Xi;
 
-		float glossy_prob = 0.5;
+		float glossy_prob = 0.0f;
 
 		if (path_probability < glossy_prob)
 		{
