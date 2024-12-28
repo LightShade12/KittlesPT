@@ -64,6 +64,14 @@ namespace KittlesPT
 			clamp(cos_theta, -1.0f, 1.0f));
 	}
 
+	__device__ float3 toSphericalDirection(float theta, float phi)
+	{
+		return make_float3(
+			clamp(sinf(theta), -1.0f, 1.0f) * cosf(phi),
+			clamp(sinf(theta), -1.0f, 1.0f) * sinf(phi),
+			clamp(cosf(theta), -1.0f, 1.0f));
+	}
+
 	__device__ float3 sampleUniformCone(float2 u, float cos_theta_max)
 	{
 		float cos_theta = (1 - u.x) + u.x * cos_theta_max;

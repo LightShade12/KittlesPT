@@ -1,4 +1,6 @@
 #pragma once
+
+#include "renderer.hpp"
 #include "glm/glm.hpp"
 
 namespace SampleApp
@@ -14,6 +16,8 @@ namespace SampleApp
 
 	struct ApplicationData
 	{
+		KittlesPT::ProceduralEnvironmentData environment_data;
+		KittlesPT::PathtracerSettings pathtracer_settings;
 		Material editable_material;
 		int editable_material_idx = 0;
 		int materials_count = 0;

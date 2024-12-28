@@ -1,4 +1,7 @@
 #pragma once
+
+#include "pod_types.hpp"
+
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 
@@ -36,6 +39,12 @@ namespace KittlesPT
 		);
 
 		int getMaterialsCount();
+
+		void setProceduralEnvironmentData(ProceduralEnvironmentData data);
+		ProceduralEnvironmentData getProceduralEnvironmentData();
+
+		void setPathTracerSettings(PathtracerSettings cfg);
+		PathtracerSettings getPathTracerSettings();
 
 		void setExposure(float exposure);
 

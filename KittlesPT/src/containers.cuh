@@ -4,6 +4,7 @@
 #include "shaders/camera.cuh"
 #include "shaders/material.cuh"
 #include "shaders/light.cuh"
+#include "pod_types.hpp"
 #include <cuda_runtime.h>
 
 namespace KittlesPT
@@ -21,12 +22,19 @@ namespace KittlesPT
 	struct GlobalShaderData
 	{
 		int2 frame_resolution;
+
 		int frame_index = 0;
 		float frame_delta = 0.0f;
+
 		Buffer<Sphere> geometry_buffer;
 		Buffer<Material> materials_buffer;
 		Buffer<Light> lights_buffer;
+
 		Camera scene_camera;
+
+		ProceduralEnvironmentData procedural_environment_data;
+		PathtracerSettings pathtracer_settings;
+
 		DeviceTextureBuffer main_texture;
 		DeviceTextureBuffer accumulation_texture;
 	};

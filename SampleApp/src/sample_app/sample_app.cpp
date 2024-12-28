@@ -23,6 +23,12 @@ namespace SampleApp
 		);
 
 		m_application_data.materials_count = m_renderer.getMaterialsCount();
+		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
+		m_application_data.pathtracer_settings = m_renderer.getPathTracerSettings();
+
+		//========================================================================================================
+		//REGISTER EVENT LISTENERS
+		//========================================================================================================
 
 		m_event_dispatcher.registerListener(Event("exposure_changed"),
 			Listener([this](const std::any& data)
@@ -67,6 +73,22 @@ namespace SampleApp
 						float(m_window_width), float(m_window_height), 1.f, 100.f);
 					m_renderer.setView(proj, glm::inverse(view));
 				}));
+
+		m_event_dispatcher.registerListener(Event("pathtracer_settings_changed"),
+			Listener([this](const std::any& data)
+				{
+					m_application_data.pathtracer_settings = std::any_cast<KittlesPT::PathtracerSettings>(data);
+					m_renderer.setPathTracerSettings(m_application_data.pathtracer_settings);
+				}));
+
+		m_event_dispatcher.registerListener(Event("environment_settings_changed"),
+			Listener([this](const std::any& data)
+				{
+					m_application_data.environment_data = std::any_cast<KittlesPT::ProceduralEnvironmentData>(data);
+					m_renderer.setProceduralEnvironmentData(m_application_data.environment_data);
+				}));
+
+		//========================================================================================================
 
 		m_developer_window.init(&m_event_dispatcher, &m_camera,
 			&m_application_data);

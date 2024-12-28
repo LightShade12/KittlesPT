@@ -61,7 +61,9 @@ namespace KittlesPT
 		{
 			RGBSpectrum Ld(0);
 			float3 sun_position = sun_direction * SUN_DISTANCE_METERS;
-			float sun_radius = angularDiameterToPhysicalDiameter(deg2rad(1.5), SUN_DISTANCE_METERS) / 2.0f;
+			float sun_radius = angularDiameterToPhysicalDiameter(
+				shader_data.procedural_environment_data.sun_angular_diameter_rad,
+				SUN_DISTANCE_METERS) / 2.0f;
 			float3 sample_offset = make_float3(sampler.get2D() * 2 - 1, sampler.get1D() * 2 - 1);
 			float3 target = sun_position + (sample_offset * sun_radius);
 
@@ -85,7 +87,13 @@ namespace KittlesPT
 			bool is_unoccluded = Unoccluded(shader_data, surface, target);
 			if (is_unoccluded)
 			{
-				Ld = fcos * sun_color * 10.0f;
+				float sun_area = 4.0f * Constants::PI * Sqr(sun_radius);
+				float3 sun_n = normalize(target - sun_position), wi = normalize(target - surface.world_position);
+				float cos_sun = AbsDot(sun_n, -wi);
+				float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_DISTANCE_METERS));
+				pdf = (1.0f / sun_area);
+				//pdf = 1.0f;
+				Ld = (fcos * sun_color) / pdf;
 			}
 			return Ld;
 		}
@@ -131,6 +139,21 @@ namespace KittlesPT
 			return Ld;
 		}
 
+		//russian roulette
+		__device__ bool russianRoulette(RGBSpectrum& throughput, float eta_scale,
+			int bounce_depth, IndependentSampler& sampler)
+		{
+			RGBSpectrum rrBeta = throughput * eta_scale;
+			if (rrBeta.maxComponentValue() < 1 && bounce_depth > 1) {
+				float q = fmaxf(0.0f, 1.0f - rrBeta.maxComponentValue());
+				if (sampler.get1D() < q)
+				{
+					return true;
+				}
+				throughput /= (1.0f - q);
+			}
+			return false;
+		}
 		/*TODO:
 		*	-BBOX
 		*	-Utility code
@@ -139,32 +162,42 @@ namespace KittlesPT
 		*	-Texture
 		*	-sunLd pdf
 		*	-triangles
-		*	-MIS
 		*	-BasicScene
 		*	-Specular material
 		*	-wavefront rendering
 		*	-gbuffer
 		*	-anisotropy
 		*/
+		__device__ float3 sphericalToSunDirection(float theta, float phi)
+		{
+			return normalize(make_float3(
+				cosf(phi) * cosf(theta),
+				sinf(theta),
+				sinf(phi) * cosf(theta)
+			));
+		}
 
 		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler)
 		{
 			RGBSpectrum light(0.0f);
 			RGBSpectrum throughput(1.0f);
 
-			float3 sun_direction = normalize(make_float3(-1, 1, -1));
-			Atmosphere atmosphere(sun_direction, 50.0f);
+			float3 sun_direction = sphericalToSunDirection(
+				shader_data.procedural_environment_data.sun_theta_rad,
+				shader_data.procedural_environment_data.sun_phi_rad);
+
+			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_radiance_intensity);
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
-			float etaScale = 1.0;
+			float eta_scale = 1.0;
 			float p_b = 1.0f;
 			LightSampleContext prev_ctx;
 
-			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
+			int MAX_RAY_DEPTH = shader_data.pathtracer_settings.max_bounce_depth;
 			Ray ray = ray_in;
 
-			for (int bounce_depth = 0; bounce_depth < MAX_RAY_DEPTH; bounce_depth++)
+			for (int bounce_depth = 0; bounce_depth <= MAX_RAY_DEPTH; bounce_depth++)
 			{
 				sampler.setSeed(sampler.getSeed() + bounce_depth);
 
@@ -172,7 +205,7 @@ namespace KittlesPT
 
 				if (!intr)
 				{
-					break;
+					//break;
 					//miss
 					RGBSpectrum sky_radiance = atmosphere.Le(atmosphere_observer_position,
 						ray.getDirection(), 0, INFINITY);
@@ -212,9 +245,9 @@ namespace KittlesPT
 					bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
 
-				//RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
-				//	bsdf, surfintr, atmosphere, sampler);
-				//light += sun_Ld * throughput;
+				RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
+					bsdf, surfintr, atmosphere, sampler);
+				light += sun_Ld * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 
@@ -240,7 +273,7 @@ namespace KittlesPT
 				ray = surfintr.spawnRay(wi, bs.scatter);
 
 				//russian roulette
-				RGBSpectrum rrBeta = throughput * etaScale;
+				RGBSpectrum rrBeta = throughput * eta_scale;
 				if (rrBeta.maxComponentValue() < 1 && bounce_depth > 1) {
 					float q = fmaxf(0.0f, 1.0f - rrBeta.maxComponentValue());
 					if (sampler.get1D() < q)
