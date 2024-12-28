@@ -42,6 +42,7 @@ namespace KittlesPT
 			F += (fOpaqueDielectric(wo, wi) * w_opaque_dielectric);
 		}
 
+		//return albedo_factor * fDiffuseBRDF(wo, wi);
 		return F;
 	}
 
@@ -64,7 +65,7 @@ namespace KittlesPT
 		if (w_opaque_dielectric > 0.f) {
 			pdf += w_opaque_dielectric * pdfOpaqueDielectric(wo, wi);
 		}
-
+		//return pdfDiffuseBRDF(wo, wi);
 		return pdf;
 	}
 

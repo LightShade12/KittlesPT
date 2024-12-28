@@ -32,8 +32,11 @@ namespace KittlesPT
 		ShapeSample ss = shader_data.geometry_buffer.data[prim_id].sample(u2);
 
 		float3 wi = normalize(ss.wpos - ctx.w_pos);
-		RGBSpectrum Le = L(ss.wpos, ss.gwnorm, wi);
+		//only for full sphere sampling
+		ss.pdf /= (AbsDot(-wi, ss.wgnorm) / Sqr(length(ss.wpos - ctx.w_pos)));//conversion to solid angle
 
-		return LightLiSample(Le, wi, ss.wpos, ss.gwnorm, ss.pdf);
+		RGBSpectrum Le = L(ss.wpos, ss.wgnorm, wi);
+
+		return LightLiSample(Le, wi, ss.wpos, ss.wgnorm, ss.pdf);
 	}
 }

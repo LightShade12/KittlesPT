@@ -65,7 +65,7 @@ namespace KittlesPT
 			{
 				return 0;
 			}
-			return (1.f / lights_buffer_size);
+			return (1.0f / lights_buffer_size);
 		}
 
 	private:

@@ -51,7 +51,7 @@ namespace KittlesPT
 	{
 		ShapeSample ss;
 		ss.wpos = world_position + (radius * sampleUniformSphere(u2));
-		ss.gwnorm = normalize(ss.wpos - world_position);
+		ss.wgnorm = normalize(ss.wpos - world_position);
 		ss.pdf = 1.0f / getArea();
 		return ss;
 	}

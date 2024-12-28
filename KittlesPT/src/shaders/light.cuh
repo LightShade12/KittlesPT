@@ -24,7 +24,7 @@ namespace KittlesPT
 
 		__device__ bool operator !()
 		{
-			return (pdf <= 0);
+			return (pdf <= 0 || !L);
 		}
 
 		//---------------------------------------

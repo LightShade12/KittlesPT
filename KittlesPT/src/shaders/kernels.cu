@@ -27,6 +27,18 @@ namespace KittlesPT
 		cudaDeviceSynchronize();
 		checkCudaErrors(cudaGetLastError());
 	}
+
+	//Monte-Carlo estimation; static accumulation
+	__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, RGBSpectrum radiance)
+	{
+		RGBSpectrum accumulated_sample = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(pixel_coord));
+		RGBSpectrum new_accumulated_sample = accumulated_sample + radiance;
+
+		shader_data.accumulation_texture.textureWrite(make_float4(new_accumulated_sample.toFloat3(), 1), pixel_coord);
+		RGBSpectrum sensor_radiance_estimate = new_accumulated_sample / ((float)shader_data.frame_index + 1);
+
+		return sensor_radiance_estimate;
+	}
 }
 
 __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader_data)
@@ -53,15 +65,12 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	RGBSpectrum sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray, sampler);
 
 	//Monte-Carlo estimation; static accumulation
-	shader_data.accumulation_texture.textureWrite(
-		make_float4(sensor_radiance.toFloat3() + make_float3(shader_data.accumulation_texture.textureReadNearest(pixel_coord)), 1),
-		pixel_coord);
-	sensor_radiance = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(pixel_coord)) / ((float)shader_data.frame_index + 1);
+	sensor_radiance = addSample(shader_data, pixel_coord, sensor_radiance);
 
 	//post process
 	sensor_radiance *= shader_data.scene_camera.film.exposure;
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(sensor_radiance);
-	//frag_color = sensor_radiance / 2.5f;
+	//frag_color = sensor_radiance / shader_data.scene_camera.film.exposure;
 
 	shader_data.main_texture.textureWrite(make_float4(frag_color, 1), pixel_coord);
 }

@@ -122,9 +122,7 @@ namespace KittlesPT
 				return Ld;
 			}
 
-			float dist = length(surface.world_position - ls.wpos_light);
-			float cos_theta_emitter = AbsDot(-wi, ls.wgnorm);
-			float p_l = (sampled_light.probability * ls.pdf) * (1 / cos_theta_emitter) * Sqr(dist);
+			float p_l = (sampled_light.probability * ls.pdf);
 
 			//float p_l = sampled_light.probability * ls.pdf;
 
@@ -137,16 +135,33 @@ namespace KittlesPT
 			return Ld;
 		}
 
+		/*TODO:
+		*	-BBOX
+		*	-Utility code
+		*	-BVH
+		*	-Filter
+		*	-Texture
+		*	-sunLd pdf
+		*	-triangles
+		*	-MIS
+		*	-BasicScene
+		*	-Specular material
+		*	-wavefront rendering
+		*	-gbuffer
+		*	-anisotropy
+		*/
+
 		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler)
 		{
 			RGBSpectrum light(0.0f);
 			RGBSpectrum throughput(1.0f);
 
-			float3 sun_direction = normalize(make_float3(-1, 0.05, -1));
+			float3 sun_direction = normalize(make_float3(-1, 1, -1));
 			Atmosphere atmosphere(sun_direction, 50.0f);
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
+			float etaScale = 1.0;
 			constexpr int MAX_RAY_DEPTH = 5;//TODO: put in a constants file or sumn?
 			Ray ray = ray_in;
 
@@ -158,6 +173,7 @@ namespace KittlesPT
 
 				if (!intr)
 				{
+					//break;
 					//miss
 					RGBSpectrum sky_radiance = atmosphere.Le(atmosphere_observer_position,
 						ray.getDirection(), 0, INFINITY);
@@ -170,15 +186,16 @@ namespace KittlesPT
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
-				light += surfintr.Le(shader_data, ray) * throughput;
-				if (bounce_depth == 0 && true)
+				if (bounce_depth == 0)
 				{
 				}
+				light += surfintr.Le(shader_data, ray) * throughput;
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
-				//light += sampleLd(shader_data, ray,
-				//	bsdf, surfintr, light_sampler, sampler) * throughput;
+				//RGBSpectrum Ld = sampleLd(shader_data, ray,
+				//	bsdf, surfintr, light_sampler, sampler);
+				//light += Ld * throughput;
 
 				RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
 					bsdf, surfintr, atmosphere, sampler);
@@ -204,6 +221,17 @@ namespace KittlesPT
 				throughput *= (fcos / pdf);
 
 				ray = surfintr.spawnRay(wi, bs.scatter);
+
+				//russian roulette
+				RGBSpectrum rrBeta = throughput * etaScale;
+				if (rrBeta.maxComponentValue() < 1 && bounce_depth > 1) {
+					float q = fmaxf(0.0f, 1.0f - rrBeta.maxComponentValue());
+					if (sampler.get1D() < q)
+					{
+						break;
+					}
+					throughput /= (1.0f - q);
+				}
 			}
 
 			return light;

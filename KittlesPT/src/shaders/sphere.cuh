@@ -41,9 +41,9 @@ namespace KittlesPT
 	{
 		__device__ ShapeSample() = default;
 		__device__ ShapeSample(float3 wpos, float3 gwnorm, float pdf) :
-			wpos(wpos), gwnorm(gwnorm), pdf(pdf) {};
+			wpos(wpos), wgnorm(gwnorm), pdf(pdf) {};
 
-		float3 gwnorm;
+		float3 wgnorm;
 		float3 wpos;
 		float pdf = 0;
 	};
