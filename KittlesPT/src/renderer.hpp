@@ -52,9 +52,11 @@ namespace KittlesPT
 
 		//TODO:make const&
 		void setView(glm::mat4 projection_mat, glm::mat4 view_mat);
+
 		/*void loadScene() {};
 		void loadSettings() {};*/
 
+	private:
 		int m_width = 0, m_height = 0;
 
 		RendererData* m_renderer_data = nullptr;

@@ -87,13 +87,12 @@ namespace KittlesPT
 			bool is_unoccluded = Unoccluded(shader_data, surface, target);
 			if (is_unoccluded)
 			{
-				float sun_area = 4.0f * Constants::PI * Sqr(sun_radius);
+				float sun_area = Constants::PI * Sqr(sun_radius);
 				float3 sun_n = normalize(target - sun_position), wi = normalize(target - surface.world_position);
 				float cos_sun = AbsDot(sun_n, -wi);
 				float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_DISTANCE_METERS));
-				pdf = (1.0f / sun_area);
-				//pdf = 1.0f;
-				Ld = (fcos * sun_color) / pdf;
+				//TODO: pbr values; better sun sampling/pdf
+				Ld = (fcos * sun_color * 5000.0f * shader_data.procedural_environment_data.sun_radiance_intensity) / pdf;
 			}
 			return Ld;
 		}
@@ -154,20 +153,23 @@ namespace KittlesPT
 			}
 			return false;
 		}
+
 		/*TODO:
 		*	-BBOX
 		*	-Utility code
 		*	-BVH
 		*	-Filter
 		*	-Texture
-		*	-sunLd pdf
 		*	-triangles
 		*	-BasicScene
-		*	-Specular material
+		*	-Specular material; specular/any_non_specular_bounces
 		*	-wavefront rendering
-		*	-gbuffer
-		*	-anisotropy
+		*	-GBuffer
+		*	-Anisotropy
+		*	-Path regularization
+		*
 		*/
+
 		__device__ float3 sphericalToSunDirection(float theta, float phi)
 		{
 			return normalize(make_float3(
@@ -214,9 +216,9 @@ namespace KittlesPT
 				}
 				//hit
 
-				float3 wo = -ray.getDirection();
-
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
+
+				float3 wo = -ray.getDirection();
 
 				if (bounce_depth == 0)
 				{
