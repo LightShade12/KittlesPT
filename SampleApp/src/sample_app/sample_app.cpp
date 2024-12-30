@@ -62,7 +62,7 @@ namespace SampleApp
 				0.0f,
 				1.45f,
 				glm::vec3(0.2, 0.7, 1),
-				0.0));
+				35.0));
 
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(-1.5, 0, -3), 2));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 0, -3), 0));

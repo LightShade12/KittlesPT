@@ -11,7 +11,7 @@ namespace SampleAppGUI
 	{
 	public:
 
-		ToggleableSideWindow() :m_window_size(256, 512), m_collapsed_window_size(0, 0) {};
+		ToggleableSideWindow() :m_window_size(360, 512), m_collapsed_window_size(0, 0) {};
 
 		void draw(GLFWwindow* glfw_main_window, const char* window_title);
 
