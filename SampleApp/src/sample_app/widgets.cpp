@@ -22,8 +22,8 @@ namespace SampleApp
 		int win_width, win_height;
 		glfwGetWindowPos(window_ctx, &winposx, &winposy);
 		glfwGetFramebufferSize(window_ctx, &win_width, &win_height);
-		ImGui::SetNextWindowPos(ImVec2(winposx, winposy));
-		ImGui::SetNextWindowSize(ImVec2(win_width, win_height));
+		ImGui::SetNextWindowPos(ImVec2((float)winposx, (float)winposy));
+		ImGui::SetNextWindowSize(ImVec2((float)win_width, (float)win_height));
 
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -33,8 +33,8 @@ namespace SampleApp
 			ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		if (m_background_texture.isValid())
 		{
-			ImGui::Image((void*)m_background_texture.m_GL_texture_name,
-				ImVec2(win_width, win_height), { 0,1 }, { 1,0 });
+			ImGui::Image((ImTextureID*)(long long(m_background_texture.m_GL_texture_name)),
+				ImVec2((float)win_width, (float)win_height), { 0,1 }, { 1,0 });
 		}
 
 		ImGui::End();

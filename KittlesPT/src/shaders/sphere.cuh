@@ -43,7 +43,7 @@ namespace KittlesPT
 
 	struct ShapeSample
 	{
-		__device__ ShapeSample() = default;
+		ShapeSample() = default;
 
 		__device__ ShapeSample(float3 wpos, float3 gwnorm, float pdf) :
 			wpos(wpos), wgnorm(gwnorm), pdf(pdf) {};

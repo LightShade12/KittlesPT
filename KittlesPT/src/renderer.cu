@@ -157,7 +157,7 @@ namespace KittlesPT
 
 	int Renderer::getMaterialsCount()
 	{
-		return m_renderer_data->scene_materials.size();
+		return (int)m_renderer_data->scene_materials.size();
 	}
 
 	void Renderer::setProceduralEnvironmentData(ProceduralEnvironmentData data)
@@ -220,7 +220,7 @@ namespace KittlesPT
 			));
 		}
 
-		printf("loaded %d materials\nstarting geometry\n", m_renderer_data->scene_materials.size());
+		printf("loaded %zu materials\nstarting geometry\n", m_renderer_data->scene_materials.size());
 		for (const SphereSceneEntity& sphere : parsed_scene.shape_entities)
 		{
 			const MaterialSceneEntity& sphere_mat = parsed_scene.material_entities[sphere.material_id];
@@ -231,11 +231,11 @@ namespace KittlesPT
 			{
 				m_renderer_data->scene_lights.push_back(
 					Light(sphere.getArea(),
-						(m_renderer_data->scene_spheres.size()),
+						(int)(m_renderer_data->scene_spheres.size()),
 						make_float3(sphere_mat.emission_factor.r, sphere_mat.emission_factor.g, sphere_mat.emission_factor.b),
 						sphere_mat.emission_scale)
 				);
-				light_id = m_renderer_data->scene_lights.size() - 1;
+				light_id = (int)(m_renderer_data->scene_lights.size() - 1);
 			}
 
 			m_renderer_data->scene_spheres.push_back(
@@ -245,7 +245,7 @@ namespace KittlesPT
 					light_id)
 			);
 		}
-		printf("loaded %d shapes : %d lights\n",
+		printf("loaded %zu shapes : %zu lights\n",
 			m_renderer_data->scene_spheres.size(),
 			m_renderer_data->scene_lights.size());
 

@@ -160,10 +160,9 @@ namespace KittlesPT
 		*	-BVH
 		*	-Filter
 		*	-Texture
-		*	-triangles
-		*	-BasicScene
+		*	-Triangles
 		*	-Specular material; specular/any_non_specular_bounces
-		*	-wavefront rendering
+		*	-Wavefront rendering
 		*	-GBuffer; VisibleSurface
 		*	-Anisotropy
 		*	-Path regularization

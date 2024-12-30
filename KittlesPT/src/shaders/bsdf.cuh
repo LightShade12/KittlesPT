@@ -7,7 +7,7 @@ namespace KittlesPT
 {
 	struct BSDFSample
 	{
-		__device__ BSDFSample() = default;
+		BSDFSample() = default;
 		__device__ BSDFSample(int scatter, RGBSpectrum f, float3 wi, float pdf) :scatter(scatter), f(f), wi(wi), pdf(pdf) {};
 
 		__device__ bool scatterTypeIs(int flag) const

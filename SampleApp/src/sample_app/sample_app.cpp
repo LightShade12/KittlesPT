@@ -20,8 +20,8 @@ namespace SampleApp
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.95, 0.1, 0.1),
-				0.0,
-				0.1,
+				0.0f,
+				0.1f,
 				0.0f,
 				1.45f,
 				glm::vec3(0),
@@ -29,8 +29,8 @@ namespace SampleApp
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.5, 0.5, 0.5),
-				0.0,
-				0.95,
+				0.0f,
+				0.95f,
 				0.0f,
 				1.45f,
 				glm::vec3(0),
@@ -38,8 +38,8 @@ namespace SampleApp
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.8, 0.8, 0.8),
-				1.0,
-				0.1,
+				1.0f,
+				0.1f,
 				0.0f,
 				1.45f,
 				glm::vec3(0),
@@ -47,8 +47,8 @@ namespace SampleApp
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.0, 1.0, 0.0),
-				0.0,
-				0.0,
+				0.0f,
+				0.0f,
 				1.0f,
 				1.45f,
 				glm::vec3(0),
@@ -57,18 +57,18 @@ namespace SampleApp
 			//emissive material
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.0, 1.0, 0.0),
-				0.0,
-				0.85,
+				0.0f,
+				0.85f,
 				0.0f,
 				1.45f,
 				glm::vec3(0.2, 0.7, 1),
 				0.0));
 
-			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(-1.5, 0, -3), 2));
-			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(0, 0, -3), 0));
-			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(1.5, 0, -3), 3));
-			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(0, 1.5, -3), 4));//light source
-			scene.addShape(KittlesPT::SphereSceneEntity(100, glm::vec3(0, -100.5, -3), 1));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(-1.5, 0, -3), 2));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 0, -3), 0));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(1.5, 0, -3), 3));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 1.5, -3), 4));//light source
+			scene.addShape(KittlesPT::SphereSceneEntity(100.0f, glm::vec3(0, -100.5, -3), 1));
 
 			m_renderer.loadScene(scene);
 		}

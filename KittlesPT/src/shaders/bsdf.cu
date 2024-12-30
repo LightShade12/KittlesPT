@@ -4,7 +4,7 @@
 
 namespace KittlesPT
 {
-	BSDF::BSDF(const Mat3& tangent_basis,
+	__device__ BSDF::BSDF(const Mat3& tangent_basis,
 		float3 albedo,
 		float metallicity,
 		float roughness,

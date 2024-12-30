@@ -12,7 +12,7 @@ namespace KittlesPT
 	//Represents a sampled point on light
 	struct LightLiSample
 	{
-		__device__ LightLiSample() = default;
+		LightLiSample() = default;
 
 		__device__ LightLiSample(
 			const RGBSpectrum& L, const float3& wi, const float3& pLight,
@@ -43,7 +43,7 @@ namespace KittlesPT
 	//Surface data type; passed to sampler
 	struct LightSampleContext
 	{
-		__device__ LightSampleContext() = default;
+		LightSampleContext() = default;
 
 		__device__ LightSampleContext(const SurfaceInteraction& si);
 

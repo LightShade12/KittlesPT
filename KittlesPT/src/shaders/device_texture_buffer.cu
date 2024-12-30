@@ -4,9 +4,9 @@
 #include "../maths/vector_maths.cuh"
 
 #include <cuda.h>
-#define __CUDACC__
+//#define __CUDACC__
 #include <cuda_runtime_api.h>//should be used instead of device_fnctions.h
-#include <device_functions.h>
+//#include <device_functions.h>
 
 #include <iostream>
 

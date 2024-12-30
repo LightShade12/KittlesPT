@@ -1470,7 +1470,7 @@ inline __device__ __host__ float4 smoothstep(float4 a, float4 b, float4 x)
 
 inline __host__ __device__ int2 operator/(int2 a, float b)
 {
-	return make_int2((float)a.x / b, (float)a.y / b);
+	return make_int2(int((float)a.x / (float)b), int((float)a.y / (float)b));
 }
 
 inline __host__ __device__ bool operator==(int2 a, int2 b)

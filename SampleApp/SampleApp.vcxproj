@@ -151,7 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\gui_application.cpp" />
-    <ClCompile Include="src\gui_application.hpp" />
+    <ClInclude Include="src\gui_application.hpp" />
     <ClCompile Include="src\gui_widgets.cpp" />
     <ClCompile Include="src\imgui_themes.cpp" />
     <ClCompile Include="src\sample_app\event_dispatcher.cpp" />

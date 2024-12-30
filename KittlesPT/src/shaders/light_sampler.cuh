@@ -7,7 +7,7 @@ namespace KittlesPT
 	//Represents a light that has been selected for sampling
 	struct SampledLight
 	{
-		__device__ SampledLight() = default;
+		SampledLight() = default;
 		__device__ SampledLight(const Light* light, float p) :light(light), probability(p) {};
 
 		//-------------------------------------

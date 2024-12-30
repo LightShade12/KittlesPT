@@ -54,8 +54,7 @@ namespace KittlesPT
 		void setView(glm::mat4 projection_mat, glm::mat4 view_mat);
 
 		void loadScene(const BasicScene& parsed_scene);
-		/*
-		void loadSettings() {};*/
+		/*void loadSettings() {};*/
 
 	private:
 		int m_width = 0, m_height = 0;

@@ -23,12 +23,12 @@ namespace KittlesPT
 		{}
 
 		//----
-		float3 albedo = make_float3(0.8);
+		float3 albedo = make_float3(0.8f);
 		float metallicity = 0.0f;
 		float roughness = 0.5f;
 		float transmission = 0.0f;
 		float ior = 1.45f;
-		float3 emissive_factor = make_float3(0);
+		float3 emissive_factor = make_float3(0.0f);
 		float emission_scale = 1.0f;
 	};
 }
