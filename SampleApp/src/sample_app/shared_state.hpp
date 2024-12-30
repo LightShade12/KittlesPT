@@ -5,6 +5,7 @@
 
 namespace SampleApp
 {
+	//TODO: replace with material scene entity
 	struct Material
 	{
 		glm::vec3 albedo;

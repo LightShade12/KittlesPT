@@ -13,7 +13,66 @@ namespace SampleApp
 		m_viewport_texture.init(m_window_width, m_window_height);
 		m_viewport.init(m_viewport_texture);
 		m_renderer.init();
-		m_application_data.editable_material;
+
+		//scene parsing
+		{
+			KittlesPT::BasicScene scene;
+
+			scene.addMaterial(KittlesPT::MaterialSceneEntity(
+				glm::vec3(0.95, 0.1, 0.1),
+				0.0,
+				0.1,
+				0.0f,
+				1.45f,
+				glm::vec3(0),
+				1.0));
+
+			scene.addMaterial(KittlesPT::MaterialSceneEntity(
+				glm::vec3(0.5, 0.5, 0.5),
+				0.0,
+				0.95,
+				0.0f,
+				1.45f,
+				glm::vec3(0),
+				1.0));
+
+			scene.addMaterial(KittlesPT::MaterialSceneEntity(
+				glm::vec3(0.8, 0.8, 0.8),
+				1.0,
+				0.1,
+				0.0f,
+				1.45f,
+				glm::vec3(0),
+				1.0));
+
+			scene.addMaterial(KittlesPT::MaterialSceneEntity(
+				glm::vec3(0.0, 1.0, 0.0),
+				0.0,
+				0.0,
+				1.0f,
+				1.45f,
+				glm::vec3(0),
+				1.0));
+
+			//emissive material
+			scene.addMaterial(KittlesPT::MaterialSceneEntity(
+				glm::vec3(0.0, 1.0, 0.0),
+				0.0,
+				0.85,
+				0.0f,
+				1.45f,
+				glm::vec3(0.2, 0.7, 1),
+				0.0));
+
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(-1.5, 0, -3), 2));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(0, 0, -3), 0));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(1.5, 0, -3), 3));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5, glm::vec3(0, 1.5, -3), 4));//light source
+			scene.addShape(KittlesPT::SphereSceneEntity(100, glm::vec3(0, -100.5, -3), 1));
+
+			m_renderer.loadScene(scene);
+		}
+
 		m_renderer.getMaterial(m_application_data.editable_material_idx,
 			&m_application_data.editable_material.albedo,
 			&m_application_data.editable_material.metallicity,

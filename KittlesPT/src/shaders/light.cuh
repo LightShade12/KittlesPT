@@ -61,7 +61,8 @@ namespace KittlesPT
 	{
 	public:
 		//ctor-------------------------------------------------------------------------
-		__host__ __device__ Light(Sphere* primitive, int prim_id, float3 color, float power);
+		__host__ __device__ Light(float area, int prim_id, float3 color, float power) :
+			L_emit(color), emission_scale(power), prim_id(prim_id), area(area) {};
 
 		//----------------------------------------------------------------------------
 
@@ -71,6 +72,8 @@ namespace KittlesPT
 
 		__device__ float pdf_Li(const LightSampleContext& ctx, float3 wo,
 			float3 confirmed_hit_wpos, float3 confirmed_hit_wgnorm) const;
+
+		__device__ float phi();
 
 		//-----------------------------------------------------------------------------
 

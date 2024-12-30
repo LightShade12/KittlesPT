@@ -53,7 +53,8 @@ namespace KittlesPT
 		//TODO:make const&
 		void setView(glm::mat4 projection_mat, glm::mat4 view_mat);
 
-		/*void loadScene() {};
+		void loadScene(const BasicScene& parsed_scene);
+		/*
 		void loadSettings() {};*/
 
 	private:

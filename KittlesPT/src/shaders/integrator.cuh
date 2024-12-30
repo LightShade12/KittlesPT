@@ -142,9 +142,9 @@ namespace KittlesPT
 		__device__ bool russianRoulette(RGBSpectrum& throughput, float eta_scale,
 			int bounce_depth, IndependentSampler& sampler)
 		{
-			RGBSpectrum rrBeta = throughput * eta_scale;
-			if (rrBeta.maxComponentValue() < 1 && bounce_depth > 1) {
-				float q = fmaxf(0.0f, 1.0f - rrBeta.maxComponentValue());
+			RGBSpectrum rr_beta = throughput * eta_scale;
+			if (rr_beta.maxComponentValue() < 1 && bounce_depth > 1) {
+				float q = fmaxf(0.0f, 1.0f - rr_beta.maxComponentValue());
 				if (sampler.get1D() < q)
 				{
 					return true;
@@ -164,10 +164,9 @@ namespace KittlesPT
 		*	-BasicScene
 		*	-Specular material; specular/any_non_specular_bounces
 		*	-wavefront rendering
-		*	-GBuffer
+		*	-GBuffer; VisibleSurface
 		*	-Anisotropy
 		*	-Path regularization
-		*
 		*/
 
 		__device__ float3 sphericalToSunDirection(float theta, float phi)
@@ -207,7 +206,6 @@ namespace KittlesPT
 
 				if (!intr)
 				{
-					//break;
 					//miss
 					RGBSpectrum sky_radiance = atmosphere.Le(atmosphere_observer_position,
 						ray.getDirection(), 0, INFINITY);
@@ -275,9 +273,9 @@ namespace KittlesPT
 				ray = surfintr.spawnRay(wi, bs.scatter);
 
 				//russian roulette
-				RGBSpectrum rrBeta = throughput * eta_scale;
-				if (rrBeta.maxComponentValue() < 1 && bounce_depth > 1) {
-					float q = fmaxf(0.0f, 1.0f - rrBeta.maxComponentValue());
+				RGBSpectrum rr_beta = throughput * eta_scale;
+				if (rr_beta.maxComponentValue() < 1 && bounce_depth > 1) {
+					float q = fmaxf(0.0f, 1.0f - rr_beta.maxComponentValue());
 					if (sampler.get1D() < q)
 					{
 						break;

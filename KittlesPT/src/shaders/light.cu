@@ -1,5 +1,6 @@
 #include "light.cuh"
 #include "maths/linear_algebra.cuh"
+#include "maths/constants.cuh"
 #include "sphere.cuh"
 #include "containers.cuh"
 
@@ -13,12 +14,6 @@ namespace KittlesPT
 
 	//LIGHT===============================================================================
 
-	__host__ __device__ Light::Light(Sphere* primitive, int prim_id, float3 color, float power) :
-		L_emit(color), emission_scale(power), prim_id(prim_id)
-	{
-		area = primitive->getArea();
-	}
-
 	__device__ RGBSpectrum Light::L(float3 p, float3 n, float3 wi) const
 	{
 		return L_emit * emission_scale;
@@ -31,6 +26,11 @@ namespace KittlesPT
 		float cos_theta_L = AbsDot(wo, confirmed_hit_wgnorm);
 		float pdf = area_pdf / (cos_theta_L / Sqr(dist));
 		return pdf;
+	}
+
+	__device__ float Light::phi()
+	{
+		return (Constants::PI * 2.0f * area * L_emit * emission_scale);
 	}
 
 	__device__ LightLiSample Light::sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const
