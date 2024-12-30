@@ -14,5 +14,7 @@ namespace ImGuiThemes
 
 	void Dark();
 
+	ImFont* VictorSix();
+
 	void EmbraceTheDarkness();
 }

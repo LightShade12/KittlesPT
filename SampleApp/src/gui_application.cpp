@@ -36,8 +36,6 @@ namespace SampleAppGUI
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-		ImGuiThemes::DarkRudra();
-
 		ImGui_ImplOpenGL3_Init(window_config.glsl_version_formatted);
 		ImGui_ImplGlfw_InitForOpenGL(m_window_ctx_handle, true);
 

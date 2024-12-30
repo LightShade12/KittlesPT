@@ -20,7 +20,7 @@ namespace SampleAppGUI
 			ImGui::SetNextWindowSize(ImVec2(
 				std::clamp(m_window_size.x, 0.0f, (float)m_glfw_window_width),
 				std::clamp(m_window_size.y, 0.0f, (float)m_glfw_window_height)));
-			ImGui::Begin(window_title);
+			ImGui::Begin(window_title, nullptr, ImGuiWindowFlags_NoScrollbar);
 			if (ImGui::Button("Hide window")) { m_is_toggled = !m_is_toggled; }
 			ImGui::Separator();
 

@@ -59,7 +59,7 @@ namespace SampleApp
 	{
 		ImGui::Text("Delta ms(last frame): %.3f ms", delta_time_secs.count() * 1000.0f);
 		float fps = 1000.0f / (delta_time_secs.count() * 1000.0f);
-		ImGui::Text("FPS(last frame): %.3f ms", fps);
+		ImGui::Text("FPS(last frame): %.3f", fps);
 
 		//TODO: weird; idk
 		float avg = glm::mix(average_fps, fps, 0.01f);
@@ -68,7 +68,7 @@ namespace SampleApp
 			average_fps = avg;
 		}
 
-		ImGui::Text("EMA FPS: %.3f ms", average_fps);
+		ImGui::Text("EMA FPS: %.3f", average_fps);
 		ImGui::Text("Runtime secs: %.3f s",
 			std::chrono::duration_cast<std::chrono::duration<float>>(last_frame_time_point.time_since_epoch()).count() - start_time_secs);
 		ImGui::Separator();
@@ -162,7 +162,7 @@ namespace SampleApp
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				env_updated |= ImGui::SliderAngle("###sun_angular_diameter", &env_data.sun_angular_diameter_rad, 0, 90,
-					"%.3f", ImGuiSliderFlags_Logarithmic);
+					"%.1f deg", ImGuiSliderFlags_Logarithmic);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);

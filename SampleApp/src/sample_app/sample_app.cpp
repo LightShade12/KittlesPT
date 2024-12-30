@@ -1,4 +1,5 @@
 #include "sample_app.hpp"
+#include "imgui_themes.hpp"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -8,11 +9,16 @@
 
 namespace SampleApp
 {
+	ImFont* g_custom_font = nullptr;
+
 	void SampleAppWindow::onCreate()
 	{
 		m_viewport_texture.init(m_window_width, m_window_height);
 		m_viewport.init(m_viewport_texture);
 		m_renderer.init();
+
+		g_custom_font = ImGuiThemes::VictorSix();
+		//ImGuiThemes::VS();
 
 		//scene parsing
 		{
@@ -167,7 +173,9 @@ namespace SampleApp
 		m_renderer.getRenderTargetTexture(m_viewport_texture.m_GL_texture_name);
 
 		m_viewport.draw(m_window_ctx_handle);
+		if (g_custom_font)ImGui::PushFont(g_custom_font);
 		m_developer_window.draw(m_window_ctx_handle, "Developer Menu");
+		if (g_custom_font)ImGui::PopFont();
 	}
 
 	void SampleAppWindow::updateUI()

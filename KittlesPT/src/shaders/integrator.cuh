@@ -244,9 +244,9 @@ namespace KittlesPT
 					bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
 
-				RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
-					bsdf, surfintr, atmosphere, sampler);
-				light += sun_Ld * throughput;
+				//RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
+				//	bsdf, surfintr, atmosphere, sampler);
+				//light += sun_Ld * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 
