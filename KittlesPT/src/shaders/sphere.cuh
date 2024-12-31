@@ -22,6 +22,7 @@ namespace KittlesPT
 
 		//--------------------------------------------------
 		float distance = -1;
+		float2 uv;
 		float3 world_position;
 		float3 world_geometric_normal;
 		int material_id = -1;
@@ -48,8 +49,8 @@ namespace KittlesPT
 		__device__ ShapeSample(float3 wpos, float3 gwnorm, float pdf) :
 			wpos(wpos), wgnorm(gwnorm), pdf(pdf) {};
 
-		float3 wgnorm;
-		float3 wpos;
+		float3 wgnorm{};
+		float3 wpos{};
 		float pdf = 0;
 	};
 

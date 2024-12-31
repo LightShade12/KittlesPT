@@ -5,12 +5,14 @@
 #include "shaders/device_texture_buffer.cuh"
 #include "shaders/kernels.cuh"
 #include "shaders/material.cuh"
+#include "shaders/texture.cuh"
 #include "shaders/light.cuh"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
 #include <thrust/universal_vector.h>
+#include <thrust/device_vector.h>
 
 #include <unordered_map>
 #include <string>
@@ -23,6 +25,8 @@ namespace KittlesPT
 		thrust::universal_vector<Sphere> scene_spheres;
 		thrust::universal_vector<Material> scene_materials;
 		thrust::universal_vector<Light> scene_lights;
+		thrust::universal_vector<Texture> scene_textures;
+		thrust::device_vector<unsigned char> pixel_buffer;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
 	};
@@ -37,21 +41,9 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
 
-		//submit---------
-		m_renderer_data->shader_global_data.geometry_buffer =
-			Buffer<Sphere>(
-				thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),
-				m_renderer_data->scene_spheres.size());
+		submitScene();
 
-		m_renderer_data->shader_global_data.materials_buffer =
-			Buffer<Material>(
-				thrust::raw_pointer_cast(m_renderer_data->scene_materials.data()),
-				m_renderer_data->scene_materials.size());
-
-		m_renderer_data->shader_global_data.lights_buffer =
-			Buffer<Light>(
-				thrust::raw_pointer_cast(m_renderer_data->scene_lights.data()),
-				m_renderer_data->scene_lights.size());
+		//-------------------------
 
 		m_renderer_data->shader_global_data.scene_camera = Camera(make_float3(0), make_float3(0, 0, -1));
 	}
@@ -116,7 +108,8 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"].copyTo(r_texture);
 	}
 
-	bool Renderer::setMaterial(int idx, glm::vec3 albedo_factor, float metallicity, float roughness, float transmission, float ior)
+	bool Renderer::setMaterial(int idx, glm::vec3 albedo_factor, float metallicity, float roughness,
+		float transmission, float ior)
 	{
 		if (idx >= m_renderer_data->scene_materials.size())
 		{
@@ -131,7 +124,8 @@ namespace KittlesPT
 			transmission,
 			ior,
 			old_mat.emissive_factor,
-			old_mat.emission_scale);
+			old_mat.emission_scale,
+			old_mat.albedo_texture_id);
 		m_renderer_data->scene_materials[idx] = material;
 
 		resetAccumulation();
@@ -206,7 +200,22 @@ namespace KittlesPT
 
 	void Renderer::loadScene(const BasicScene& parsed_scene)
 	{
-		printf("starting materials\n");
+		printf("starting textures\n");
+
+		for (const TextureSceneEntity& tex : parsed_scene.texture_entities)
+		{
+			printf("tex: %d x %d | ch:%d\n", tex.width, tex.height, tex.channels_count);
+			int bit_depth = 8;
+			m_renderer_data->scene_textures.push_back(
+				Texture(tex.width, tex.height, tex.channels_count, bit_depth,
+					m_renderer_data->pixel_buffer.size()));
+
+			m_renderer_data->pixel_buffer.insert(m_renderer_data->pixel_buffer.end(),
+				tex.pixels_data.begin(), tex.pixels_data.end());
+		}
+
+		printf("loaded %zu textures\nstarting materials\n", m_renderer_data->scene_textures.size());
+
 		for (const MaterialSceneEntity& mat : parsed_scene.material_entities)
 		{
 			m_renderer_data->scene_materials.push_back(Material(
@@ -216,11 +225,13 @@ namespace KittlesPT
 				mat.transmission,
 				mat.ior,
 				make_float3(mat.emission_factor.r, mat.emission_factor.g, mat.emission_factor.b),
-				mat.emission_scale
+				mat.emission_scale,
+				mat.albedo_tex_id
 			));
 		}
 
 		printf("loaded %zu materials\nstarting geometry\n", m_renderer_data->scene_materials.size());
+
 		for (const SphereSceneEntity& sphere : parsed_scene.shape_entities)
 		{
 			const MaterialSceneEntity& sphere_mat = parsed_scene.material_entities[sphere.material_id];
@@ -249,7 +260,11 @@ namespace KittlesPT
 			m_renderer_data->scene_spheres.size(),
 			m_renderer_data->scene_lights.size());
 
-		//submit---------
+		submitScene();
+	}
+
+	void Renderer::submitScene()
+	{
 		m_renderer_data->shader_global_data.geometry_buffer =
 			Buffer<Sphere>(
 				thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),
@@ -264,5 +279,15 @@ namespace KittlesPT
 			Buffer<Light>(
 				thrust::raw_pointer_cast(m_renderer_data->scene_lights.data()),
 				m_renderer_data->scene_lights.size());
+
+		m_renderer_data->shader_global_data.pixel_buffer =
+			Buffer<unsigned char>(
+				thrust::raw_pointer_cast(m_renderer_data->pixel_buffer.data()),
+				m_renderer_data->pixel_buffer.size());
+
+		m_renderer_data->shader_global_data.texture_buffer =
+			Buffer<Texture>(
+				thrust::raw_pointer_cast(m_renderer_data->scene_textures.data()),
+				m_renderer_data->scene_textures.size());
 	}
 }

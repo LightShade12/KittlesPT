@@ -12,18 +12,21 @@ namespace KittlesPT
 			float transmission,
 			float ior,
 			float3 emission_factor,
-			float emission_scale) :
+			float emission_scale,
+			int albedo_texture_id) :
 			albedo(albedo),
 			metallicity(metallicity),
 			roughness(roughness),
 			transmission(transmission),
 			ior(ior),
 			emissive_factor(emission_factor),
-			emission_scale(emission_scale)
+			emission_scale(emission_scale),
+			albedo_texture_id(albedo_texture_id)
 		{}
 
 		//----
 		float3 albedo = make_float3(0.8f);
+		int albedo_texture_id = -1;
 		float metallicity = 0.0f;
 		float roughness = 0.5f;
 		float transmission = 0.0f;

@@ -4,6 +4,7 @@
 #include "shaders/camera.cuh"
 #include "shaders/material.cuh"
 #include "shaders/light.cuh"
+#include "shaders/texture.cuh"
 #include "pod_types.hpp"
 #include <cuda_runtime.h>
 
@@ -29,6 +30,8 @@ namespace KittlesPT
 		Buffer<Sphere> geometry_buffer;
 		Buffer<Material> materials_buffer;
 		Buffer<Light> lights_buffer;
+		Buffer<Texture> texture_buffer;
+		Buffer<unsigned char> pixel_buffer;
 
 		Camera scene_camera;
 

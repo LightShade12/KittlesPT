@@ -121,6 +121,7 @@
     <CudaCompile Include="src\shaders\light.cu" />
     <CudaCompile Include="src\shaders\samplers.cu" />
     <CudaCompile Include="src\shaders\sphere.cu" />
+    <CudaCompile Include="src\shaders\texture.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kittles_pt\kittles_pt.hpp" />
@@ -147,6 +148,7 @@
     <ClInclude Include="src\shaders\ray.cuh" />
     <ClInclude Include="src\shaders\samplers.cuh" />
     <ClInclude Include="src\shaders\sphere.cuh" />
+    <ClInclude Include="src\shaders\texture.cuh" />
     <ClInclude Include="thirdparty\glad\include\glad\glad.h" />
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,9 @@
 #include "sample_app.hpp"
 #include "imgui_themes.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
@@ -24,6 +27,14 @@ namespace SampleApp
 		{
 			KittlesPT::BasicScene scene;
 
+			//Image load
+			int width = 0, height = 0, channels = 0;
+			unsigned char* img_data = stbi_load("test_img.png", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture0(img_data, width, height, 3);
+			stbi_image_free(img_data);
+
+			scene.addTexture(texture0);
+
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.95, 0.1, 0.1),
 				0.0f,
@@ -31,8 +42,10 @@ namespace SampleApp
 				0.0f,
 				1.45f,
 				glm::vec3(0),
-				1.0));
+				1.0,
+				-1));
 
+			//textured
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.5, 0.5, 0.5),
 				0.0f,
@@ -40,7 +53,8 @@ namespace SampleApp
 				0.0f,
 				1.45f,
 				glm::vec3(0),
-				1.0));
+				1.0,
+				0));
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.8, 0.8, 0.8),
@@ -49,7 +63,8 @@ namespace SampleApp
 				0.0f,
 				1.45f,
 				glm::vec3(0),
-				1.0));
+				1.0,
+				-1));
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.0, 1.0, 0.0),
@@ -58,7 +73,8 @@ namespace SampleApp
 				1.0f,
 				1.45f,
 				glm::vec3(0),
-				1.0));
+				1.0,
+				-1));
 
 			//emissive material
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
@@ -68,13 +84,14 @@ namespace SampleApp
 				0.0f,
 				1.45f,
 				glm::vec3(0.2, 0.7, 1),
-				35.0));
+				35.0,
+				-1));
 
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(-1.5, 0, -3), 2));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 0, -3), 0));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(1.5, 0, -3), 3));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 1.5, -3), 4));//light source
-			scene.addShape(KittlesPT::SphereSceneEntity(100.0f, glm::vec3(0, -100.5, -3), 1));
+			scene.addShape(KittlesPT::SphereSceneEntity(100.0f, glm::vec3(0, -100.5, -3), 1));//textured
 
 			m_renderer.loadScene(scene);
 		}

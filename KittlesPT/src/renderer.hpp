@@ -57,6 +57,8 @@ namespace KittlesPT
 		/*void loadSettings() {};*/
 
 	private:
+		void submitScene();
+
 		int m_width = 0, m_height = 0;
 
 		RendererData* m_renderer_data = nullptr;

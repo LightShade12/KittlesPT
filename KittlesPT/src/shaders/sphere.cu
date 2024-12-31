@@ -122,6 +122,12 @@ namespace KittlesPT
 			surfintr.light = &(shader_data.lights_buffer.data[sphere.light_id]);
 		}
 
+		float theta = acos(-surfintr.world_position.y);
+		float phi = atan2(-surfintr.world_position.z, surfintr.world_position.x) + Constants::PI;
+
+		surfintr.uv.x = phi / (2.0f * Constants::PI);
+		surfintr.uv.y = theta / Constants::PI;
+
 		return surfintr;
 	}
 
@@ -143,8 +149,18 @@ namespace KittlesPT
 	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data) const
 	{
 		const Material& mat = shader_data.materials_buffer.data[material_id];
+
+		float3 albedo = mat.albedo;
+
+		if (mat.albedo_texture_id >= 0)
+		{
+			albedo = shader_data.texture_buffer.data[mat.albedo_texture_id].evaluate(shader_data,
+				*this).toFloat3();
+			//albedo = make_float3(1, 0, 1);
+		}
+
 		BSDF bsdf = BSDF(generateONBFrisvad(world_geometric_normal),
-			mat.albedo,
+			albedo,
 			mat.metallicity,
 			mat.roughness,
 			mat.transmission,
