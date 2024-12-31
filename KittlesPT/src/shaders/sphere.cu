@@ -122,8 +122,9 @@ namespace KittlesPT
 			surfintr.light = &(shader_data.lights_buffer.data[sphere.light_id]);
 		}
 
-		float theta = acos(-surfintr.world_position.y);
-		float phi = atan2(-surfintr.world_position.z, surfintr.world_position.x) + Constants::PI;
+		float3 p = (surfintr.world_position - sphere.world_position) / sphere.radius;
+		float theta = acosf(-p.y);
+		float phi = atan2(-p.z, p.x) + Constants::PI;
 
 		surfintr.uv.x = phi / (2.0f * Constants::PI);
 		surfintr.uv.y = theta / Constants::PI;
@@ -156,7 +157,8 @@ namespace KittlesPT
 		{
 			albedo = shader_data.texture_buffer.data[mat.albedo_texture_id].evaluate(shader_data,
 				*this).toFloat3();
-			//albedo = make_float3(1, 0, 1);
+			//albedo = lerp(make_float3(1, 0, 0), make_float3(0, 1, 0), uv.y);
+			//albedo = make_float3(uv.x, 0, uv.y);
 		}
 
 		BSDF bsdf = BSDF(generateONBFrisvad(world_geometric_normal),

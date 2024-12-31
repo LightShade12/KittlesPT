@@ -6,6 +6,7 @@
 #include "material.cuh"
 #include "atmosphere.cuh"
 #include "light_sampler.cuh"
+#include "ray.cuh"
 #include "maths/sampling.cuh"
 #include "color.cuh"
 

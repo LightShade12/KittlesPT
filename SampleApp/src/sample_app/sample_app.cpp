@@ -29,7 +29,7 @@ namespace SampleApp
 
 			//Image load
 			int width = 0, height = 0, channels = 0;
-			unsigned char* img_data = stbi_load("test_img.png", &width, &height, &channels, 3);
+			unsigned char* img_data = stbi_load("grid.png", &width, &height, &channels, 3);
 			KittlesPT::TextureSceneEntity texture0(img_data, width, height, 3);
 			stbi_image_free(img_data);
 
@@ -43,9 +43,9 @@ namespace SampleApp
 				1.45f,
 				glm::vec3(0),
 				1.0,
-				-1));
+				0));
 
-			//textured
+
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.5, 0.5, 0.5),
 				0.0f,
@@ -54,7 +54,7 @@ namespace SampleApp
 				1.45f,
 				glm::vec3(0),
 				1.0,
-				0));
+				-1));
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.8, 0.8, 0.8),
@@ -87,8 +87,8 @@ namespace SampleApp
 				35.0,
 				-1));
 
-			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(-1.5, 0, -3), 2));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 0, -3), 0));
+			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(-1.5, 0, -3), 2));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(1.5, 0, -3), 3));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 1.5, -3), 4));//light source
 			scene.addShape(KittlesPT::SphereSceneEntity(100.0f, glm::vec3(0, -100.5, -3), 1));//textured
