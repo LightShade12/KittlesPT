@@ -149,26 +149,12 @@ namespace KittlesPT
 
 	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data) const
 	{
-		MaterialEvalContext mat_ctx = MaterialEvalContext(*this);
 		const Material& mat = shader_data.materials_buffer.data[material_id];
 
-		float3 albedo = mat.albedo;
+		MaterialEvalContext mat_ctx = MaterialEvalContext(*this);
 
-		if (mat.albedo_texture_id >= 0)
-		{
-			albedo = shader_data.texture_buffer.data[mat.albedo_texture_id].evaluate(shader_data,
-				*this).toFloat3();
-			//albedo = lerp(make_float3(1, 0, 0), make_float3(0, 1, 0), uv.y);
-			//albedo = make_float3(uv.x, 0, uv.y);
-		}
+		BSDF bsdf = mat.getBSDF(shader_data, mat_ctx);
 
-		BSDF bsdf = BSDF(generateONBFrisvad(world_geometric_normal),
-			albedo,
-			mat.metallicity,
-			mat.roughness,
-			mat.transmission,
-			mat.ior,
-			backface);
 		return bsdf;
 	}
 

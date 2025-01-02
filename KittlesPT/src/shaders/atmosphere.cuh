@@ -6,9 +6,9 @@
 
 namespace KittlesPT
 {
-	__device__ bool intersectSphere(float3 t_orig, float3 t_dir, float3 t_centre, float t_radius, float& r_t0, float& r_t1);
-
 	__constant__ constexpr float SUN_DISTANCE_METERS = 100.0f;
+
+	__device__ bool intersectSphere(float3 t_orig, float3 t_dir, float3 t_centre, float t_radius, float& r_t0, float& r_t1);
 
 	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance);
 

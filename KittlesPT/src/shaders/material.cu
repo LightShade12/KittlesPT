@@ -5,12 +5,31 @@
 
 namespace KittlesPT
 {
-	KittlesPT::MaterialEvalContext::MaterialEvalContext(const SurfaceInteraction& surf)
-	{
-		wgnorm = surf.world_geometric_normal;
-	}
+	__device__ MaterialEvalContext::MaterialEvalContext(const SurfaceInteraction& surf) :
+		wgnorm(surf.world_geometric_normal), backface(surf.backface), uv(surf.uv), wpos(surf.world_position)
+	{}
 
-	__device__ BSDF Material::getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx)
+	//========================================================================================================
+
+	__device__ BSDF Material::getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx) const
 	{
+		float3 eval_albedo = albedo;
+
+		if (albedo_texture_id >= 0)
+		{
+			RGBSpectrum sampled = shader_data.texture_buffer.data[albedo_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
+			eval_albedo = sampled.toFloat3();
+		}
+
+		//TODO: consider moving basis generation to BSDF constructor
+		BSDF bsdf = BSDF(generateONBFrisvad(ctx.wgnorm),
+			eval_albedo,
+			metallicity,
+			roughness,
+			transmission,
+			ior,
+			ctx.backface);
+
+		return bsdf;
 	}
 }

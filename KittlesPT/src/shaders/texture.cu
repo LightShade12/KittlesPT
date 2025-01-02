@@ -9,6 +9,10 @@ namespace KittlesPT
 		wpos(surf.world_position), uv(surf.uv)
 	{}
 
+	__device__ TextureEvalContext::TextureEvalContext(const MaterialEvalContext& ctx) :
+		uv(ctx.uv), wpos(ctx.wpos)
+	{}
+
 	__device__ RGBSpectrum Texture::evaluate(const GlobalShaderData& shader_data, TextureEvalContext ctx)
 	{
 		float2 st = make_float2(ctx.uv.x - floorf(ctx.uv.x), ctx.uv.y - floorf(ctx.uv.y));

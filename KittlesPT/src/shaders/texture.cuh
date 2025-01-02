@@ -6,10 +6,12 @@ namespace KittlesPT
 	class RGBSpectrum;
 	struct GlobalShaderData;
 	struct SurfaceInteraction;
+	struct MaterialEvalContext;
 
 	struct TextureEvalContext
 	{
 		__device__ TextureEvalContext(const SurfaceInteraction& surf);
+		__device__ explicit TextureEvalContext(const MaterialEvalContext& ctx);
 		float3 wpos;
 		float2 uv;
 	};
