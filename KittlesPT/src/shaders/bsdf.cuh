@@ -5,6 +5,10 @@
 
 namespace KittlesPT
 {
+	/*
+	* GGX distrib class
+	*/
+
 	struct BSDFSample
 	{
 		BSDFSample() = default;
@@ -96,14 +100,13 @@ namespace KittlesPT
 		__device__ RGBSpectrum fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
 
 	public:
-		RGBSpectrum albedo_factor = RGBSpectrum(1, 0, 0);
-		float roughness = 0.5f;
+		RGBSpectrum albedo_factor = RGBSpectrum(1, 0, 0);//reflectance spectrum
+		float roughness = 0.5f;//alpha_x alpha_y
 		float metallicity = 0.0f;
 		float transmission = 0.0f;
-		float IOR = 1.45f;
+		float IOR = 1.45f;//eta
 		bool backface = false;
 
-		float alpha = 1.0f;//roughness sq
 		Mat3 tangent_matrix;
 	};
 }

@@ -4,10 +4,12 @@
 namespace KittlesPT
 {
 	class BSDF;
+	struct GlobalShaderData;
 
-	struct MaterialEvalContext 
+	struct MaterialEvalContext
 	{
-
+		__device__ MaterialEvalContext(const SurfaceInteraction& surf);
+		float3 wgnorm;
 	};
 
 	struct Material
@@ -32,7 +34,7 @@ namespace KittlesPT
 		{}
 
 		__device__ BSDF getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx);
-		
+
 		//----
 		float3 albedo = make_float3(0.8f);
 		int albedo_texture_id = -1;
