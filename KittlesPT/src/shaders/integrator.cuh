@@ -157,15 +157,14 @@ namespace KittlesPT
 
 		/*TODO:
 		*	-BBOX
-		*	-Utility code
 		*	-BVH
-		*	-Filter
-		*	-Texture
 		*	-Triangles
-		*	-Specular material; specular/any_non_specular_bounces
+		*	-Filter
 		*	-Wavefront rendering
+		*	-Utility code
 		*	-GBuffer; VisibleSurface
 		*	-Anisotropy
+		*	-Specular material; specular/any_non_specular_bounces
 		*	-Path regularization
 		*/
 
