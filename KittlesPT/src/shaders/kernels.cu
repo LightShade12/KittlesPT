@@ -1,11 +1,12 @@
 #include "kernels.cuh"
 
-#include "error_check.cuh"
 #include "maths/linear_algebra.cuh"
+#include "error_check.cuh"
+
+#include "containers.cuh"
 #include "ray.cuh"
-#include "bsdf.cuh"
 #include "samplers.cuh"
-#include "sphere.cuh"
+#include "color.cuh"
 #include "integrator.cuh"
 
 #include <cuda.h>

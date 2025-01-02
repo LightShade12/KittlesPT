@@ -19,6 +19,7 @@ namespace KittlesPT
 	public:
 
 		Camera() = default;
+
 		__host__ __device__ Camera(float3 pos, float3 forward) :
 			world_position(pos), forward_direction(forward) {};
 

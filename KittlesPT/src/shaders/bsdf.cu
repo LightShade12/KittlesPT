@@ -1,6 +1,6 @@
 #include "bsdf.cuh"
 #include "samplers.cuh"
-#include "../maths/linear_algebra.cuh"
+#include "maths/linear_algebra.cuh"
 
 namespace KittlesPT
 {
@@ -114,7 +114,7 @@ namespace KittlesPT
 
 	__device__ float BSDF::fDiffuseBRDF(float3 wo, float3 wi) const
 	{
-		float scalar_switch = (wo.z * wi.z > 0) ? 1 : 0;
+		float scalar_switch = (wo.z * wi.z > 0) ? 1 : 0;//same as sameHemisphere()
 		float out = (scalar_switch / Constants::PI);
 		return out;
 	}
@@ -127,6 +127,8 @@ namespace KittlesPT
 	//===========================================================================================================
 	//GLOSSY MICROFACET BRDF
 	//===========================================================================================================
+
+	//Components-----------------------------------------------------------------
 
 	//SmithGGXMaskingShadowing
 	__device__ float G2_Smith(float3 wo, float3 wi, float roughness)
@@ -142,7 +144,7 @@ namespace KittlesPT
 		return 2.0f * dotNL * dotNV / (denomA + denomB);
 	}
 
-	//GGX ndf; clamps roughness
+	//GGX NDF; clamps roughness
 	__device__ float D_GGX(float NoH, float roughness)
 	{
 		roughness = fmaxf(roughness, Constants::MAT_MIN_ROUGHNESS);//needed TODO: switch to specular brdf below this threshold
@@ -152,6 +154,7 @@ namespace KittlesPT
 		float b = (NoH2 * (alpha2 - 1.0) + 1.0);
 		return alpha2 / (Constants::PI * Sqr(b));
 	}
+
 	//FrDielectric
 	__device__ float fresnelDielectric(float cosTheta, float ior)
 	{
@@ -180,7 +183,7 @@ namespace KittlesPT
 		float NoV = clamp(wo.z, 0.f, 1.f);
 		float NoL = clamp(wi.z, 0.f, 1.f);
 
-		//below expects squared roughness
+		//below expects squared roughness(alpha)
 		float D = D_GGX(NoH, roughness);
 		float G = G2_Smith(wo, wi, roughness);
 		float out = (D * G) / (4 * fmaxf(NoV, 0.0001f) * NoL);
@@ -190,7 +193,8 @@ namespace KittlesPT
 		}
 		return out;
 	}
-	//--------------------------------------------------------
+
+	//BRDF--------------------------------------------------------
 
 	__device__ RGBSpectrum BSDF::fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const
 	{
@@ -292,6 +296,8 @@ namespace KittlesPT
 	//CONDUCTOR BSDF
 	//===========================================================================================================
 
+	//Components-----------------------------------------------------
+
 	//FrSchlick approximation
 	__device__ float3 fresnelSchlick(float VoH, float3 F0)
 	{
@@ -299,7 +305,7 @@ namespace KittlesPT
 		return clamp(F, 0, 1);
 	}
 
-	//---------------
+	//BSDF----------------------------------------------------------
 
 	__device__ BSDFSample BSDF::sampleConductor(float3 wo, float2 u2, float X) const
 	{
@@ -433,6 +439,7 @@ namespace KittlesPT
 
 		return BSDFSample(BSDFSample::Transmitted | BSDFSample::Glossy, f, wi, pdf);
 	}
+
 	__device__ RGBSpectrum BSDF::fTransparentDielectric(float3 wo, float3 wi) const
 	{
 		const float cos_theta_o = wo.z, cos_theta_i = wi.z;

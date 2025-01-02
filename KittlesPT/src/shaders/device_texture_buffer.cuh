@@ -5,6 +5,8 @@
 
 namespace KittlesPT
 {
+	//TODO: refactor this nonsense
+
 	struct DeviceTextureBuffer
 	{
 	public:

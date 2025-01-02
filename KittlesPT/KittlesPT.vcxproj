@@ -116,9 +116,13 @@
     <CudaCompile Include="src\shaders\color.cu" />
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
     <ClInclude Include="src\pod_types.hpp" />
+    <ClInclude Include="src\shaders\interaction.cuh" />
     <ClInclude Include="src\shaders\light.cuh" />
     <ClInclude Include="src\shaders\light_sampler.cuh" />
+    <CudaCompile Include="src\shaders\integrator.cu" />
+    <CudaCompile Include="src\shaders\interaction.cu" />
     <CudaCompile Include="src\shaders\light.cu" />
+    <CudaCompile Include="src\shaders\light_sampler.cu" />
     <CudaCompile Include="src\shaders\material.cu" />
     <CudaCompile Include="src\shaders\samplers.cu" />
     <CudaCompile Include="src\shaders\sphere.cu" />

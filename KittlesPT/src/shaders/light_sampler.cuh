@@ -1,9 +1,10 @@
 #pragma once
-#include "light.cuh"
 #include <cuda_runtime.h>
 
 namespace KittlesPT
 {
+	class Light;
+
 	//Represents a light that has been selected for sampling
 	struct SampledLight
 	{
@@ -42,31 +43,10 @@ namespace KittlesPT
 		//------------------------------------
 
 		//sample a light
-		__device__ SampledLight sample(const float X) const
-		{
-			//handle empty buffer
-			if (lights_buffer_size < 1)
-			{
-				return SampledLight();
-			}
-
-			const int light_index = ::min(int(X * lights_buffer_size), int(lights_buffer_size - 1));
-
-			const Light* sampled_light = &(lights_buffer[light_index]);
-
-			return SampledLight(sampled_light, PMF(sampled_light));
-		};
+		__device__ SampledLight sample(const float X) const;
 
 		//probability of sampling the light
-		__device__ float PMF(const Light* light) const
-		{
-			//handle empty buffer
-			if (lights_buffer_size < 1)
-			{
-				return 0;
-			}
-			return (1.0f / lights_buffer_size);
-		}
+		__device__ float PMF(const Light* light) const;
 
 	private:
 

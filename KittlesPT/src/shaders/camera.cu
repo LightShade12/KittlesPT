@@ -1,5 +1,5 @@
 #include "camera.cuh"
-#include "Ray.cuh"
+#include "ray.cuh"
 
 namespace KittlesPT
 {
@@ -123,7 +123,9 @@ namespace KittlesPT
 		}
 	}
 
-	__device__ float3 KittlesPT::Film::getDisplayRGB(RGBSpectrum HDR_radiance) const
+	//============================================================================================
+
+	__device__ float3 Film::getDisplayRGB(RGBSpectrum HDR_radiance) const
 	{
 		float3 display_color = AgxMinimal::agx_fitted(HDR_radiance.toFloat3());
 		display_color = AgxMinimal::agxLook(display_color);

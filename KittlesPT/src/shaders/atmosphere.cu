@@ -1,18 +1,16 @@
 #include "atmosphere.cuh"
+#include "ray.cuh"
 
 namespace KittlesPT
 {
-	__device__ bool intersectSphere(float3 t_orig, float3 t_dir, float3 t_centre, float t_radius, float& r_t0, float& r_t1)
+	__device__ bool intersectSphere(const Ray& ray, float3 t_sphere_centre, float t_sphere_radius, float& r_t0, float& r_t1)
 	{
-		// Compute coefficients of the quadratic equation
-		float a = dot(t_dir, t_dir); // a = t_dir dot t_dirx
-		float b = -2.0f * dot(t_dir, t_centre - t_orig); // b = 2 * t_dir dot t_orig
-		float c = dot(t_centre - t_orig, t_centre - t_orig) - Sqr(t_radius); // c = t_orig dot t_orig - r^2
+		float a = dot(ray.getDirection(), ray.getDirection()); //TODO: just length()
+		float b = -2.0f * dot(ray.getDirection(), t_sphere_centre - ray.getOrigin());
+		float c = dot(t_sphere_centre - ray.getOrigin(), t_sphere_centre - ray.getOrigin()) - Sqr(t_sphere_radius);
 
-		// Compute the discriminant
 		float discriminant = Sqr(b) - 4 * a * c;
 
-		// If the discriminant is negative, the ray does not intersect the sphere
 		if (discriminant < 0.0f)
 		{
 			//r_t1 = -1.0f; // Set r_t1 to -1 to indicate a miss
@@ -21,18 +19,17 @@ namespace KittlesPT
 
 		//(discriminant == 0.0f) = tangent
 
-		// Compute the two intersection points using the quadratic formula
 		float sqrtDiscriminant = sqrtf(discriminant);
 		r_t0 = (-b - sqrtDiscriminant) / (2.0f * a);
 		r_t1 = (-b + sqrtDiscriminant) / (2.0f * a);//bigger
 
-		// Ensure r_t0 is the smaller value
+		// make r_t0 is the smaller value
 		if (r_t0 > r_t1)
 		{
 			cuda::std::swap(r_t0, r_t1);
 		}
 
-		return true; // Ray intersects the sphere
+		return true;
 	}
 
 	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance)
@@ -44,7 +41,7 @@ namespace KittlesPT
 	{
 		float t0, t1;
 		// miss atmosphere
-		if (!intersectSphere(t_orig, t_dir, make_float3(0), m_atmosphere_radius, t0, t1) || t1 < 0)
+		if (!intersectSphere(Ray(t_orig, t_dir), make_float3(0), m_atmosphere_radius, t0, t1) || t1 < 0)
 		{
 			return RGBSpectrum(0);
 		}
@@ -84,7 +81,7 @@ namespace KittlesPT
 
 			// optical depth sum for light for this step
 			float t0_light, t1_light;
-			intersectSphere(sample_position, sun_dir, make_float3(0),
+			intersectSphere(Ray(sample_position, sun_dir), make_float3(0),
 				m_atmosphere_radius, t0_light, t1_light);
 			const float step_length_light = t1_light / m_num_samples_light;
 

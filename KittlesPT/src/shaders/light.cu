@@ -1,6 +1,8 @@
 #include "light.cuh"
+
 #include "maths/linear_algebra.cuh"
 #include "maths/constants.cuh"
+#include "interaction.cuh"
 #include "sphere.cuh"
 #include "containers.cuh"
 

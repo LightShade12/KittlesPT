@@ -1,7 +1,8 @@
 #pragma once
-#include "../containers.cuh"
 
 namespace KittlesPT
 {
+	struct GlobalShaderData;
+
 	void launchRenderPassKernel(const GlobalShaderData& shader_data);
 }

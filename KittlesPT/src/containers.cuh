@@ -6,7 +6,6 @@
 #include "shaders/light.cuh"
 #include "shaders/texture.cuh"
 #include "pod_types.hpp"
-#include <cuda_runtime.h>
 
 namespace KittlesPT
 {

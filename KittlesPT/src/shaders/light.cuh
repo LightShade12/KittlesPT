@@ -9,6 +9,22 @@ namespace KittlesPT
 	struct SurfaceInteraction;
 	struct GlobalShaderData;
 
+	//Surface data type; passed to sampler
+	struct LightSampleContext
+	{
+		LightSampleContext() = default;
+
+		__device__ LightSampleContext(const SurfaceInteraction& si);
+
+		//----------------------------------
+
+		float3 w_pos{};
+		float3 wgnorm{};
+		float3 s_wnorm{};
+	};
+
+	//=====================================================================================================
+
 	//Represents a sampled point on light
 	struct LightLiSample
 	{
@@ -39,22 +55,6 @@ namespace KittlesPT
 	};
 
 	//===================================================================================================
-
-	//Surface data type; passed to sampler
-	struct LightSampleContext
-	{
-		LightSampleContext() = default;
-
-		__device__ LightSampleContext(const SurfaceInteraction& si);
-
-		//----------------------------------
-
-		float3 w_pos{};
-		float3 wgnorm{};
-		float3 s_wnorm{};
-	};
-
-	//=====================================================================================================
 
 	//The Light object that is bound to a primitive
 	class Light

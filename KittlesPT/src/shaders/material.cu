@@ -1,7 +1,7 @@
 #include "material.cuh"
 #include "containers.cuh"
 #include "bsdf.cuh"
-#include "sphere.cuh"
+#include "interaction.cuh"
 
 namespace KittlesPT
 {

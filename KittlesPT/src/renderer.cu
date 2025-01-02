@@ -2,11 +2,7 @@
 
 #include "maths/vector_maths.cuh"
 #include "containers.cuh"
-#include "shaders/device_texture_buffer.cuh"
 #include "shaders/kernels.cuh"
-#include "shaders/material.cuh"
-#include "shaders/texture.cuh"
-#include "shaders/light.cuh"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -208,7 +204,7 @@ namespace KittlesPT
 			int bit_depth = 8;
 			m_renderer_data->scene_textures.push_back(
 				Texture(tex.width, tex.height, tex.channels_count, bit_depth,
-					m_renderer_data->pixel_buffer.size()));
+					(int)m_renderer_data->pixel_buffer.size()));
 
 			m_renderer_data->pixel_buffer.insert(m_renderer_data->pixel_buffer.end(),
 				tex.pixels_data.begin(), tex.pixels_data.end());

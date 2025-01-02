@@ -2,22 +2,25 @@
 #include "maths/linear_algebra.cuh"
 #include "maths/constants.cuh"
 #include "color.cuh"
+
 #include <cuda/std/span>
 
 namespace KittlesPT
 {
+	class Ray;
+
 	__constant__ constexpr float SUN_DISTANCE_METERS = 100.0f;
 
-	__device__ bool intersectSphere(float3 t_orig, float3 t_dir, float3 t_centre, float t_radius, float& r_t0, float& r_t1);
+	__device__ bool intersectSphere(const Ray& ray, float3 t_sphere_centre, float t_sphere_radius, float& r_t0, float& r_t1);
 
 	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance);
 
-	struct Atmosphere
+	class Atmosphere
 	{
+	public:
+
 		__device__ Atmosphere(float3 t_sunpos, float t_sun_intensity) :
 			m_sun_position(t_sunpos), m_sun_intensity(t_sun_intensity) {};
-
-	public:
 
 		__device__ RGBSpectrum Le(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const;
 

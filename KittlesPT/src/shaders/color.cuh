@@ -218,6 +218,11 @@ namespace KittlesPT
 			return (0.2126f * r) + (0.7152f * g) + (0.0722f * b);
 		}
 
+		__device__ float Y()
+		{
+			return getLuminance();
+		}
+
 		__device__ static RGBSpectrum fromXYZ(float3 v)
 		{
 			return RGBSpectrum(convertXYZ2RGB(v));
@@ -242,6 +247,8 @@ namespace KittlesPT
 
 		float r = 0, g = 0, b = 0;
 	};
+
+	//OPERATORS==========================================================================
 
 	inline __device__ RGBSpectrum operator-(float b, RGBSpectrum a)
 	{

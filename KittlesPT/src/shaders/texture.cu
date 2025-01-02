@@ -1,6 +1,7 @@
 #include "texture.cuh"
 #include "color.cuh"
-#include "sphere.cuh"
+#include "interaction.cuh"
+#include "material.cuh"
 #include "containers.cuh"
 
 namespace KittlesPT
@@ -12,6 +13,8 @@ namespace KittlesPT
 	__device__ TextureEvalContext::TextureEvalContext(const MaterialEvalContext& ctx) :
 		uv(ctx.uv), wpos(ctx.wpos)
 	{}
+
+	//=================================================================================================================
 
 	__device__ RGBSpectrum Texture::evaluate(const GlobalShaderData& shader_data, TextureEvalContext ctx)
 	{

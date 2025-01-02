@@ -15,14 +15,15 @@ namespace KittlesPT
 
 		void init();
 
-		void resizeFrame(int width, int height);
-
 		void shutdown();
+
+		void resizeFrame(int width, int height);
 
 		void executeRendering();
 
 		void getRenderTargetTexture(GLuint r_texture);
 
+		//TODO: work with MaterialSceneEntity
 		bool setMaterial(int idx,
 			glm::vec3 albedo_factor,
 			float metallicity,
@@ -30,6 +31,8 @@ namespace KittlesPT
 			float transmission,
 			float ior
 		);
+
+		//TODO: return MaterialSceneEntity
 		bool getMaterial(int idx,
 			glm::vec3* albedo_factor,
 			float* metallicity,
