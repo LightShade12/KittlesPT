@@ -1,5 +1,4 @@
 #include "integrator.cuh"
-#include "packing.cuh"
 #include "containers.cuh"
 #include "interaction.cuh"
 #include "sphere.cuh"
@@ -10,6 +9,7 @@
 #include "ray.cuh"
 #include "maths/sampling.cuh"
 #include "color.cuh"
+#include "packing.cuh"
 
 namespace KittlesPT
 {
@@ -165,7 +165,8 @@ namespace KittlesPT
 			));
 		}
 
-		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler)
+		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in,
+			IndependentSampler& sampler, GBuffer* visible_surface)
 		{
 			RGBSpectrum light(0.0f);
 			RGBSpectrum throughput(1.0f);
@@ -227,6 +228,11 @@ namespace KittlesPT
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
+
+				if (bounce_depth == 0)
+				{
+					*visible_surface = GBuffer(bsdf.albedo_factor, surfintr);
+				}
 
 				RGBSpectrum Ld = sampleLd(shader_data, ray,
 					bsdf, surfintr, light_sampler, sampler);

@@ -19,6 +19,7 @@ namespace KittlesPT
 
 	struct GlobalShaderData;
 	struct Intersection;
+	struct GBuffer;
 	struct SurfaceInteraction;
 
 	class Ray;
@@ -47,6 +48,6 @@ namespace KittlesPT
 
 		__device__ float3 sphericalToSunDirection(float theta, float phi);
 
-		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler);
+		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
 	}
 }

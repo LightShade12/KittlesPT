@@ -16,6 +16,8 @@
 
 namespace KittlesPT
 {
+	//TODO:Add proper logging
+
 	struct RendererData
 	{
 		thrust::universal_vector<Sphere> scene_spheres;
@@ -35,6 +37,7 @@ namespace KittlesPT
 			cuda_driver_version / 1000, cuda_driver_version % 100, cuda_runtime_version / 1000, cuda_runtime_version % 100);
 		m_renderer_data = new RendererData();
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
+		m_renderer_data->m_frame_textures["gbuffer_texture"] = TextureBuffer();
 		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
 
 		submitScene();
@@ -50,9 +53,15 @@ namespace KittlesPT
 			tex.second.destroy();
 		}
 
-		m_renderer_data->scene_spheres.clear();//TODO: put this in destroy/destructor
-		m_renderer_data->scene_materials.clear();//TODO: put this in destroy/destructor
-		m_renderer_data->scene_lights.clear();
+		//TODO: put this in destroy/destructor
+		{
+			m_renderer_data->scene_spheres.clear();
+			m_renderer_data->scene_lights.clear();
+			m_renderer_data->scene_materials.clear();
+			m_renderer_data->scene_textures.clear();
+			m_renderer_data->pixel_buffer.clear();
+		}
+
 		delete m_renderer_data;
 		m_renderer_data = nullptr;
 	}
@@ -92,11 +101,13 @@ namespace KittlesPT
 	{
 		m_renderer_data->shader_global_data.main_texture = m_renderer_data->m_frame_textures["main_texture"].enableCudaAccess();
 		m_renderer_data->shader_global_data.accumulation_texture = m_renderer_data->m_frame_textures["accumulation_texture"].enableCudaAccess();
+		m_renderer_data->shader_global_data.gbuffer_texture = m_renderer_data->m_frame_textures["gbuffer_texture"].enableCudaAccess();
 
 		launchRenderPassKernel(m_renderer_data->shader_global_data);
 
 		m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
 		m_renderer_data->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_data->shader_global_data.accumulation_texture);
+		m_renderer_data->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_data->shader_global_data.gbuffer_texture);
 
 		m_renderer_data->shader_global_data.frame_index++;//TODO:expose to host as readonly?
 	}

@@ -8,6 +8,7 @@
 #include "samplers.cuh"
 #include "color.cuh"
 #include "integrator.cuh"
+#include "packing.cuh"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -58,20 +59,26 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	//============================================
 	float2 ndc_coord = uv_coord * 2 - 1;
 	IndependentSampler sampler;
+	GBuffer visible_surface;
+
 	sampler.initPixelSeed(pixel_coord, frame_res.x, shader_data.frame_index + 1);//TODO: make sample index internally non-zero
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(ndc_coord, frame_res);
 
 	//evaluate integral(f(x)/p(x)) at Xi
-	RGBSpectrum sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray, sampler);
+	RGBSpectrum sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray,
+		sampler, &visible_surface);
+	
+	//write visible surface to GBuffer Film
+	float4 packed = packGBuffer(visible_surface);
+	shader_data.gbuffer_texture.textureWrite(packed, pixel_coord);
 
 	//Monte-Carlo estimation; static accumulation
 	sensor_radiance = addSample(shader_data, pixel_coord, sensor_radiance);
 
 	//post process
-	sensor_radiance *= shader_data.scene_camera.film.exposure;
+	sensor_radiance *= shader_data.scene_camera.film.exposure;//TODO: proper exposure application
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(sensor_radiance);
-	//frag_color = sensor_radiance / shader_data.scene_camera.film.exposure;
 
 	shader_data.main_texture.textureWrite(make_float4(frag_color, 1), pixel_coord);
 }

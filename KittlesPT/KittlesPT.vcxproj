@@ -124,6 +124,7 @@
     <CudaCompile Include="src\shaders\light.cu" />
     <CudaCompile Include="src\shaders\light_sampler.cu" />
     <CudaCompile Include="src\shaders\material.cu" />
+    <CudaCompile Include="src\shaders\packing.cu" />
     <CudaCompile Include="src\shaders\samplers.cu" />
     <CudaCompile Include="src\shaders\sphere.cu" />
     <CudaCompile Include="src\shaders\texture.cu" />

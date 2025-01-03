@@ -39,5 +39,6 @@ namespace KittlesPT
 
 		DeviceTextureBuffer main_texture;
 		DeviceTextureBuffer accumulation_texture;
+		DeviceTextureBuffer gbuffer_texture;
 	};
 };
