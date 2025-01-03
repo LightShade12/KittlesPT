@@ -8,10 +8,13 @@ namespace KittlesPT
 		*	-BBOX
 		*	-BVH
 		*	-Triangles
+		*
 		*	-Filter
+		*
 		*	-Wavefront rendering
+		*
 		*	-Utility code
-		*	-GBuffer; VisibleSurface
+		*
 		*	-Anisotropy
 		*	-Specular material; specular/any_non_specular_bounces
 		*	-Path regularization
