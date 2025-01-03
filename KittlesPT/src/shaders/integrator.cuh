@@ -43,8 +43,7 @@ namespace KittlesPT
 			const SurfaceInteraction& surface, const LightSampler& light_sampler, IndependentSampler& sampler);
 
 		//russian roulette
-		__device__ bool russianRoulette(RGBSpectrum& throughput, float eta_scale,
-			int bounce_depth, IndependentSampler& sampler);
+		__device__ bool russianRoulette(RGBSpectrum& throughput, float eta_scale, int bounce_depth, IndependentSampler& sampler);
 
 		__device__ float3 sphericalToSunDirection(float theta, float phi);
 

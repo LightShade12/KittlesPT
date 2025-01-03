@@ -31,7 +31,7 @@ namespace KittlesPT
 	{
 		int cuda_driver_version, cuda_runtime_version;
 		cudaDriverGetVersion(&cuda_driver_version); cudaRuntimeGetVersion(&cuda_runtime_version);
-		printf("CUDA driver version: %d.%d\nCUDA toolkit runtime version: %d.%d\n",
+		printf("[RENDERER] CUDA driver version: %d.%d\n[RENDERER] CUDA toolkit runtime version: %d.%d\n",
 			cuda_driver_version / 1000, cuda_driver_version % 100, cuda_runtime_version / 1000, cuda_runtime_version % 100);
 		m_renderer_data = new RendererData();
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
@@ -45,7 +45,7 @@ namespace KittlesPT
 	}
 	void Renderer::shutdown()
 	{
-		for (auto tex : m_renderer_data->m_frame_textures)
+		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_data->m_frame_textures)
 		{
 			tex.second.destroy();
 		}
@@ -71,19 +71,21 @@ namespace KittlesPT
 			0, 1, 0, 0,
 			0, 0, -1, 0,
 			0, 0, 0, 1);
+
+		//TODO: fix view
 		setView(glm::perspectiveFovLH(glm::radians(90.0f),
 			float(m_width), float(m_height), 1.f, 100.f),
 			glm::inverse(view));
 
-		if (m_renderer_data->m_frame_textures["main_texture"].isInitialised())
+		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_data->m_frame_textures)
 		{
-			m_renderer_data->m_frame_textures["main_texture"].resize(m_width, m_height);
-			m_renderer_data->m_frame_textures["accumulation_texture"].resize(m_width, m_height);
-		}
-		else
-		{
-			m_renderer_data->m_frame_textures["main_texture"].init(m_width, m_height);
-			m_renderer_data->m_frame_textures["accumulation_texture"].init(m_width, m_height);
+			if (tex.second.isInitialised())
+			{
+				tex.second.resize(m_width, m_height);
+				continue;
+			}
+			printf("Initializing texture:%s\n", tex.first.c_str());
+			tex.second.init(m_width, m_height);
 		}
 	}
 	void Renderer::executeRendering()

@@ -133,13 +133,13 @@ namespace KittlesPT
 			);
 		}
 
-		/*__host__ glm::mat3 toGLM() {
+		__host__ glm::mat3 toGLM() {
 			return glm::mat3(
 				columns[0].x, columns[0].y, columns[0].z,
 				columns[1].x, columns[1].y, columns[1].z,
 				columns[2].x, columns[2].y, columns[2].z
 			);
-		}*/
+		}
 
 		__host__ __device__ static void print_matrix(const Matrix3x3& mat) {
 			printf("\n");
@@ -305,14 +305,14 @@ namespace KittlesPT
 			);
 		}
 
-		/*__host__ glm::mat4 toGLM() {
+		__host__ glm::mat4 toGLM() {
 			return glm::mat4(
 				columns[0].x, columns[0].y, columns[0].z, columns[0].w,
 				columns[1].x, columns[1].y, columns[1].z, columns[1].w,
 				columns[2].x, columns[2].y, columns[2].z, columns[2].w,
 				columns[3].x, columns[3].y, columns[3].z, columns[3].w
 			);
-		}*/
+		}
 
 		__host__ __device__ static void print_matrix(const Matrix4x4& mat) {
 			printf("\n");

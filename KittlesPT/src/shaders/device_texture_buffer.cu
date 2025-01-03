@@ -117,6 +117,10 @@ namespace KittlesPT
 		cudaGraphicsUnregisterResource(m_graphics_resource);
 		m_graphics_resource = nullptr;
 		glDeleteTextures(1, &m_GL_texture);
+		GLenum err = glGetError();
+		if (err != GL_NO_ERROR) {
+			fprintf(stderr, "[TEXCOPY]: %s\n", glErrorString(err));
+		}
 		m_GL_texture = NULL;
 	}
 	void TextureBuffer::copyTo(GLuint dst)
