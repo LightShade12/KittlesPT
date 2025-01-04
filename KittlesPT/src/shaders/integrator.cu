@@ -165,7 +165,7 @@ namespace KittlesPT
 			));
 		}
 
-		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in,
+		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in,
 			IndependentSampler& sampler, GBuffer* visible_surface)
 		{
 			RGBSpectrum light(0.0f);

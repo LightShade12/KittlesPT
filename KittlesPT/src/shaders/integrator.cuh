@@ -11,13 +11,18 @@ namespace KittlesPT
 		*
 		*	-Filter
 		*
-		*	-Wavefront rendering
-		*
 		*	-Utility code
+		*
+		*	-Wavefront rendering
 		*
 		*	-Anisotropy
 		*	-Specular material; specular/any_non_specular_bounces
 		*	-Path regularization
+		* 
+		*	PBRT base types:
+		*	- Primitive (Accelerator)
+		*	- Filter
+		*	- Medium
 		*/
 
 	struct GlobalShaderData;
@@ -51,6 +56,6 @@ namespace KittlesPT
 
 		__device__ float3 sphericalToSunDirection(float theta, float phi);
 
-		__device__ RGBSpectrum sensorRadiance(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
+		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
 	}
 }

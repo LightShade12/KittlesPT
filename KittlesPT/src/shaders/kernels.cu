@@ -9,6 +9,7 @@
 #include "color.cuh"
 #include "integrator.cuh"
 #include "packing.cuh"
+#include "filter.cuh"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -55,26 +56,34 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 
 	float2 uv_coord = make_float2((float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y);
 
-	if ((pixel_coord.x >= frame_res.x) || (pixel_coord.y >= frame_res.y)) return;
+	if ((pixel_coord.x >= frame_res.x) || (pixel_coord.y >= frame_res.y)) {
+		return;
+	}
 	//============================================
 	float2 ndc_coord = uv_coord * 2 - 1;
 	IndependentSampler sampler;
 	GBuffer visible_surface;
+	Filter filter;
 
 	sampler.initPixelSeed(pixel_coord, frame_res.x, shader_data.frame_index + 1);//TODO: make sample index internally non-zero
 
-	Ray primary_ray = shader_data.scene_camera.generateRay(ndc_coord, frame_res);
+	FilterSample fs = filter.sample(sampler.get2D());
+	float2 jittered_ndc = ndc_coord + make_float2(0.5f / (float)frame_res.x, 0.5f / (float)frame_res.y);//discrete to continous map
+	jittered_ndc += make_float2(fs.p.x / (float)frame_res.x, fs.p.y / (float)frame_res.y);
 
+	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc, frame_res);
+
+	float camera_weight = 1.0f;
 	//evaluate integral(f(x)/p(x)) at Xi
-	RGBSpectrum sensor_radiance = Integrator::sensorRadiance(shader_data, primary_ray,
+	RGBSpectrum sensor_radiance = camera_weight * Integrator::Li(shader_data, primary_ray,
 		sampler, &visible_surface);
-	
-	//write visible surface to GBuffer Film
+
+	//visible surface to GBuffer Film
 	float4 packed = packGBuffer(visible_surface);
 	shader_data.gbuffer_texture.textureWrite(packed, pixel_coord);
 
 	//Monte-Carlo estimation; static accumulation
-	sensor_radiance = addSample(shader_data, pixel_coord, sensor_radiance);
+	sensor_radiance = addSample(shader_data, pixel_coord, (sensor_radiance * fs.weight));
 
 	//post process
 	sensor_radiance *= shader_data.scene_camera.film.exposure;//TODO: proper exposure application
