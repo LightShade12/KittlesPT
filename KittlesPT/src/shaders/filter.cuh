@@ -27,7 +27,8 @@ namespace KittlesPT
 		__device__ FilterSample sample(float2 u) const
 		{
 			float2 p = make_float2(lerp(-radius.x, radius.x, u.x), lerp(-radius.y, radius.y, u.y));
-			float w = evaluate(p);
+			//float2 p = make_float2(sampleTent(u.x, radius.x), sampleTent(u.y, radius.y));
+			float w = 1.0f;
 			return FilterSample(p, w);
 		}
 
