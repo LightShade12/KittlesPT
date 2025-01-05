@@ -7,7 +7,7 @@ namespace KittlesPT
 {
 	struct PhaseFunctionSample
 	{
-		PhaseFunctionSample() = default;
+		//PhaseFunctionSample() = default;
 		__device__ PhaseFunctionSample(float p, float3 wi, float pdf) :
 			p(p), wi(wi), pdf(pdf) {};
 
@@ -16,10 +16,11 @@ namespace KittlesPT
 		float pdf;
 	};
 
-	class HGPhaseFunction 
+	class HGPhaseFunction
 	{
 	public:
-		HGPhaseFunction() = default;
+		__device__ HGPhaseFunction(float g) :
+			g(g) {};
 
 	private:
 		__device__ float henyeyGreenstein(float cosTheta, float g)
@@ -76,34 +77,68 @@ namespace KittlesPT
 
 	struct MediumProperties
 	{
+		__device__ MediumProperties(float sigma_a, float sigma_s, HGPhaseFunction phase)
+			:sigma_a(sigma_a), sigma_s(sigma_s), phase(phase) {};
+
 		float sigma_a, sigma_s;//TODO: maybe can be made RGBSpectrum for albedo
 		HGPhaseFunction phase;
 	};
 
 	struct RayMajorantSegment
 	{
-		float tMin, tMax;
-		float sigma_maj;
+		RayMajorantSegment() = default;
+
+		float tMin = INFINITY, tMax = -1;
+		float sigma_maj = 0;
+
+		operator bool() {
+			return (tMin < INFINITY && tMax >= 0);
+		}
+
+		bool operator !() {
+			return (tMax < 0 || tMin == INFINITY);
+		}
 	};
 
 	class HomogeneousMajorantIterator
 	{
 	public:
-		RayMajorantSegment next()
+		__device__ HomogeneousMajorantIterator() :
+			called(true), seg{}
+		{}
+
+		__device__ HomogeneousMajorantIterator(float tmin, float tmax, float sigma_maj) :
+			seg{ tmin,tmax,sigma_maj }, called(false)
+		{}
+
+		__device__ RayMajorantSegment next()
 		{
+			if (called)
+			{
+				return RayMajorantSegment();
+			}
+			called = true;
+			return seg;
 		};
+
+		RayMajorantSegment seg;
+		bool called = false;
 	};
 
 	class HomogeniousMedium
 	{
 	public:
+		__device__ HomogeniousMedium(float sigma_a, float sigma_s, float g) :
+			phase(g), sigma_a_spec(sigma_a), sigma_s_spec(sigma_s) {};
 
-		HomogeneousMajorantIterator sampleRay(const Ray& ray, float tmax)
+		__device__ MediumProperties samplePoint(float3 p) const
 		{
+			return MediumProperties(sigma_a_spec, sigma_s_spec, phase);
 		}
 
-		__device__ MediumProperties samplePoint(float3 p)
+		__device__ HomogeneousMajorantIterator sampleRay(const Ray& ray, float tmax) const
 		{
+			return HomogeneousMajorantIterator(0.0f, tmax, sigma_a_spec + sigma_s_spec);
 		}
 
 	public:
@@ -115,12 +150,12 @@ namespace KittlesPT
 	{
 	public:
 		__device__ MediumInterface(HomogeniousMedium medium) :
-			inside(medium), outside(medium) {};
+			inside(medium), outside(medium) {}
 
 		__device__ MediumInterface(HomogeniousMedium inside, HomogeniousMedium outside) :
-			inside(inside), outside(outside) {};
+			inside(inside), outside(outside) {}
 
-		bool isMediumTransition();
+		bool isMediumTransition() { return true; }
 
 	public:
 		HomogeniousMedium inside, outside;

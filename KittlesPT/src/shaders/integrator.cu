@@ -71,7 +71,6 @@ namespace KittlesPT
 			float3 wo = -ray.getDirection();
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 
-			//TODO: fix cosine for refractive caustics
 			RGBSpectrum fcos = bsdf.f(wo, sun_direction) *
 				fmaxf(0, dot(sun_direction, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));
 
