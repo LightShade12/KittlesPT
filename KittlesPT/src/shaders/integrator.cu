@@ -72,7 +72,8 @@ namespace KittlesPT
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 
 			//TODO: fix cosine for refractive caustics
-			RGBSpectrum fcos = bsdf.f(wo, sun_direction) * fmaxf(0, dot(sun_direction, surface.world_geometric_normal));
+			RGBSpectrum fcos = bsdf.f(wo, sun_direction) *
+				fmaxf(0, dot(sun_direction, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));
 
 			if (!fcos)
 			{
@@ -122,14 +123,16 @@ namespace KittlesPT
 
 			float3 wi = ls.wi;
 			float3 wo = -ray.getDirection();
-			RGBSpectrum fcos = bsdf.f(wo, wi) * fmaxf(dot(wi, surface.world_geometric_normal), 0.0f);
+			RGBSpectrum fcos = bsdf.f(wo, wi) *
+				fmaxf(0, dot(wi, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));;
 
 			if (!fcos)
 			{
 				return Ld;
 			}
 
-			if (!Unoccluded(shader_data, surface, ls.wpos_light)) {
+			if (!Unoccluded(shader_data, surface, ls.wpos_light))
+			{
 				return Ld;
 			}
 
@@ -231,9 +234,9 @@ namespace KittlesPT
 					bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
 
-				//RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, sun_direction,
-				//	bsdf, surfintr, atmosphere, sampler);
-				//light += Ld_sun * throughput;
+				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, sun_direction,
+					bsdf, surfintr, atmosphere, sampler);
+				light += Ld_sun * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 				if (bs.scatterTypeIs(BSDFSample::Absorbed))

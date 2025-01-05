@@ -82,9 +82,18 @@ namespace KittlesPT
 		}
 		return Ray(ray_orig, wi);
 	}
+
 	__device__ Ray SurfaceInteraction::spawnRayTo(float3 target) const
 	{
-		float3 ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
+		float3 ray_orig;
+		if (backface) 
+		{
+			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
+		}
+		else
+		{
+			ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
+		}
 		return Ray(ray_orig, normalize(target - ray_orig));
 	}
 }

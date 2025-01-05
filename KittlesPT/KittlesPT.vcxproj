@@ -152,6 +152,7 @@
     <ClInclude Include="src\shaders\integrator.cuh" />
     <ClInclude Include="src\shaders\kernels.cuh" />
     <ClInclude Include="src\shaders\material.cuh" />
+    <ClInclude Include="src\shaders\medium.cuh" />
     <ClInclude Include="src\shaders\packing.cuh" />
     <ClInclude Include="src\shaders\ray.cuh" />
     <ClInclude Include="src\shaders\samplers.cuh" />
