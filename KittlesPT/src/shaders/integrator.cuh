@@ -9,8 +9,6 @@ namespace KittlesPT
 		*	-BVH
 		*	-Triangles
 		*
-		*	-Filter
-		*
 		*	-Utility code
 		*
 		*	-Wavefront rendering
@@ -18,10 +16,9 @@ namespace KittlesPT
 		*	-Anisotropy
 		*	-Specular material; specular/any_non_specular_bounces
 		*	-Path regularization
-		* 
+		*
 		*	PBRT base types:
 		*	- Primitive (Accelerator)
-		*	- Filter
 		*	- Medium
 		*/
 

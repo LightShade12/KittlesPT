@@ -14,6 +14,12 @@ namespace KittlesPT
 		w_pos(si.world_position), wgnorm(si.world_geometric_normal)
 	{};
 
+	//LIGHT LI SAMPLE====================================================================
+
+	__device__ LightLiSample::LightLiSample(const SurfaceInteraction& surf)
+		:wpos_light(surf.world_position), wgnorm(surf.world_geometric_normal), L(0.0f)
+	{}
+
 	//LIGHT===============================================================================
 
 	__device__ RGBSpectrum Light::L(float3 p, float3 n, float3 wi) const
@@ -21,11 +27,11 @@ namespace KittlesPT
 		return L_emit * emission_scale;
 	};
 
-	__device__ float Light::pdf_Li(const LightSampleContext& ctx, float3 wo, float3 confirmed_hit_wpos, float3 confirmed_hit_wgnorm) const
+	__device__ float Light::pdf_Li(const LightSampleContext& ctx, const LightLiSample& confirmed_ls) const
 	{
 		float area_pdf = 1.0f / area;
-		float dist = length(confirmed_hit_wpos - ctx.w_pos);
-		float cos_theta_L = AbsDot(wo, confirmed_hit_wgnorm);
+		float dist = length(confirmed_ls.wpos_light - ctx.w_pos);
+		float cos_theta_L = AbsDot(normalize(confirmed_ls.wpos_light - ctx.w_pos), confirmed_ls.wgnorm);
 		float pdf = area_pdf / (cos_theta_L / Sqr(dist));
 		return pdf;
 	}

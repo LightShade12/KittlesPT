@@ -51,7 +51,6 @@ namespace KittlesPT
 
 		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target)
 		{
-			//return true;
 			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
 			Ray shadow_ray = surface.spawnRayTo(target);
 			float tmax = length(target - shadow_ray.getOrigin()) - SHADOWRAY_EPSILON;
@@ -72,6 +71,7 @@ namespace KittlesPT
 			float3 wo = -ray.getDirection();
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
 
+			//TODO: fix cosine for refractive caustics
 			RGBSpectrum fcos = bsdf.f(wo, sun_direction) * fmaxf(0, dot(sun_direction, surface.world_geometric_normal));
 
 			if (!fcos)
@@ -86,16 +86,18 @@ namespace KittlesPT
 				return Ld;
 			}
 
-			bool is_unoccluded = Unoccluded(shader_data, surface, target);
-			if (is_unoccluded)
+			if (!Unoccluded(shader_data, surface, target))
 			{
-				float sun_area = Constants::PI * Sqr(sun_radius);
-				float3 sun_n = normalize(target - sun_position), wi = normalize(target - surface.world_position);
-				float cos_sun = AbsDot(sun_n, -wi);
-				float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_DISTANCE_METERS));
-				//TODO: pbr values; better sun sampling/pdf
-				Ld = (fcos * sun_color * 5000.0f * shader_data.procedural_environment_data.sun_radiance_intensity) / pdf;
-			}
+				return Ld;
+			};
+
+			float sun_area = Constants::PI * Sqr(sun_radius);
+			float3 sun_n = normalize(target - sun_position), wi = normalize(target - surface.world_position);
+			float cos_sun = AbsDot(sun_n, -wi);
+			float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_DISTANCE_METERS));
+			//TODO: pbr values; better sun sampling/pdf
+			Ld = (fcos * sun_color * 5000.0f * shader_data.procedural_environment_data.sun_radiance_intensity) / pdf;
+
 			return Ld;
 		}
 
@@ -112,7 +114,7 @@ namespace KittlesPT
 				return Ld;
 			}
 
-			LightLiSample ls = sampled_light.light->sampleLi(shader_data, surface, sampler.get2D());
+			LightLiSample ls = sampled_light.light->sampleLi(shader_data, LightSampleContext(surface), sampler.get2D());
 			if (!ls)
 			{
 				return Ld;
@@ -183,12 +185,13 @@ namespace KittlesPT
 			float p_b = 1.0f;
 			LightSampleContext prev_ctx;
 
-			int MAX_RAY_DEPTH = shader_data.pathtracer_settings.max_bounce_depth;
+			const int MAX_RAY_DEPTH = shader_data.pathtracer_settings.max_bounce_depth;
 			Ray ray = ray_in;
 
 			for (int bounce_depth = 0; bounce_depth <= MAX_RAY_DEPTH; bounce_depth++)
 			{
 				sampler.setSeed(sampler.getSeed() + bounce_depth);
+				bool first_surface = (bounce_depth == 0);
 
 				Intersection intr = intersect(shader_data, ray, INFINITY);
 
@@ -203,33 +206,23 @@ namespace KittlesPT
 				//hit
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
-
 				float3 wo = -ray.getDirection();
 
-				if (bounce_depth == 0)
-				{
-					light += surfintr.Le(shader_data, ray) * throughput;
-				}
-				else
+				//Le
 				{
 					const Light* arealight = surfintr.light;
 					float w_l = 1.0f;
-
-					if (arealight)
+					if (arealight && !first_surface)
 					{
-						float light_pdf = light_sampler.PMF(arealight) *
-							arealight->pdf_Li(prev_ctx, wo,
-								surfintr.world_position,
-								surfintr.world_geometric_normal);
+						float light_pdf = light_sampler.PMF(arealight) * arealight->pdf_Li(prev_ctx, LightLiSample(surfintr));
 						w_l = powerHeuristic(1, p_b, 1, light_pdf);
 					}
-
 					light += surfintr.Le(shader_data, ray) * w_l * throughput;
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
-				if (bounce_depth == 0)
+				if (first_surface)
 				{
 					*visible_surface = GBuffer(bsdf.albedo_factor, surfintr);
 				}
@@ -238,12 +231,11 @@ namespace KittlesPT
 					bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
 
-				//RGBSpectrum sun_Ld = sampleLdSun(shader_data, ray, sun_direction,
+				//RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, sun_direction,
 				//	bsdf, surfintr, atmosphere, sampler);
-				//light += sun_Ld * throughput;
+				//light += Ld_sun * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
-
 				if (bs.scatterTypeIs(BSDFSample::Absorbed))
 				{
 					break;
@@ -260,9 +252,9 @@ namespace KittlesPT
 				}
 
 				throughput *= (fcos / pdf);
-				p_b = bsdf.pdf(wo, wi);
 
-				prev_ctx = surfintr;
+				p_b = bsdf.pdf(wo, wi);
+				prev_ctx = LightSampleContext(surfintr);
 				ray = surfintr.spawnRay(wi, bs.scatter);
 
 				//russian roulette

@@ -14,7 +14,7 @@ namespace KittlesPT
 	{
 		LightSampleContext() = default;
 
-		__device__ LightSampleContext(const SurfaceInteraction& si);
+		__device__ explicit LightSampleContext(const SurfaceInteraction& si);
 
 		//----------------------------------
 
@@ -36,6 +36,8 @@ namespace KittlesPT
 			: L(L), wi(wi), wpos_light(pLight), wgnorm(gwn), pdf(pdf)
 		{}
 
+		__device__ explicit LightLiSample(const SurfaceInteraction& surf);
+
 		//op---------------------------------------
 
 		__device__ bool operator !()
@@ -50,7 +52,7 @@ namespace KittlesPT
 		float3 wgnorm;
 
 		RGBSpectrum L;
-		float3 wi;
+		float3 wi{};
 		float pdf = 0;
 	};
 
@@ -70,8 +72,8 @@ namespace KittlesPT
 
 		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
 
-		__device__ float pdf_Li(const LightSampleContext& ctx, float3 wo,
-			float3 confirmed_hit_wpos, float3 confirmed_hit_wgnorm) const;
+		//TODO: maybe consider allowing this method to test intersection on its shape for bug free, reliable operation
+		__device__ float pdf_Li(const LightSampleContext& ctx, const LightLiSample& confirmed_ls) const;
 
 		__device__ float phi();
 
