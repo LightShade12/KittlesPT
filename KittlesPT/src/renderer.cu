@@ -11,12 +11,68 @@
 #include <thrust/device_vector.h>
 
 #include <unordered_map>
+#include <vector>
 #include <string>
 #include <iostream>
 
 namespace KittlesPT
 {
 	//TODO:Add proper logging
+
+	class MipChain
+	{
+	public:
+
+		void init()
+		{
+			for (int mip_level = 0; mip_level < max_mip_count; mip_level++)
+			{
+				mip_textures.push_back(TextureBuffer());
+			}
+		}
+
+		void resize(int base_width, int base_height)
+		{
+			max_mip_level = getMaxValidMipLevels({ base_width, base_height });
+			max_mip_level = std::min(max_mip_level, max_mip_count - 1);
+
+			for (int miplevel = 0; miplevel <= max_mip_level; miplevel++)
+			{
+				int mip_width = base_width >> miplevel;
+				int	mip_height = base_height >> miplevel;
+
+				TextureBuffer& mip_texture = mip_textures[miplevel];
+
+				if (mip_texture.isInitialised()) {
+					mip_texture.resize(mip_width, mip_height);
+				}
+				else {
+					mip_texture.init(mip_width, mip_height);
+				}
+			}
+		}
+
+		void destroy()
+		{
+			for (TextureBuffer& tex : mip_textures)
+			{
+				tex.destroy();
+			}
+			mip_textures.clear();
+		}
+
+		//excludes mip0
+		static int getMaxValidMipLevels(int2 t_base_resolution)
+		{
+			int mipx = std::log2(t_base_resolution.x), mipy = std::log2(t_base_resolution.y);
+			return std::min(mipx, mipy);
+		}
+
+	public:
+		const int max_mip_count = 7;
+		int max_mip_level = 0;
+		std::vector<TextureBuffer> mip_textures;
+	};
 
 	struct RendererData
 	{
@@ -27,6 +83,7 @@ namespace KittlesPT
 		thrust::device_vector<unsigned char> pixel_buffer;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
+		MipChain bloom_mipchain;
 	};
 
 	void Renderer::init()
@@ -39,7 +96,7 @@ namespace KittlesPT
 		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_data->m_frame_textures["gbuffer_texture"] = TextureBuffer();
 		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
-
+		m_renderer_data->bloom_mipchain.init();
 		submitScene();
 
 		//-------------------------
@@ -48,6 +105,8 @@ namespace KittlesPT
 	}
 	void Renderer::shutdown()
 	{
+		m_renderer_data->bloom_mipchain.destroy();
+
 		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_data->m_frame_textures)
 		{
 			tex.second.destroy();
@@ -96,6 +155,8 @@ namespace KittlesPT
 			printf("Initializing texture:%s\n", tex.first.c_str());
 			tex.second.init(m_width, m_height);
 		}
+
+		m_renderer_data->bloom_mipchain.resize(m_width, m_height);
 	}
 	void Renderer::executeRendering()
 	{
@@ -103,8 +164,51 @@ namespace KittlesPT
 		m_renderer_data->shader_global_data.accumulation_texture = m_renderer_data->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_data->shader_global_data.gbuffer_texture = m_renderer_data->m_frame_textures["gbuffer_texture"].enableCudaAccess();
 
-		launchRenderPassKernel(m_renderer_data->shader_global_data);
+		launchPathTraceComputeKernel(m_renderer_data->shader_global_data);
 
+		//generate bloom buffer
+		{
+			//downscale
+			for (int miplevel = 0; miplevel < m_renderer_data->bloom_mipchain.max_mip_level; miplevel++)
+			{
+				TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
+				TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel + 1];
+
+				if (miplevel == 0)
+				{
+					m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
+					m_renderer_data->m_frame_textures["main_texture"].copyTo(src);
+					m_renderer_data->shader_global_data.main_texture = m_renderer_data->m_frame_textures["main_texture"].enableCudaAccess();
+				}
+				DeviceTextureBuffer dsrc = src.enableCudaAccess();
+				DeviceTextureBuffer ddst = dst.enableCudaAccess();
+
+				launchBloomDownSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst);
+
+				src.disableCudaAccess(dsrc);
+				dst.disableCudaAccess(ddst);
+			}
+			//upscale
+			for (int miplevel = m_renderer_data->bloom_mipchain.max_mip_level; miplevel > 0; miplevel--)
+			{
+				TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
+				TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel - 1];
+
+				DeviceTextureBuffer dsrc = src.enableCudaAccess();
+				DeviceTextureBuffer ddst = dst.enableCudaAccess();
+
+				launchBloomUpSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst, miplevel > 1);
+
+				src.disableCudaAccess(dsrc);
+				dst.disableCudaAccess(ddst);
+			}
+
+			m_renderer_data->shader_global_data.bloom_texture = m_renderer_data->bloom_mipchain.mip_textures[0].enableCudaAccess();
+		}
+
+		launchPostProcessComputeKernel(m_renderer_data->shader_global_data);
+
+		m_renderer_data->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_data->shader_global_data.bloom_texture);
 		m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
 		m_renderer_data->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_data->shader_global_data.accumulation_texture);
 		m_renderer_data->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_data->shader_global_data.gbuffer_texture);
@@ -115,6 +219,11 @@ namespace KittlesPT
 	void Renderer::getRenderTargetTexture(GLuint r_texture)
 	{
 		m_renderer_data->m_frame_textures["main_texture"].copyTo(r_texture);
+	}
+
+	void Renderer::getDebugRenderTargetTexture(GLuint r_texture)
+	{
+		m_renderer_data->bloom_mipchain.mip_textures[0].copyTo(r_texture);
 	}
 
 	bool Renderer::setMaterial(int idx, glm::vec3 albedo_factor, float metallicity, float roughness,

@@ -4,7 +4,10 @@
 #include "maths/vector_maths.cuh"
 
 #include <cuda.h>
-//#define __CUDACC__
+
+#define __CUDACC__
+#include <device_functions.h>
+
 #include <cuda_runtime_api.h>//should be used instead of device_fnctions.h
 
 #include <iostream>
@@ -32,6 +35,45 @@ namespace KittlesPT
 	__device__ float4 DeviceTextureBuffer::textureReadNearest(int2 pixel_coord) const
 	{
 		return surf2Dread<float4>(m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
+	}
+
+	__device__ float4 DeviceTextureBuffer::textureReadBilinear(float2 pixel_coord, float lerp_alpha) const
+	{
+		//TODO:consider half pixel for centre sampling
+
+		int2 pix = make_int2(pixel_coord);//truncate
+		int x = pix.x;
+		int y = pix.y;
+
+		// Clamp pixel indices to be within bounds
+		int s0 = clamp(x, 0, width - 1);
+		int s1 = clamp(x + 1, 0, width - 1);
+		int t0 = clamp(y, 0, height - 1);
+		int t1 = clamp(y + 1, 0, height - 1);
+
+		//TODO: consider trying unclamped taps for weighting
+		// Compute fractional parts for interpolation weights
+		float ws = pixel_coord.x - s0;
+		float wt = pixel_coord.y - t0;
+
+		// Sample 2x2 texel neighborhood
+		float4 cp0 = textureReadNearest(make_int2(s0, t0));
+		float4 cp1 = textureReadNearest(make_int2(s1, t0));
+		float4 cp2 = textureReadNearest(make_int2(s0, t1));
+		float4 cp3 = textureReadNearest(make_int2(s1, t1));
+
+		//TODO: replace with lerp
+		// Perform bilinear interpolation
+		float4 tc0 = cp0 + (cp1 - cp0) * ws;
+		float4 tc1 = cp2 + (cp3 - cp2) * ws;
+		float4 fc = tc0 + (tc1 - tc0) * wt;
+
+		if (!lerp_alpha) {
+			// Nearest neighbor for alpha
+			fc.w = (ws > 0.5f ? (wt > 0.5f ? cp3.w : cp1.w) : (wt > 0.5f ? cp2.w : cp0.w));
+		}
+
+		return fc;
 	}
 
 	__device__ float4 DeviceTextureBuffer::textureReadNearest(float2 uv_coord) const

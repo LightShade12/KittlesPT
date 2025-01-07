@@ -66,7 +66,7 @@ namespace KittlesPT
 		}
 		else
 		{
-			return RGBSpectrum(clamp(toFloat3(), 0, 1000));
+			return RGBSpectrum(clamp(toFloat3(), 0, 100000));
 		}
 	}
 }

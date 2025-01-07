@@ -23,6 +23,8 @@ namespace KittlesPT
 
 		void getRenderTargetTexture(GLuint r_texture);
 
+		void getDebugRenderTargetTexture(GLuint r_texture);
+
 		//TODO: work with MaterialSceneEntity
 		bool setMaterial(int idx,
 			glm::vec3 albedo_factor,

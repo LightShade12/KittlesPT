@@ -17,6 +17,8 @@ namespace KittlesPT
 
 		__device__ float4 textureReadNearest(int2 pixel_coord) const;
 
+		__device__ float4 textureReadBilinear(float2 pixel_coord, float lerp_alpha) const;
+
 		__device__ float4 textureReadNearest(float2 uv_coord) const;
 
 		int width = 0, height = 0;
