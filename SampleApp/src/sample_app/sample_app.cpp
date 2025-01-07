@@ -29,14 +29,37 @@ namespace SampleApp
 
 			//Image load
 			int width = 0, height = 0, channels = 0;
-			unsigned char* img_data = stbi_load("grid.png", &width, &height, &channels, 3);
+
+			unsigned char* img_data = stbi_load("blackpaint.png", &width, &height, &channels, 3);
 			KittlesPT::TextureSceneEntity texture0(img_data, width, height, 3);
 			stbi_image_free(img_data);
+			img_data = nullptr;
 
 			scene.addTexture(texture0);
 
+			img_data = stbi_load("grid.png", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture1(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+
+			scene.addTexture(texture1);
+
+			img_data = stbi_load("colors2.jpg", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture2(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+
+			scene.addTexture(texture2);
+
+			img_data = stbi_load("uvgrid.jpeg", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture3(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+
+			scene.addTexture(texture3);
+
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(0.95, 0.1, 0.1),
+				glm::vec3(1.0, 1.0, 1.0),
 				0.0f,
 				0.1f,
 				0.0f,
@@ -45,36 +68,35 @@ namespace SampleApp
 				1.0,
 				0));
 
-
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.5, 0.5, 0.5),
 				0.0f,
-				0.95f,
-				0.0f,
-				1.45f,
-				glm::vec3(0),
-				1.0,
-				-1));
-
-			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(0.8, 0.8, 0.8),
-				1.0f,
 				0.1f,
 				0.0f,
 				1.45f,
 				glm::vec3(0),
 				1.0,
-				-1));
+				3));
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(0.0, 1.0, 0.0),
+				glm::vec3(0.9, 0.9, 0.9),
+				1.0f,
+				0.3f,
+				0.0f,
+				1.45f,
+				glm::vec3(0),
+				1.0,
+				2));
+
+			scene.addMaterial(KittlesPT::MaterialSceneEntity(
+				glm::vec3(1.0, 1.0, 1.0),
 				0.0f,
 				0.0f,
 				1.0f,
 				1.45f,
 				glm::vec3(0),
 				1.0,
-				-1));
+				1));
 
 			//emissive material
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(

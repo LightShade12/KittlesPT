@@ -19,7 +19,7 @@ namespace KittlesPT
 		*
 		*	PBRT base types:
 		*	- Primitive (Accelerator)
-		*	- Medium
+		*	- Medium (abandoned)
 		*/
 
 	struct GlobalShaderData;

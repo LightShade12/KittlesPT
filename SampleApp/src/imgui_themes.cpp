@@ -414,7 +414,7 @@ namespace ImGuiThemes {
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		ImFont* font = io.Fonts->AddFontFromFileTTF("resources/fonts/JetBrainsMono-Regular.ttf", 18);
-		
+
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.Colors[ImGuiCol_Text] = ImVec4(0.00f, 1.00f, 0.50f, 1.00f);
 		style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
@@ -427,7 +427,7 @@ namespace ImGuiThemes {
 		style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.00f, 1.00f, 0.50f, 1.00f);
 		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.00f, 0.30f, 0.10f, 1.00f);
 		style.Colors[ImGuiCol_Separator] = ImVec4(0.00f, 0.5f, 0.20f, 1.00f);
-
+		return font;
 		//EnemyMouse-------------------
 		style.Alpha = 1.0f;
 		style.DisabledAlpha = 0.6000000238418579f;

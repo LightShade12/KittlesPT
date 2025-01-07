@@ -9,7 +9,8 @@ namespace KittlesPT
 	{
 		float sun_angular_diameter_rad = 0.0087f;
 		float sun_phi_rad = 4.18879f;
-		float sun_theta_rad = 0.785f;
+		//float sun_theta_rad = 0.785f;
+		float sun_theta_rad = 0.0872665f;
 		float sun_radiance_intensity = 50.0f;//def: 50.0f
 	};
 

@@ -17,8 +17,15 @@ namespace KittlesPT
 
 		if (albedo_texture_id >= 0)
 		{
+			if (albedo_texture_id == 2) {
+				ctx.uv *= 1.5f;
+			}
+			else if (albedo_texture_id == 3)
+			{
+				ctx.uv *= 100.0f;
+			}
 			RGBSpectrum sampled = shader_data.texture_buffer.data[albedo_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			eval_albedo = sampled.toFloat3();
+			eval_albedo *= sampled.toFloat3();
 		}
 
 		//TODO: consider moving basis generation to BSDF constructor
