@@ -309,7 +309,7 @@ namespace KittlesPT
 
 	__device__ BSDFSample BSDF::sampleConductor(float3 wo, float2 u2, float X) const
 	{
-		float path_probability = X;//TODO:unused
+		//float path_probability = X;
 
 		float3 h = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
 		float3 wi = reflect(-wo, h);
@@ -522,7 +522,7 @@ namespace KittlesPT
 			float D = D_GGX(NoH, roughness);
 			pdf = D * NoH * dwm_dwi * T;
 		}
-		//if (!backface) 
+		//if (!backface)
 		//{
 		//	pdf *= 0.5;//factor glossy prob
 		//}

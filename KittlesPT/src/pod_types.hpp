@@ -17,6 +17,7 @@ namespace KittlesPT
 	struct PathtracerSettings
 	{
 		int max_bounce_depth = 3;
+		bool generate_bloom = false;
 	};
 
 	struct MaterialSceneEntity

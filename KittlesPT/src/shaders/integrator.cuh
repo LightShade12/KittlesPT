@@ -42,16 +42,13 @@ namespace KittlesPT
 
 		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target);
 
-		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, float3 sun_direction, const BSDF& bsdf,
+		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler);
+
+		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere);
 
 		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const LightSampler& light_sampler, IndependentSampler& sampler);
-
-		//russian roulette
-		__device__ bool russianRoulette(RGBSpectrum& throughput, float eta_scale, int bounce_depth, IndependentSampler& sampler);
-
-		__device__ float3 sphericalToSunDirection(float theta, float phi);
 
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
 	}

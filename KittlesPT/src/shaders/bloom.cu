@@ -68,8 +68,8 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
 
-	int2 frame_res = t_shader_data.frame_resolution;
-	float2 uv_coord = { (float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y };
+	//int2 frame_res = t_shader_data.frame_resolution;
+	//float2 uv_coord = { (float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y };
 
 	if ((pixel_coord.x >= t_dst.width) || (pixel_coord.y >= t_dst.height)) {
 		return;
@@ -98,8 +98,8 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
 
-	int2 frame_res = t_shader_data.frame_resolution;
-	float2 uv_coord = { (float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y };
+	//int2 frame_res = t_shader_data.frame_resolution;
+	//float2 uv_coord = { (float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y };
 
 	if ((pixel_coord.x >= t_dst.width) || (pixel_coord.y >= t_dst.height)) {
 		return;

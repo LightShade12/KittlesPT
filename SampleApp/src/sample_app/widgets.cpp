@@ -86,6 +86,7 @@ namespace SampleApp
 				{
 					ImGui::TableSetupColumn("A0", 0, 0.4f);
 					ImGui::TableSetupColumn("A1", 0);
+
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("FOV");
@@ -130,6 +131,8 @@ namespace SampleApp
 				pt_settings_updated |= ImGui::SliderInt("###max_bounces", &pt_settings.max_bounce_depth, 0, 32);
 
 				ImGui::EndTable();
+
+				pt_settings_updated |= ImGui::Checkbox("Generate bloom", &pt_settings.generate_bloom);
 			}
 
 			if (pt_settings_updated) {

@@ -14,15 +14,16 @@ namespace KittlesPT
 	__device__ bool intersectSphere(const Ray& ray, float3 t_sphere_centre, float t_sphere_radius, float& r_t0, float& r_t1);
 
 	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance);
+	__device__ float3 sphericalToSunDirection(float theta, float phi);
 
 	class Atmosphere
 	{
 	public:
 
-		__device__ Atmosphere(float3 t_sunpos, float t_sun_intensity) :
-			m_sun_position(t_sunpos), m_sun_intensity(t_sun_intensity) {};
+		__device__ Atmosphere(float3 t_sun_direction, float t_sun_intensity) :
+			m_sun_direction(t_sun_direction), m_sun_intensity(t_sun_intensity) {};
 
-		__device__ RGBSpectrum Le(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const;
+		__device__ RGBSpectrum sampleLe(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const;
 
 	public:
 
@@ -30,7 +31,7 @@ namespace KittlesPT
 		uint32_t m_num_samples_light = 8;
 
 		float m_sun_intensity = 1;
-		float3 m_sun_position;             // The sun direction (normalized)
+		float3 m_sun_direction;             // The sun direction (normalized)
 		float m_earth_radius = 6360e3;      // In the paper this is usually Rg or Re (radius ground, eart)
 		float m_atmosphere_radius = 6420e3; // In the paper this is usually R or Ra (radius atmosphere)
 		float Hr = 7994;                   // Thickness of the atmosphere if density was uniform (Hr)

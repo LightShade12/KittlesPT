@@ -3,6 +3,20 @@
 
 namespace KittlesPT
 {
+	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance)
+	{
+		return 2.0f * distance * tanf(angle_rad / 2.0f);
+	}
+
+	__device__ float3 sphericalToSunDirection(float theta, float phi)
+	{
+		return normalize(make_float3(
+			cosf(phi) * cosf(theta),
+			sinf(theta),
+			sinf(phi) * cosf(theta)
+		));
+	}
+
 	__device__ bool intersectSphere(const Ray& ray, float3 t_sphere_centre, float t_sphere_radius, float& r_t0, float& r_t1)
 	{
 		float a = dot(ray.getDirection(), ray.getDirection()); //TODO: just length()
@@ -32,12 +46,7 @@ namespace KittlesPT
 		return true;
 	}
 
-	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance)
-	{
-		return 2.0f * distance * tanf(angle_rad / 2.0f);
-	}
-
-	__device__ RGBSpectrum Atmosphere::Le(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const
+	__device__ RGBSpectrum Atmosphere::sampleLe(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const
 	{
 		float t0, t1;
 		// miss atmosphere
@@ -59,9 +68,7 @@ namespace KittlesPT
 		RGBSpectrum sum_M_transmission = RGBSpectrum(0);        // integrated mie and rayleigh contribution
 		float sum_R_optical_depth = 0, sum_M_optical_depth = 0; // discrete integration for transmittance
 
-		const float3 sun_dir = normalize(m_sun_position);
-
-		const float mu = dot(t_dir, sun_dir); // cosine of the angle between the sun direction and the ray direction
+		const float mu = dot(t_dir, m_sun_direction); // cosine of the angle between the sun direction and the ray direction
 		const float phaseR = 3.f / (16.f * Constants::PI) * (1 + mu * mu);
 		const float g = 0.76f; // anisotropy
 		const float phaseM = 3.f / (8.f * Constants::PI) * ((1.f - g * g) * (1.f + mu * mu)) / ((2.f + g * g) * pow(1.f + g * g - 2.f * g * mu, 1.5f));
@@ -81,7 +88,7 @@ namespace KittlesPT
 
 			// optical depth sum for light for this step
 			float t0_light, t1_light;
-			intersectSphere(Ray(sample_position, sun_dir), make_float3(0),
+			intersectSphere(Ray(sample_position, m_sun_direction), make_float3(0),
 				m_atmosphere_radius, t0_light, t1_light);
 			const float step_length_light = t1_light / m_num_samples_light;
 
@@ -92,7 +99,7 @@ namespace KittlesPT
 			uint32_t j;
 			for (j = 0; j < m_num_samples_light; ++j)
 			{
-				const float3 sample_position_light = sample_position + (current_t_light + step_length_light * 0.5f) * sun_dir;
+				const float3 sample_position_light = sample_position + (current_t_light + step_length_light * 0.5f) * m_sun_direction;
 				const float height_light = length(sample_position_light) - m_earth_radius;
 				if (height_light < 0) // if sun dir points/sample_pos is below horizon/earth
 				{

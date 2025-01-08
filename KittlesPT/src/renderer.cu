@@ -64,7 +64,7 @@ namespace KittlesPT
 		//excludes mip0
 		static int getMaxValidMipLevels(int2 t_base_resolution)
 		{
-			int mipx = std::log2(t_base_resolution.x), mipy = std::log2(t_base_resolution.y);
+			int mipx = static_cast<int>(std::log2(t_base_resolution.x)), mipy = static_cast<int>(std::log2(t_base_resolution.y));
 			return std::min(mipx, mipy);
 		}
 
@@ -167,6 +167,7 @@ namespace KittlesPT
 		launchPathTraceComputeKernel(m_renderer_data->shader_global_data);
 
 		//generate bloom buffer
+		if (m_renderer_data->shader_global_data.pathtracer_settings.generate_bloom)
 		{
 			//downscale
 			for (int miplevel = 0; miplevel < m_renderer_data->bloom_mipchain.max_mip_level; miplevel++)
@@ -208,7 +209,9 @@ namespace KittlesPT
 
 		launchPostProcessComputeKernel(m_renderer_data->shader_global_data);
 
-		m_renderer_data->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_data->shader_global_data.bloom_texture);
+		if (m_renderer_data->shader_global_data.pathtracer_settings.generate_bloom) {
+			m_renderer_data->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_data->shader_global_data.bloom_texture);
+		}
 		m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
 		m_renderer_data->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_data->shader_global_data.accumulation_texture);
 		m_renderer_data->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_data->shader_global_data.gbuffer_texture);

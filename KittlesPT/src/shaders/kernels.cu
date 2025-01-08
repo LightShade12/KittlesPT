@@ -145,9 +145,11 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 	//========================================================================================================================
 
 	RGBSpectrum raw_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearest(pixel_coord));
-	RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearest(pixel_coord));
-	//bloom lerp=0.3f;
-	raw_radiance = RGBSpectrum(lerp(raw_radiance.toFloat3(), bloom_radiance.toFloat3(), 0.3));
+
+	if (shader_data.pathtracer_settings.generate_bloom) {
+		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearest(pixel_coord));
+		raw_radiance = RGBSpectrum(lerp(raw_radiance.toFloat3(), bloom_radiance.toFloat3(), 0.3));
+	}
 
 	//post process
 	raw_radiance *= shader_data.scene_camera.film.exposure;//TODO: proper exposure application

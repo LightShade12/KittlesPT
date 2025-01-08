@@ -5,8 +5,8 @@
 
 #include <cuda.h>
 
-#define __CUDACC__
-#include <device_functions.h>
+//#define __CUDACC__
+//#include <device_functions.h>
 
 #include <cuda_runtime_api.h>//should be used instead of device_fnctions.h
 

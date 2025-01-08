@@ -37,7 +37,7 @@ namespace KittlesPT
 	class Sphere
 	{
 	public:
-		__device__ __host__ Sphere(float radius_, float3 pos, int material_id, int light_id)//TODO: make it host only
+		__host__ Sphere(float radius_, float3 pos, int material_id, int light_id)//TODO: make it host only
 			:radius(radius_), world_position(pos), material_id(material_id), light_id(light_id) {};
 
 		__device__ Intersection intersect(const Ray& ray, float tmax) const;

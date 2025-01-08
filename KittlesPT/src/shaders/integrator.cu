@@ -57,10 +57,11 @@ namespace KittlesPT
 			return (!intersectShadow(shader_data, shadow_ray, tmax));
 		}
 
-		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, float3 sun_direction, const BSDF& bsdf,
+		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0);
+			const float3 sun_direction = atmosphere.m_sun_direction;
 			float3 sun_position = sun_direction * SUN_DISTANCE_METERS;
 			float sun_radius = angularDiameterToPhysicalDiameter(
 				shader_data.procedural_environment_data.sun_angular_diameter_rad,
@@ -79,7 +80,7 @@ namespace KittlesPT
 				return Ld;
 			}
 
-			RGBSpectrum sun_color = atmosphere.Le(atmosphere_observer_position, sun_direction, 0, INFINITY);
+			RGBSpectrum sun_color = atmosphere.sampleLe(atmosphere_observer_position, sun_direction, 0, INFINITY);
 
 			if (!sun_color)
 			{
@@ -144,29 +145,19 @@ namespace KittlesPT
 			return Ld;
 		}
 
-		//russian roulette
-		__device__ bool russianRoulette(RGBSpectrum& throughput, float eta_scale,
-			int bounce_depth, IndependentSampler& sampler)
+		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
 		{
-			RGBSpectrum rr_beta = throughput * eta_scale;
-			if (rr_beta.maxComponentValue() < 1 && bounce_depth > 1) {
-				float q = fmaxf(0.0f, 1.0f - rr_beta.maxComponentValue());
-				if (sampler.get1D() < q)
-				{
-					return true;
-				}
-				throughput /= (1.0f - q);
-			}
-			return false;
-		}
+			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
+			constexpr float SUN_BRIGHTNESS_FACTOR = 10.0f;
 
-		__device__ float3 sphericalToSunDirection(float theta, float phi)
-		{
-			return normalize(make_float3(
-				cosf(phi) * cosf(theta),
-				sinf(theta),
-				sinf(phi) * cosf(theta)
-			));
+			float min_similarity_threshold = cosf(shader_data.procedural_environment_data.sun_angular_diameter_rad / 2.0f);
+			float similarity = dot(ray.getDirection(), atmosphere.m_sun_direction);
+			float shape_mask_factor = (similarity > min_similarity_threshold) ? 1 : 0;//step
+
+			RGBSpectrum sampled_sun_col = atmosphere.sampleLe(atmosphere_observer_position,
+				atmosphere.m_sun_direction, 0, INFINITY);
+
+			return sampled_sun_col * (shader_data.procedural_environment_data.sun_radiance_intensity * SUN_BRIGHTNESS_FACTOR) * shape_mask_factor;
 		}
 
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in,
@@ -175,9 +166,7 @@ namespace KittlesPT
 			RGBSpectrum light(0.0f);
 			RGBSpectrum throughput(1.0f);
 
-			float3 sun_direction = sphericalToSunDirection(
-				shader_data.procedural_environment_data.sun_theta_rad,
-				shader_data.procedural_environment_data.sun_phi_rad);
+			float3 sun_direction = sphericalToSunDirection(shader_data.procedural_environment_data.sun_theta_rad, shader_data.procedural_environment_data.sun_phi_rad);
 
 			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_radiance_intensity);
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
@@ -200,9 +189,13 @@ namespace KittlesPT
 				if (!intr)
 				{
 					//miss
-					RGBSpectrum sky_radiance = atmosphere.Le(atmosphere_observer_position,
-						ray.getDirection(), 0, INFINITY);
+					RGBSpectrum sky_radiance = sampleSunDiskLe(shader_data, ray, atmosphere);
+					if (!sky_radiance)
+					{
+						sky_radiance = atmosphere.sampleLe(atmosphere_observer_position, ray.getDirection(), 0, INFINITY);
+					}
 					light += sky_radiance * throughput;
+
 					break;
 				}
 				//hit
@@ -214,8 +207,7 @@ namespace KittlesPT
 				{
 					const Light* arealight = surfintr.light;
 					float w_l = 1.0f;
-					if (arealight && !first_surface)
-					{
+					if (arealight && !first_surface) {
 						float light_pdf = light_sampler.PMF(arealight) * arealight->pdf_Li(prev_ctx, LightLiSample(surfintr));
 						w_l = powerHeuristic(1, p_b, 1, light_pdf);
 					}
@@ -229,12 +221,10 @@ namespace KittlesPT
 					*visible_surface = GBuffer(bsdf.albedo_factor, surfintr);
 				}
 
-				RGBSpectrum Ld = sampleLd(shader_data, ray,
-					bsdf, surfintr, light_sampler, sampler);
+				RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
 
-				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, sun_direction,
-					bsdf, surfintr, atmosphere, sampler);
+				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
 				light += Ld_sun * throughput;
 
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
@@ -243,8 +233,7 @@ namespace KittlesPT
 					break;
 				}
 
-				const float3& wi = bs.wi;
-				float pdf = bs.pdf;
+				const float3& wi = bs.wi; float pdf = bs.pdf;
 
 				//uses absdot for allowing refraction
 				RGBSpectrum fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);
@@ -259,15 +248,10 @@ namespace KittlesPT
 				prev_ctx = LightSampleContext(surfintr);
 				ray = surfintr.spawnRay(wi, bs.scatter);
 
-				//russian roulette
-				RGBSpectrum rr_beta = throughput * eta_scale;
-				if (rr_beta.maxComponentValue() < 1 && bounce_depth > 1) {
-					float q = fmaxf(0.0f, 1.0f - rr_beta.maxComponentValue());
-					if (sampler.get1D() < q)
-					{
-						break;
-					}
-					throughput /= (1.0f - q);
+				if (russianRoulette(throughput, eta_scale,
+					bounce_depth, sampler))
+				{
+					break;
 				}
 			}
 
