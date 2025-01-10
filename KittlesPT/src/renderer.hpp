@@ -63,7 +63,7 @@ namespace KittlesPT
 
 	private:
 		void submitScene();
-
+		void executeBloomGeneration();
 		int m_width = 0, m_height = 0;
 
 		RendererData* m_renderer_data = nullptr;

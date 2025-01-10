@@ -149,19 +149,27 @@ namespace KittlesPT
 		return normalize(vector);
 	}
 
-	__device__ float4 packGBuffer(const GBuffer& gb)
+	//GBUFFER==========================================================================================================================
+
+	__device__ GBuffer::GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surf)
+		:
+		albedo(albedo.toFloat3()), wgnorm(surf.world_geometric_normal),
+		depth(surf.distance)
+	{}
+
+	__device__ float4 GBuffer::packGBuffer()
 	{
 		uint4 out;
-		float2 encoded_nrm = encodeUnitVector(gb.wgnorm);
+		float2 encoded_nrm = encodeUnitVector(wgnorm);
 		out.x = floatBitsToUint(encoded_nrm.x);
 		out.y = floatBitsToUint(encoded_nrm.y);
-		out.z = float3ToUint(gb.albedo);
-		out.w = floatBitsToUint(gb.depth);
+		out.z = float3ToUint(albedo);
+		out.w = floatBitsToUint(depth);
 
 		return uint4BitsToFloat4(out);
 	}
 
-	__device__ GBuffer unpackGBuffer(float4 data)
+	__device__ GBuffer GBuffer::unpackGBuffer(float4 data)
 	{
 		GBuffer gb;
 		uint4 in = float4BitsToUint4(data);
@@ -170,12 +178,4 @@ namespace KittlesPT
 		gb.depth = uintBitsToFloat(in.w);
 		return gb;
 	}
-
-	//GBUFFER==========================================================================================================================
-
-	__device__ GBuffer::GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surf)
-		:
-		albedo(albedo.toFloat3()), wgnorm(surf.world_geometric_normal),
-		depth(surf.distance)
-	{}
 }

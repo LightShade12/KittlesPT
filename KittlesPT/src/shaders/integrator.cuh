@@ -51,5 +51,8 @@ namespace KittlesPT
 			const SurfaceInteraction& surface, const LightSampler& light_sampler, IndependentSampler& sampler);
 
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
+
+		//Monte-Carlo estimation; static accumulation
+		__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample);
 	}
 }

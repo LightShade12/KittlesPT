@@ -77,13 +77,35 @@ namespace KittlesPT
 	struct RendererData
 	{
 		thrust::universal_vector<Sphere> scene_spheres;
-		thrust::universal_vector<Material> scene_materials;
 		thrust::universal_vector<Light> scene_lights;
+		thrust::universal_vector<Material> scene_materials;
 		thrust::universal_vector<Texture> scene_textures;
 		thrust::device_vector<unsigned char> pixel_buffer;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
 		MipChain bloom_mipchain;
+
+		void destroy()
+		{
+			bloom_mipchain.destroy();
+
+			for (std::pair<const std::string, TextureBuffer>& tex : m_frame_textures)
+			{
+				tex.second.destroy();
+			}
+
+			scene_spheres.clear();
+			scene_lights.clear();
+			scene_materials.clear();
+			scene_textures.clear();
+			pixel_buffer.clear();
+			m_frame_textures.clear();
+		}
+
+		~RendererData()
+		{
+			destroy();
+		}
 	};
 
 	void Renderer::init()
@@ -105,22 +127,7 @@ namespace KittlesPT
 	}
 	void Renderer::shutdown()
 	{
-		m_renderer_data->bloom_mipchain.destroy();
-
-		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_data->m_frame_textures)
-		{
-			tex.second.destroy();
-		}
-
-		//TODO: put this in destroy/destructor
-		{
-			m_renderer_data->scene_spheres.clear();
-			m_renderer_data->scene_lights.clear();
-			m_renderer_data->scene_materials.clear();
-			m_renderer_data->scene_textures.clear();
-			m_renderer_data->pixel_buffer.clear();
-		}
-
+		m_renderer_data->destroy();
 		delete m_renderer_data;
 		m_renderer_data = nullptr;
 	}
@@ -169,41 +176,7 @@ namespace KittlesPT
 		//generate bloom buffer
 		if (m_renderer_data->shader_global_data.pathtracer_settings.generate_bloom)
 		{
-			//downscale
-			for (int miplevel = 0; miplevel < m_renderer_data->bloom_mipchain.max_mip_level; miplevel++)
-			{
-				TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
-				TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel + 1];
-
-				if (miplevel == 0)
-				{
-					m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
-					m_renderer_data->m_frame_textures["main_texture"].copyTo(src);
-					m_renderer_data->shader_global_data.main_texture = m_renderer_data->m_frame_textures["main_texture"].enableCudaAccess();
-				}
-				DeviceTextureBuffer dsrc = src.enableCudaAccess();
-				DeviceTextureBuffer ddst = dst.enableCudaAccess();
-
-				launchBloomDownSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst);
-
-				src.disableCudaAccess(dsrc);
-				dst.disableCudaAccess(ddst);
-			}
-			//upscale
-			for (int miplevel = m_renderer_data->bloom_mipchain.max_mip_level; miplevel > 0; miplevel--)
-			{
-				TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
-				TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel - 1];
-
-				DeviceTextureBuffer dsrc = src.enableCudaAccess();
-				DeviceTextureBuffer ddst = dst.enableCudaAccess();
-
-				launchBloomUpSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst, miplevel > 1);
-
-				src.disableCudaAccess(dsrc);
-				dst.disableCudaAccess(ddst);
-			}
-
+			executeBloomGeneration();
 			m_renderer_data->shader_global_data.bloom_texture = m_renderer_data->bloom_mipchain.mip_textures[0].enableCudaAccess();
 		}
 
@@ -212,6 +185,7 @@ namespace KittlesPT
 		if (m_renderer_data->shader_global_data.pathtracer_settings.generate_bloom) {
 			m_renderer_data->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_data->shader_global_data.bloom_texture);
 		}
+
 		m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
 		m_renderer_data->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_data->shader_global_data.accumulation_texture);
 		m_renderer_data->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_data->shader_global_data.gbuffer_texture);
@@ -410,5 +384,43 @@ namespace KittlesPT
 			Buffer<Texture>(
 				thrust::raw_pointer_cast(m_renderer_data->scene_textures.data()),
 				m_renderer_data->scene_textures.size());
+	}
+
+	void Renderer::executeBloomGeneration()
+	{
+		//downscale
+		for (int miplevel = 0; miplevel < m_renderer_data->bloom_mipchain.max_mip_level; miplevel++)
+		{
+			TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
+			TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel + 1];
+
+			if (miplevel == 0)
+			{
+				m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
+				m_renderer_data->m_frame_textures["main_texture"].copyTo(src);
+				m_renderer_data->shader_global_data.main_texture = m_renderer_data->m_frame_textures["main_texture"].enableCudaAccess();
+			}
+			DeviceTextureBuffer dsrc = src.enableCudaAccess();
+			DeviceTextureBuffer ddst = dst.enableCudaAccess();
+
+			launchBloomDownSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst);
+
+			src.disableCudaAccess(dsrc);
+			dst.disableCudaAccess(ddst);
+		}
+		//upscale
+		for (int miplevel = m_renderer_data->bloom_mipchain.max_mip_level; miplevel > 0; miplevel--)
+		{
+			TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
+			TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel - 1];
+
+			DeviceTextureBuffer dsrc = src.enableCudaAccess();
+			DeviceTextureBuffer ddst = dst.enableCudaAccess();
+
+			launchBloomUpSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst, true);
+
+			src.disableCudaAccess(dsrc);
+			dst.disableCudaAccess(ddst);
+		}
 	}
 }

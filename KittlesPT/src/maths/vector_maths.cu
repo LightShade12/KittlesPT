@@ -43,6 +43,18 @@ namespace KittlesPT
 		return isinf(vec.x) || isinf(vec.y) || isinf(vec.z);
 	}
 
+	__device__ float3 clampOutput(const float3& v)
+	{
+		if ((checkNaN(v)) || (checkINF(v)))
+		{
+			return make_float3(0);
+		}
+		else
+		{
+			return clamp(v, 0, 1000);
+		}
+	}
+
 	__device__ float3 log2f(const float3 a)
 	{
 		return make_float3(::log2f(a.x), ::log2f(a.y), ::log2f(a.z));

@@ -56,6 +56,9 @@ namespace KittlesPT
 		float3 wgnorm{};
 		float depth = INFINITY;
 
+		__device__ float4 packGBuffer();
+
+		__device__ static GBuffer unpackGBuffer(float4 data);
 		/*
 		* float3 wpos;
 		* int instance_id = -1;
@@ -67,8 +70,4 @@ namespace KittlesPT
 		* variance estimates
 		*/
 	};
-
-	__device__ float4 packGBuffer(const GBuffer& gb);
-
-	__device__ GBuffer unpackGBuffer(float4 data);
 }

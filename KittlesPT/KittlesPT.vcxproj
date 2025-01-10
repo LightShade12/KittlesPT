@@ -129,6 +129,7 @@
     <CudaCompile Include="src\shaders\material.cu" />
     <CudaCompile Include="src\shaders\packing.cu" />
     <CudaCompile Include="src\shaders\samplers.cu" />
+    <CudaCompile Include="src\shaders\shading_kernel.cu" />
     <CudaCompile Include="src\shaders\sphere.cu" />
     <CudaCompile Include="src\shaders\texture.cu" />
   </ItemGroup>
@@ -158,6 +159,7 @@
     <ClInclude Include="src\shaders\packing.cuh" />
     <ClInclude Include="src\shaders\ray.cuh" />
     <ClInclude Include="src\shaders\samplers.cuh" />
+    <ClInclude Include="src\shaders\shading_kernel.cuh" />
     <ClInclude Include="src\shaders\sphere.cuh" />
     <ClInclude Include="src\shaders\texture.cuh" />
     <ClInclude Include="thirdparty\glad\include\glad\glad.h" />

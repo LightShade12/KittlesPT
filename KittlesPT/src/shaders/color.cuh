@@ -267,4 +267,9 @@ namespace KittlesPT
 	{
 		return RGBSpectrum(b / a.r, b / a.g, b / a.b);
 	};
+
+	inline __device__ RGBSpectrum lerp(RGBSpectrum a, RGBSpectrum b, float t)
+	{
+		return a + t * (b - a);
+	}
 }

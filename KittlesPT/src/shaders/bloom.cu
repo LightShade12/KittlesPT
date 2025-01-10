@@ -2,7 +2,7 @@
 
 namespace KittlesPT
 {
-	__device__ float4 texReadCODAW(DeviceTextureBuffer t_tex, int2 t_res, int2 t_pixel_coord)
+	__device__ float4 texRead36Texel(DeviceTextureBuffer t_tex, int2 t_res, int2 t_pixel_coord)
 	{
 		//top left
 		int2 a_pix = clamp(t_pixel_coord + make_int2(-2, 2), make_int2(0), t_res - 1);
@@ -63,18 +63,13 @@ namespace KittlesPT
 __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;
-	//setup threads
 	int thread_pixel_coord_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
 
-	//int2 frame_res = t_shader_data.frame_resolution;
-	//float2 uv_coord = { (float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y };
-
 	if ((pixel_coord.x >= t_dst.width) || (pixel_coord.y >= t_dst.height)) {
 		return;
 	}
-	//=========================================================
 
 	float2 scale_ratio = make_float2((float)t_src.width / t_dst.width, (float)t_src.height / t_dst.height);
 
@@ -83,8 +78,9 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	src_tap_pix = clamp(src_tap_pix, make_int2(0), make_int2(t_src.width, t_src.height) - 1);
 
 	//min filter
-	//float4 color = texReadBilinear(t_src, make_float2(src_tap_pix) + 0.5f, t_src_res, false);
-	float4 color = texReadCODAW(t_src, make_int2(t_src.width, t_src.height), src_tap_pix);
+	float4 color = texRead36Texel(t_src, make_int2(t_src.width, t_src.height), src_tap_pix);
+
+	color = make_float4(clampOutput(make_float3(color)), 1);
 
 	t_dst.textureWrite(color, pixel_coord);
 }
@@ -98,13 +94,9 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
 
-	//int2 frame_res = t_shader_data.frame_resolution;
-	//float2 uv_coord = { (float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y };
-
 	if ((pixel_coord.x >= t_dst.width) || (pixel_coord.y >= t_dst.height)) {
 		return;
 	}
-	//=========================================================
 
 	float2 scale_down_ratio = make_float2((float)pixel_coord.x / (float)t_dst.width, (float)pixel_coord.y / (float)t_dst.height);
 
@@ -113,9 +105,8 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 	src_pixf = clamp(src_pixf, make_float2(0.0f), make_float2(t_src.width, t_src.height) - 1.0f);
 
 	float4 final_col = make_float4(0.0f);
-	//float4 final_col = texReadBilinear(t_src, src_pixf, t_src_res, true);
 
-	constexpr float filter[3][3] = {
+	constexpr float gaussian_filter[3][3] = {
 		{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
 		{2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
 		{1 / 16.0f, 2 / 16.0f, 1 / 16.0f}
@@ -131,7 +122,7 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 
 			float4 tap_col = t_src.textureReadBilinear(tap_pix, true);
 
-			final_col += filter[y + 1][x + 1] * tap_col;
+			final_col += gaussian_filter[y + 1][x + 1] * tap_col;
 		}
 	}
 
@@ -139,9 +130,10 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 	{
 		//combine prev mip
 		float4 col = t_dst.textureReadNearest(pixel_coord);
-		//final_col += col;
 		final_col = lerp(col, final_col, 0.75);
 	}
+
+	final_col = make_float4(clampOutput(make_float3(final_col)), 1);
 
 	t_dst.textureWrite(final_col, pixel_coord);
 }

@@ -13,7 +13,7 @@ namespace KittlesPT
 	__device__ void IndependentSampler::initPixelSeed(int2 pixel, int width, int index, int dimension)
 	{
 		seed = pixel.x + pixel.y * width;
-		seed *= index;
+		seed *= (index == 0) ? 1 : index;
 		seed += dimension;
 	}
 	__device__ float IndependentSampler::get1D()

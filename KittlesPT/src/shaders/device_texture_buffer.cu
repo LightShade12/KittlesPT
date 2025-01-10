@@ -23,7 +23,6 @@ namespace KittlesPT
 		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
 	}
 
-	//TODO:fix UV coords
 	__device__ void DeviceTextureBuffer::textureWrite(float4 value, float2 uv_coord) const
 	{
 		float2 a = make_float2(width, height) * uv_coord;
@@ -62,11 +61,10 @@ namespace KittlesPT
 		float4 cp2 = textureReadNearest(make_int2(s0, t1));
 		float4 cp3 = textureReadNearest(make_int2(s1, t1));
 
-		//TODO: replace with lerp
 		// Perform bilinear interpolation
-		float4 tc0 = cp0 + (cp1 - cp0) * ws;
-		float4 tc1 = cp2 + (cp3 - cp2) * ws;
-		float4 fc = tc0 + (tc1 - tc0) * wt;
+		float4 tc0 = lerp(cp0, cp1, ws);
+		float4 tc1 = lerp(cp2, cp3, ws);
+		float4 fc = lerp(tc0, tc1, wt);
 
 		if (!lerp_alpha) {
 			// Nearest neighbor for alpha

@@ -1473,6 +1473,11 @@ inline __host__ __device__ int2 operator/(int2 a, float b)
 	return make_int2(int((float)a.x / (float)b), int((float)a.y / (float)b));
 }
 
+inline __host__ __device__ float2 operator/(float2  a, int2 b)
+{
+	return make_float2(a.x / b.x, a.y / b.y);
+}
+
 inline __host__ __device__ bool operator==(int2 a, int2 b)
 {
 	return (a.x == b.x) && (a.y == b.y);

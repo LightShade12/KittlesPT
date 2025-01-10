@@ -3,6 +3,7 @@
 #include "maths/linear_algebra.cuh"
 #include "error_check.cuh"
 
+#include "shading_kernel.cuh"
 #include "containers.cuh"
 #include "ray.cuh"
 #include "samplers.cuh"
@@ -68,92 +69,66 @@ namespace KittlesPT
 		cudaDeviceSynchronize();
 		checkCudaErrors(cudaGetLastError());
 	}
-
-	//Monte-Carlo estimation; static accumulation
-	__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, RGBSpectrum radiance)
-	{
-		RGBSpectrum accumulated_sample = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(pixel_coord));
-		RGBSpectrum new_accumulated_sample = accumulated_sample + radiance;
-
-		shader_data.accumulation_texture.textureWrite(make_float4(new_accumulated_sample.toFloat3(), 1), pixel_coord);
-		RGBSpectrum sensor_radiance_estimate = new_accumulated_sample / ((float)shader_data.frame_index + 1);
-
-		return sensor_radiance_estimate;
-	}
 }
 
 __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader_data)
 {
 	using namespace KittlesPT;
-	//setup threads
-	int thread_pixel_coord_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
+
+	ShadingJob shading_job = getShadingJob(shader_data);
 
 	int2 frame_res = shader_data.frame_resolution;
 
-	float2 uv_coord = make_float2((float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y);
-
-	if ((pixel_coord.x >= frame_res.x) || (pixel_coord.y >= frame_res.y)) {
+	if (shading_job.invalid) {
 		return;
 	}
-	//============================================
-	float2 ndc_coord = uv_coord * 2 - 1;
-	IndependentSampler sampler;
+
+	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
 	GBuffer visible_surface;
-	Filter filter;
 
-	sampler.initPixelSeed(pixel_coord, frame_res.x, shader_data.frame_index + 1);//TODO: make sample index internally non-zero
+	IndependentSampler sampler;
+	sampler.initPixelSeed(shading_job.pixel_coord, frame_res.x, shader_data.frame_index);
 
+	Filter filter({ 1.0f,1.0f });
 	FilterSample fs = filter.sample(sampler.get2D());
-	float2 jittered_ndc = ndc_coord + make_float2(0.5f / (float)frame_res.x, 0.5f / (float)frame_res.y);//discrete to continous map
-	jittered_ndc += make_float2(fs.p.x / (float)frame_res.x, fs.p.y / (float)frame_res.y);
+	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc, frame_res);
 
 	float camera_weight = 1.0f;
 	//evaluate integral(f(x)/p(x)) at Xi
-	RGBSpectrum sensor_radiance = camera_weight * Integrator::Li(shader_data, primary_ray,
-		sampler, &visible_surface);
+	RGBSpectrum sensor_radiance = fs.weight * camera_weight * Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
 
-	//visible surface to GBuffer Film
-	float4 packed = packGBuffer(visible_surface);
-	shader_data.gbuffer_texture.textureWrite(packed, pixel_coord);
+	float4 packed = visible_surface.packGBuffer();
+	shader_data.gbuffer_texture.textureWrite(packed, shading_job.uv_coord);
 
-	sensor_radiance.clampOutput();
 	//Monte-Carlo estimation; static accumulation
-	sensor_radiance = addSample(shader_data, pixel_coord, (sensor_radiance * fs.weight));
+	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
 
-	shader_data.main_texture.textureWrite(make_float4(sensor_radiance.toFloat3(), 1), pixel_coord);
+	shader_data.main_texture.textureWrite(make_float4(sensor_radiance.toFloat3(), 1), shading_job.uv_coord);
 }
 
 __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data)
 {
 	using namespace KittlesPT;
-	//setup threads
-	int thread_pixel_coord_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
 
-	int2 frame_res = shader_data.frame_resolution;
+	ShadingJob shading_job = getShadingJob(shader_data);
 
-	float2 uv_coord = make_float2((float)pixel_coord.x / (float)frame_res.x, (float)pixel_coord.y / (float)frame_res.y);
-
-	if ((pixel_coord.x >= frame_res.x) || (pixel_coord.y >= frame_res.y)) {
+	if (shading_job.invalid)
+	{
 		return;
 	}
-	//========================================================================================================================
 
-	RGBSpectrum raw_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearest(pixel_coord));
+	RGBSpectrum raw_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearest(shading_job.uv_coord));
 
 	if (shader_data.pathtracer_settings.generate_bloom) {
-		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearest(pixel_coord));
-		raw_radiance = RGBSpectrum(lerp(raw_radiance.toFloat3(), bloom_radiance.toFloat3(), 0.3));
+		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearest(shading_job.uv_coord));
+		raw_radiance = lerp(raw_radiance, bloom_radiance, 0.3f);
 	}
 
 	//post process
 	raw_radiance *= shader_data.scene_camera.film.exposure;//TODO: proper exposure application
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(raw_radiance);
 
-	shader_data.main_texture.textureWrite(make_float4(frag_color, 1), pixel_coord);
+	shader_data.main_texture.textureWrite(make_float4(frag_color, 1), shading_job.uv_coord);
 }

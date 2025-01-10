@@ -12,7 +12,6 @@
 
 namespace KittlesPT
 {
-
 	__device__ ShapeSampleContext::ShapeSampleContext(const SurfaceInteraction& surf) :
 		wpos(surf.world_position), wgnorm(surf.world_geometric_normal)
 	{}
@@ -24,39 +23,34 @@ namespace KittlesPT
 
 	__device__ Intersection Sphere::intersect(const Ray& ray, float tmax) const
 	{
-		float3 oc = world_position - ray.getOrigin();
-		float a = Sqr(length(ray.getDirection()));
-		float h = dot(ray.getDirection(), oc);
-		float c = Sqr(length(oc)) - radius * radius;
-		float discriminant = h * h - a * c;
+		float3 oc = ray.getOrigin() - world_position;
+		float b = dot(ray.getDirection(), oc); // Linear term (no need to multiply by 2)
+		float c = dot(oc, oc) - radius * radius; // Avoid Sqr() call for simplicity
+		float discriminant = b * b - c; // Simplified discriminant (divided quadratic equation by 4)
 
 		Intersection intr;
-		if (discriminant < 0)
-		{
-			intr.distance = -1.0;
-		}
-		else
+		intr.distance = -1.0f; // Default: no intersection
+
+		if (discriminant >= 0.0f)
 		{
 			float sqrtD = sqrtf(discriminant);
-			float t1 = (h - sqrtD) / a; // Smaller root
-			float t2 = (h + sqrtD) / a; // Larger root
+			float t0 = -b - sqrtD; // Smaller root
+			float t1 = -b + sqrtD; // Larger root
 
-			// Choose the closest positive root
-			if (t1 > 0.0f && t1 < tmax)
+			// Select the nearest valid root
+			if (t0 > 0.0f && t0 < tmax)
+			{
+				intr.distance = t0;
+			}
+			else if (t1 > 0.0f && t1 < tmax)
 			{
 				intr.distance = t1;
 			}
-			else if (t2 > 0.0f && t2 < tmax)
-			{
-				intr.distance = t2;
-			}
-			else
-			{
-				intr.distance = -1.0f; // Both roots are negative
-			}
 		}
+
 		return intr;
 	}
+
 
 	__device__ ShapeSample Sphere::sample(float2 u2) const
 	{

@@ -5,7 +5,7 @@ namespace KittlesPT
 {
 	__host__ __device__	float deg2rad(float degree);
 
-	__host__ __device__ float Sqr(float v);
+	__host__ __device__  float Sqr(float v);
 
 	__device__ float Gaussian(float x, float mu = 0, float sigma = 1);
 

@@ -13,6 +13,8 @@ namespace KittlesPT
 
 	__device__ bool checkINF(const float3& vec);
 
+	__device__ float3 clampOutput(const float3& v);
+
 	__device__ float3 log2f(const float3 a);
 
 	__device__ float3 powf(const float3 a, const float3 b);

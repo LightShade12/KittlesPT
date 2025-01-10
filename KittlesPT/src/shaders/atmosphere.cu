@@ -19,28 +19,30 @@ namespace KittlesPT
 
 	__device__ bool intersectSphere(const Ray& ray, float3 t_sphere_centre, float t_sphere_radius, float& r_t0, float& r_t1)
 	{
-		float a = dot(ray.getDirection(), ray.getDirection()); //TODO: just length()
-		float b = -2.0f * dot(ray.getDirection(), t_sphere_centre - ray.getOrigin());
-		float c = dot(t_sphere_centre - ray.getOrigin(), t_sphere_centre - ray.getOrigin()) - Sqr(t_sphere_radius);
+		float3 oc = t_sphere_centre - ray.getOrigin();
+		float a = dot(ray.getDirection(), ray.getDirection());
+		float b = -2.0f * dot(ray.getDirection(), oc);
+		float c = dot(oc, oc) - Sqr(t_sphere_radius);
 
-		float discriminant = Sqr(b) - 4 * a * c;
+		float discriminant = Sqr(b) - 4.0f * a * c;
 
 		if (discriminant < 0.0f)
 		{
-			//r_t1 = -1.0f; // Set r_t1 to -1 to indicate a miss
 			return false;
 		}
 
-		//(discriminant == 0.0f) = tangent
-
 		float sqrtDiscriminant = sqrtf(discriminant);
 		r_t0 = (-b - sqrtDiscriminant) / (2.0f * a);
-		r_t1 = (-b + sqrtDiscriminant) / (2.0f * a);//bigger
+		r_t1 = (-b + sqrtDiscriminant) / (2.0f * a);
 
-		// make r_t0 is the smaller value
 		if (r_t0 > r_t1)
 		{
 			cuda::std::swap(r_t0, r_t1);
+		}
+		//sphere behind ray
+		if (r_t1 < 0.0f)
+		{
+			return false;
 		}
 
 		return true;
