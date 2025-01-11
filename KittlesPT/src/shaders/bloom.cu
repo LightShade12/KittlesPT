@@ -4,6 +4,7 @@ namespace KittlesPT
 {
 	__device__ float4 texRead36Texel(DeviceTextureBuffer t_tex, int2 t_res, int2 t_pixel_coord)
 	{
+		//TODO:karis average
 		//top left
 		int2 a_pix = clamp(t_pixel_coord + make_int2(-2, 2), make_int2(0), t_res - 1);
 		float4 a = t_tex.textureReadBilinear(make_float2(a_pix) + 0.5f, true);
@@ -85,7 +86,7 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	t_dst.textureWrite(color, pixel_coord);
 }
 
-__global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst, bool combine)
+__global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;
 
@@ -126,12 +127,9 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 		}
 	}
 
-	if (combine)
-	{
-		//combine prev mip
-		float4 col = t_dst.textureReadNearest(pixel_coord);
-		final_col = lerp(col, final_col, 0.75);
-	}
+	//combine prev mip
+	float4 col = t_dst.textureReadNearest(pixel_coord);
+	final_col = lerp(col, final_col, 0.75);
 
 	final_col = make_float4(clampOutput(make_float3(final_col)), 1);
 

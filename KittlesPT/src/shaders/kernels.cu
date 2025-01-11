@@ -58,14 +58,14 @@ namespace KittlesPT
 		checkCudaErrors(cudaGetLastError());
 	}
 
-	void launchBloomUpSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst, bool combine)
+	void launchBloomUpSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst)
 	{
 		int thread_block_x = 8, thread_block_y = 8;//8x8=64=32x2
 		dim3 thread_block_dimensions = dim3(thread_block_x, thread_block_y);
 		dim3 thread_block_grid_dimensions = dim3(shader_data.frame_resolution.x / thread_block_x + 1,
 			shader_data.frame_resolution.y / thread_block_y + 1);
 
-		upSampleCombine << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst, combine);
+		upSampleCombine << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst);
 		cudaDeviceSynchronize();
 		checkCudaErrors(cudaGetLastError());
 	}
@@ -89,7 +89,7 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	IndependentSampler sampler;
 	sampler.initPixelSeed(shading_job.pixel_coord, frame_res.x, shader_data.frame_index);
 
-	Filter filter({ 1.0f,1.0f });
+	BoxFilter filter({ 1.0f,1.0f });
 	FilterSample fs = filter.sample(sampler.get2D());
 	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
 

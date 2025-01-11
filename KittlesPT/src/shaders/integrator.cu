@@ -268,5 +268,5 @@ namespace KittlesPT
 
 			return integral_estimate;
 		}
-	}
-}
+	}/*Integrator*/
+}/*KittlesPT*/

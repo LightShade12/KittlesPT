@@ -13,11 +13,11 @@ namespace KittlesPT
 	};
 
 	//Box Filter
-	class Filter
+	class BoxFilter
 	{
 	public:
 		//Filter() = default;
-		__device__ Filter(float2 radius) :radius(radius) {}
+		__device__ BoxFilter(float2 radius) :radius(radius) {}
 
 		__device__ float evaluate(float2 p) const
 		{

@@ -5,11 +5,6 @@ namespace KittlesPT
 {
 	__device__ Ray Camera::generateRay(float2 ndc_coords, int2 frame_resolution) const
 	{
-		const float aspect_ratio = (float)frame_resolution.x / (float)frame_resolution.y;
-
-		constexpr float camera_height = 2.0f;
-		const float camera_width = aspect_ratio * camera_height;
-
 		float4 target_cs = inv_projection_matrix * make_float4(ndc_coords.x, ndc_coords.y, 1.f, 1.f);
 		float4 target_ws = inv_view_matrix * make_float4(normalize(make_float3(target_cs) / target_cs.w), 0);
 		float3 raydir_ws = normalize(make_float3(target_ws));
