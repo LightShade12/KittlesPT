@@ -71,18 +71,17 @@ namespace SampleApp
 		ImGui::Text("EMA FPS: %.3f", average_fps);
 		ImGui::Text("Runtime secs: %.3f s",
 			std::chrono::duration_cast<std::chrono::duration<float>>(last_frame_time_point.time_since_epoch()).count() - start_time_secs);
-		ImGui::Separator();
 
 		//camera edit
 		{
+			ImGui::Separator();
 			ImGui::SeparatorText("Camera edit");
 			if (camera_controller_ref != nullptr)
 			{
 				float fov_y_rad = camera_controller_ref->getVerticalFOV_Radians();
 				float exposure = camera_controller_ref->getExposure();
-				//ImGui::ShowDemoWindow();
 
-				if (ImGui::BeginTable("Camera", 2))
+				if (ImGui::BeginTable("cameraedittable", 2))
 				{
 					ImGui::TableSetupColumn("A0", 0, 0.4f);
 					ImGui::TableSetupColumn("A1", 0);
@@ -92,11 +91,9 @@ namespace SampleApp
 					ImGui::Text("FOV");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					if (ImGui::SliderAngle("###fov_control", &fov_y_rad, 0.0, 120.0))
-					{
+					if (ImGui::SliderAngle("###fov_control", &fov_y_rad, 0.0, 120.0)) {
 						event_dispatcher_ref->emitSignal(Event("fov_changed"), fov_y_rad);
 					};
-
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Exposure");
@@ -114,11 +111,12 @@ namespace SampleApp
 
 		//integrator edit
 		{
+			ImGui::Separator();
 			ImGui::SeparatorText("Integrator edit");
 			KittlesPT::PathtracerSettings pt_settings = shared_data_ref->pathtracer_settings;
 			bool pt_settings_updated = false;
 
-			if (ImGui::BeginTable("Integrator", 2))
+			if (ImGui::BeginTable("integratoredittable", 2))
 			{
 				ImGui::TableSetupColumn("A0", 0, 0.4f);
 				ImGui::TableSetupColumn("A1", 0);
@@ -133,7 +131,9 @@ namespace SampleApp
 				ImGui::EndTable();
 
 				pt_settings_updated |= ImGui::Checkbox("Generate bloom", &pt_settings.generate_bloom);
+				ImGui::Indent();
 				pt_settings_updated |= ImGui::Checkbox("Use Karis average", &pt_settings.use_karis_average);
+				ImGui::Unindent();
 			}
 
 			if (pt_settings_updated) {
@@ -143,11 +143,12 @@ namespace SampleApp
 
 		//environment edit
 		{
+			ImGui::Separator();
 			ImGui::SeparatorText("Environment edit");
 			KittlesPT::ProceduralEnvironmentData env_data = shared_data_ref->environment_data;
 			bool env_updated = false;
 
-			if (ImGui::BeginTable("Integrator", 2))
+			if (ImGui::BeginTable("envedittable", 2))
 			{
 				ImGui::TableSetupColumn("A0", 0, 0.6f);
 				ImGui::TableSetupColumn("A1", 0);
@@ -192,18 +193,19 @@ namespace SampleApp
 
 		//material edit
 		{
+			ImGui::Separator();
 			ImGui::SeparatorText("Material edit");
 			bool material_updated = false;
 			Material material;
 
-			if (ImGui::BeginTable("Integrator", 2))
+			if (ImGui::BeginTable("materialedittable", 2))
 			{
 				ImGui::TableSetupColumn("A0", 0, 0.6f);
 				ImGui::TableSetupColumn("A1", 0);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("material id");
+				ImGui::Text("material selection ID");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				if (ImGui::SliderInt("###material_selection:", &shared_data_ref->editable_material_idx,
@@ -223,28 +225,28 @@ namespace SampleApp
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("metallicity");
+				ImGui::Text("metallicity factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				material_updated |= ImGui::SliderFloat("###metallicity", &material.metallicity, 0, 1);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("roughness");
+				ImGui::Text("iso roughness factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				material_updated |= ImGui::SliderFloat("###roughness", &material.roughness, 0, 1);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("transmission");
+				ImGui::Text("transmission factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				material_updated |= ImGui::SliderFloat("###transmission", &material.transmission, 0, 1);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("IOR");
+				ImGui::Text("IOR factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				material_updated |= ImGui::SliderFloat("###ior", &material.ior, 1, 3);

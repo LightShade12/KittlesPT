@@ -61,6 +61,7 @@ namespace KittlesPT
 
 		return filtered_color;
 	}
+
 	__device__ float4 texRead36TexelUV(DeviceTextureBuffer t_texture, float2 uv_coord, bool karis_avg)
 	{
 		float2 pixel_coord = uv_coord * t_texture.dimensions;
@@ -92,13 +93,11 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	}
 
 	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
-
 	float2 src_pixel_coord = dst_uv * t_src.dimensions;
 	src_pixel_coord = clamp(src_pixel_coord, make_float2(0), make_float2(t_src.dimensions - 1));
 
 	//min filter
 	float4 min_filtered_color = texRead36Texel(t_src, src_pixel_coord, karis_avg);//TODO:pass as float2
-
 	min_filtered_color = make_float4(clampOutput(make_float3(min_filtered_color)), 1);
 
 	t_dst.textureWrite(min_filtered_color, shading_job.pixel_coord);
@@ -115,11 +114,8 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 	}
 
 	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
-
 	float2 src_pixel_coord = dst_uv * t_src.dimensions;
 	src_pixel_coord = clamp(src_pixel_coord, make_float2(0.0f), make_float2(t_src.dimensions - 1));
-
-	float4 mag_filtered_color = make_float4(0.0f);
 
 	//Mag filter
 	constexpr float gaussian_filter[3][3] = {
@@ -128,24 +124,20 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 		{1 / 16.0f, 2 / 16.0f, 1 / 16.0f}
 	};
 
+	float4 mag_filtered_color = make_float4(0.0f);
 	//TODO: make separable gaussian blur?
-	for (int y = -1; y <= 1; y++)
-	{
-		for (int x = -1; x <= 1; x++)
-		{
+	for (int y = -1; y <= 1; y++) {
+		for (int x = -1; x <= 1; x++) {
 			float2 tap_pix = src_pixel_coord + make_float2(x, y);
 			tap_pix = clamp(tap_pix, make_float2(0), make_float2(t_src.dimensions - 1));
-
 			float4 tap_col = t_src.textureReadBilinear(tap_pix, true);
-
 			mag_filtered_color += gaussian_filter[y + 1][x + 1] * tap_col;
 		}
 	}
 
 	//combine prev mip
-	float4 dst_mip_color = t_dst.textureReadNearest(make_float2(shading_job.pixel_coord));
-	mag_filtered_color = lerp(dst_mip_color, mag_filtered_color, 0.75);
-
+	float4 dst_prev_color = t_dst.textureReadNearest(make_float2(shading_job.pixel_coord));
+	mag_filtered_color = lerp(dst_prev_color, mag_filtered_color, 0.75);
 	mag_filtered_color = make_float4(clampOutput(make_float3(mag_filtered_color)), 1);
 
 	t_dst.textureWrite(mag_filtered_color, shading_job.pixel_coord);
