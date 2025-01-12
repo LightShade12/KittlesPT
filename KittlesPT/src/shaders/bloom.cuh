@@ -6,7 +6,8 @@
 
 namespace KittlesPT
 {
-	__device__ float4 texRead36Texel(DeviceTextureBuffer t_tex, int2 t_res, int2 t_pixel_coord);
+	__device__ float4 texRead36Texel(DeviceTextureBuffer t_tex, int2 t_res, float2 t_pixel_coord);
+	__device__ float4 texRead36TexelUV(DeviceTextureBuffer t_tex, int2 t_res, float2 uv_coord);
 }
 
 __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst);

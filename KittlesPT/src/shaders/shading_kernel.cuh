@@ -4,8 +4,6 @@
 
 namespace KittlesPT
 {
-	struct GlobalShaderData;
-
 	struct ShadingJob
 	{
 		int2 pixel_coord;
@@ -13,5 +11,5 @@ namespace KittlesPT
 		bool invalid = false;
 	};
 
-	__device__ ShadingJob getShadingJob(const GlobalShaderData& shader_data);
+	__device__ ShadingJob getShadingJob(const int2& work_texture_size);
 }

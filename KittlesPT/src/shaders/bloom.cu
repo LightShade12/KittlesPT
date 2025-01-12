@@ -1,36 +1,37 @@
 #include "bloom.cuh"
+#include "shading_kernel.cuh"
 
 namespace KittlesPT
 {
-	__device__ float4 texRead36Texel(DeviceTextureBuffer t_tex, int2 t_res, int2 t_pixel_coord)
+	__device__ float4 texRead36Texel(DeviceTextureBuffer t_tex, int2 t_res, float2 t_pixel_coord)
 	{
 		//TODO:karis average
 		//top left
-		int2 a_pix = clamp(t_pixel_coord + make_int2(-2, 2), make_int2(0), t_res - 1);
-		float4 a = t_tex.textureReadBilinear(make_float2(a_pix) + 0.5f, true);
+		float2 a_pix = clamp(t_pixel_coord + make_float2(-2, 2), make_float2(0), make_float2(t_res - 1));
+		float4 a = t_tex.textureReadBilinear(a_pix, true);
 		//top
-		int2 b_pix = clamp(t_pixel_coord + make_int2(0, 2), make_int2(0), t_res - 1);
-		float4 b = t_tex.textureReadBilinear(make_float2(b_pix) + 0.5f, true);
+		float2 b_pix = clamp(t_pixel_coord + make_float2(0, 2), make_float2(0), make_float2(t_res - 1));
+		float4 b = t_tex.textureReadBilinear(b_pix, true);
 		//top right
-		int2 c_pix = clamp(t_pixel_coord + make_int2(2, 2), make_int2(0), t_res - 1);
-		float4 c = t_tex.textureReadBilinear(make_float2(c_pix) + 0.5f, true);
+		float2 c_pix = clamp(t_pixel_coord + make_float2(2, 2), make_float2(0), make_float2(t_res - 1));
+		float4 c = t_tex.textureReadBilinear(c_pix, true);
 		//left
-		int2 d_pix = clamp(t_pixel_coord + make_int2(-2, 0), make_int2(0), t_res - 1);
-		float4 d = t_tex.textureReadBilinear(make_float2(d_pix) + 0.5f, true);
+		float2 d_pix = clamp(t_pixel_coord + make_float2(-2, 0), make_float2(0), make_float2(t_res - 1));
+		float4 d = t_tex.textureReadBilinear(d_pix, true);
 		//center
-		float4 e = t_tex.textureReadBilinear(make_float2(t_pixel_coord) + 0.5f, true);
+		float4 e = t_tex.textureReadBilinear(t_pixel_coord, true);
 		//right
-		int2 f_pix = clamp(t_pixel_coord + make_int2(2, 0), make_int2(0), t_res - 1);
-		float4 f = t_tex.textureReadBilinear(make_float2(f_pix) + 0.5f, true);
+		float2 f_pix = clamp(t_pixel_coord + make_float2(2, 0), make_float2(0), make_float2(t_res - 1));
+		float4 f = t_tex.textureReadBilinear(f_pix, true);
 		//bottom left
-		int2 g_pix = clamp(t_pixel_coord + make_int2(-2, -2), make_int2(0), t_res - 1);
-		float4 g = t_tex.textureReadBilinear(make_float2(g_pix) + 0.5f, true);
+		float2 g_pix = clamp(t_pixel_coord + make_float2(-2, -2), make_float2(0), make_float2(t_res - 1));
+		float4 g = t_tex.textureReadBilinear(g_pix, true);
 		//bottom
-		int2 h_pix = clamp(t_pixel_coord + make_int2(0, -2), make_int2(0), t_res - 1);
-		float4 h = t_tex.textureReadBilinear(make_float2(h_pix) + 0.5f, true);
+		float2 h_pix = clamp(t_pixel_coord + make_float2(0, -2), make_float2(0), make_float2(t_res - 1));
+		float4 h = t_tex.textureReadBilinear(h_pix, true);
 		//bottom right
-		int2 i_pix = clamp(t_pixel_coord + make_int2(2, -2), make_int2(0), t_res - 1);
-		float4 i = t_tex.textureReadBilinear(make_float2(i_pix) + 0.5f, true);
+		float2 i_pix = clamp(t_pixel_coord + make_float2(2, -2), make_float2(0), make_float2(t_res - 1));
+		float4 i = t_tex.textureReadBilinear(i_pix, true);
 
 		//h 4x4 box
 		float4 hb1 = lerp(lerp(a, b, 0.5), lerp(d, e, 0.5), 0.5);
@@ -40,17 +41,17 @@ namespace KittlesPT
 
 		//----
 		//top left
-		int2 j_pix = clamp(t_pixel_coord + make_int2(-1, 1), make_int2(0), t_res - 1);
-		float4 j = t_tex.textureReadBilinear(make_float2(j_pix) + 0.5f, true);
+		float2 j_pix = clamp(t_pixel_coord + make_float2(-1, 1), make_float2(0), make_float2(t_res - 1));
+		float4 j = t_tex.textureReadBilinear((j_pix), true);
 		//top
-		int2 k_pix = clamp(t_pixel_coord + make_int2(1, 1), make_int2(0), t_res - 1);
-		float4 k = t_tex.textureReadBilinear(make_float2(k_pix) + 0.5f, true);
+		float2 k_pix = clamp(t_pixel_coord + make_float2(1, 1), make_float2(0), make_float2(t_res - 1));
+		float4 k = t_tex.textureReadBilinear((k_pix), true);
 		//top right
-		int2 l_pix = clamp(t_pixel_coord + make_int2(-1, -1), make_int2(0), t_res - 1);
-		float4 l = t_tex.textureReadBilinear(make_float2(l_pix) + 0.5f, true);
+		float2 l_pix = clamp(t_pixel_coord + make_float2(-1, -1), make_float2(0), make_float2(t_res - 1));
+		float4 l = t_tex.textureReadBilinear((l_pix), true);
 		//left
-		int2 m_pix = clamp(t_pixel_coord + make_int2(1, -1), make_int2(0), t_res - 1);
-		float4 m = t_tex.textureReadBilinear(make_float2(m_pix) + 0.5f, true);
+		float2 m_pix = clamp(t_pixel_coord + make_float2(1, -1), make_float2(0), make_float2(t_res - 1));
+		float4 m = t_tex.textureReadBilinear((m_pix), true);
 
 		//center h 4x4 box
 		float4 hb5 = lerp(lerp(j, k, 0.5), lerp(l, m, 0.5), 0.5);
@@ -59,54 +60,53 @@ namespace KittlesPT
 
 		return out;
 	}
+	__device__ float4 texRead36TexelUV(DeviceTextureBuffer t_tex, int2 t_res, float2 uv_coord)
+	{
+		return make_float4(1);
+	}
 }
 
 __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;
-	int thread_pixel_coord_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
 
-	if ((pixel_coord.x >= t_dst.width) || (pixel_coord.y >= t_dst.height)) {
+	ShadingJob shading_job = getShadingJob(t_dst.dimensions);
+
+	if (shading_job.invalid) {
 		return;
 	}
 
-	float2 scale_ratio = make_float2((float)t_src.width / t_dst.width, (float)t_src.height / t_dst.height);
+	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
 
-	//src-res
-	int2 src_tap_pix = make_int2(pixel_coord.x * scale_ratio.x, pixel_coord.y * scale_ratio.y);
-	src_tap_pix = clamp(src_tap_pix, make_int2(0), make_int2(t_src.width, t_src.height) - 1);
+	float2 src_pixel_coord = dst_uv * t_src.dimensions;
+	src_pixel_coord = clamp(src_pixel_coord, make_float2(0), make_float2(t_src.dimensions - 1));
 
 	//min filter
-	float4 color = texRead36Texel(t_src, make_int2(t_src.width, t_src.height), src_tap_pix);
+	float4 min_filtered_color = texRead36Texel(t_src, t_src.dimensions, src_pixel_coord);//TODO:pass as float2
 
-	color = make_float4(clampOutput(make_float3(color)), 1);
+	min_filtered_color = make_float4(clampOutput(make_float3(min_filtered_color)), 1);
 
-	t_dst.textureWrite(color, pixel_coord);
+	t_dst.textureWrite(min_filtered_color, shading_job.pixel_coord);
 }
 
 __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;
 
-	//setup threads
-	int thread_pixel_coord_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
-	float2 pixel_coord = make_float2(thread_pixel_coord_x, thread_pixel_coord_y);
+	ShadingJob shading_job = getShadingJob(t_dst.dimensions);
 
-	if ((pixel_coord.x >= t_dst.width) || (pixel_coord.y >= t_dst.height)) {
+	if (shading_job.invalid) {
 		return;
 	}
 
-	float2 scale_down_ratio = make_float2(pixel_coord.x / (float)t_dst.width, pixel_coord.y / (float)t_dst.height);
+	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
 
-	float2 src_pixf = make_float2(scale_down_ratio.x * t_src.width, scale_down_ratio.y * t_src.height);
+	float2 src_pixel_coord = dst_uv * t_src.dimensions;
+	src_pixel_coord = clamp(src_pixel_coord, make_float2(0.0f), make_float2(t_src.dimensions - 1));
 
-	src_pixf = clamp(src_pixf, make_float2(0.0f), make_float2(t_src.width, t_src.height) - 1.0f);
+	float4 mag_filtered_color = make_float4(0.0f);
 
-	float4 final_col = make_float4(0.0f);
-
+	//Mag filter
 	constexpr float gaussian_filter[3][3] = {
 		{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
 		{2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
@@ -118,20 +118,20 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 	{
 		for (int x = -1; x <= 1; x++)
 		{
-			float2 tap_pix = src_pixf + make_float2(x, y);
-			tap_pix = clamp(tap_pix, make_float2(0), make_float2(t_src.width, t_src.height) - 1.0f);
+			float2 tap_pix = src_pixel_coord + make_float2(x, y);
+			tap_pix = clamp(tap_pix, make_float2(0), make_float2(t_src.dimensions - 1));
 
 			float4 tap_col = t_src.textureReadBilinear(tap_pix, true);
 
-			final_col += gaussian_filter[y + 1][x + 1] * tap_col;
+			mag_filtered_color += gaussian_filter[y + 1][x + 1] * tap_col;
 		}
 	}
 
 	//combine prev mip
-	float4 col = t_dst.textureReadNearest(pixel_coord);
-	final_col = lerp(col, final_col, 0.75);
+	float4 dst_mip_color = t_dst.textureReadNearest(make_float2(shading_job.pixel_coord));
+	mag_filtered_color = lerp(dst_mip_color, mag_filtered_color, 0.75);
 
-	final_col = make_float4(clampOutput(make_float3(final_col)), 1);
+	mag_filtered_color = make_float4(clampOutput(make_float3(mag_filtered_color)), 1);
 
-	t_dst.textureWrite(final_col, make_int2(pixel_coord));
+	t_dst.textureWrite(mag_filtered_color, shading_job.pixel_coord);
 }

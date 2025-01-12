@@ -20,11 +20,10 @@ namespace KittlesPT
 		__device__ float4 textureReadNearestUV(float2 uv_coord) const;
 
 		__device__ float4 textureReadBilinear(float2 pixel_coord, float filter_alpha) const;
-		
+
 		__device__ float4 textureReadBilinearUV(float2 uv_coord, float filter_alpha) const;
 
-
-		int width = 0, height = 0;
+		int2 dimensions;
 		cudaSurfaceObject_t m_surface_object;
 	};
 
@@ -44,12 +43,14 @@ namespace KittlesPT
 
 		void destroy();
 
-		int m_width = 0, m_height = 0;
-		GLuint m_GL_texture = NULL;
-		cudaGraphicsResource* m_graphics_resource = nullptr;
-
 		void copyTo(GLuint dst);
 
 		void copyTo(const TextureBuffer& dst);
+
+	public:
+
+		int m_width = 0, m_height = 0;
+		GLuint m_GL_texture = NULL;
+		cudaGraphicsResource* m_graphics_resource = nullptr;
 	};
 }

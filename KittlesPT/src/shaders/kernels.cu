@@ -75,9 +75,8 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 {
 	using namespace KittlesPT;
 
-	ShadingJob shading_job = getShadingJob(shader_data);
-
 	int2 frame_res = shader_data.frame_resolution;
+	ShadingJob shading_job = getShadingJob(frame_res);
 
 	if (shading_job.invalid) {
 		return;
@@ -112,7 +111,7 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 {
 	using namespace KittlesPT;
 
-	ShadingJob shading_job = getShadingJob(shader_data);
+	ShadingJob shading_job = getShadingJob(shader_data.frame_resolution);
 
 	if (shading_job.invalid)
 	{

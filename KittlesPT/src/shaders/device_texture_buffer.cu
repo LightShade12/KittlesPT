@@ -25,9 +25,8 @@ namespace KittlesPT
 
 	__device__ void DeviceTextureBuffer::textureWriteUV(float4 value, float2 uv_coord) const
 	{
-		float2 a = make_float2(width, height) * uv_coord;
-		int2 pixel_coord = make_int2(a);
-		pixel_coord = clamp(pixel_coord, make_int2(0, 0), make_int2(width - 1, height - 1));
+		int2 pixel_coord = make_int2(uv_coord * dimensions);
+		pixel_coord = clamp(pixel_coord, make_int2(0, 0), dimensions - 1);
 		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
 	}
 
@@ -38,44 +37,46 @@ namespace KittlesPT
 
 	__device__ float4 DeviceTextureBuffer::textureReadNearestUV(float2 uv_coord) const
 	{
-		int2 pixel_coord = make_int2(uv_coord.x * width, uv_coord.y * height);
-		pixel_coord = clamp(pixel_coord, make_int2(0, 0), make_int2(width - 1, height - 1));
+		int2 pixel_coord = make_int2(uv_coord * dimensions);
+		pixel_coord = clamp(pixel_coord, make_int2(0, 0), dimensions - 1);
 		return surf2Dread<float4>(m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
 	}
 
 	__device__ float4 DeviceTextureBuffer::textureReadBilinear(float2 pixel_coord, float filter_alpha) const
 	{
+		/*
+		* Coordinates(verified with uv shading):
+		* +1
+		* ^
+		* ||
+		* 0 ==> +1
+		*/
+
 		//TODO:consider half pixel for centre sampling
 
-		int2 pix = make_int2(pixel_coord);//truncate
-		int x = pix.x;
-		int y = pix.y;
+		int2 discrete = make_int2(pixel_coord);
 
-		// Clamp pixel indices to be within bounds
-		int s0 = clamp(x, 0, width - 1);
-		int s1 = clamp(x + 1, 0, width - 1);
-		int t0 = clamp(y, 0, height - 1);
-		int t1 = clamp(y + 1, 0, height - 1);
+		//tap coord components
+		int s0 = clamp(discrete.x, 0, dimensions.x - 1);
+		int s1 = clamp(discrete.x + 1, 0, dimensions.x - 1);
+		int t0 = clamp(discrete.y, 0, dimensions.y - 1);
+		int t1 = clamp(discrete.y + 1, 0, dimensions.y - 1);
 
-		//TODO: consider trying unclamped taps for weighting
-		// Compute fractional parts for interpolation weights
-		float ws = pixel_coord.x - s0;
-		float wt = pixel_coord.y - t0;
+		float ws = pixel_coord.x - discrete.x;
+		float wt = pixel_coord.y - discrete.y;
 
-		// Sample 2x2 texel neighborhood
 		float4 cp0 = textureReadNearest(make_float2(s0, t0));
 		float4 cp1 = textureReadNearest(make_float2(s1, t0));
 		float4 cp2 = textureReadNearest(make_float2(s0, t1));
 		float4 cp3 = textureReadNearest(make_float2(s1, t1));
 
-		// Perform bilinear interpolation
 		float4 tc0 = lerp(cp0, cp1, ws);
 		float4 tc1 = lerp(cp2, cp3, ws);
 		float4 fc = lerp(tc0, tc1, wt);
 
+		// point sampling for alpha
 		if (!filter_alpha) {
-			// Nearest neighbor for alpha
-			fc.w = (ws > 0.5f ? (wt > 0.5f ? cp3.w : cp1.w) : (wt > 0.5f ? cp2.w : cp0.w));
+			fc.w = cp0.w;
 		}
 
 		return fc;
@@ -83,9 +84,9 @@ namespace KittlesPT
 
 	__device__ float4 DeviceTextureBuffer::textureReadBilinearUV(float2 uv_coord, float filter_alpha) const
 	{
-		float2 pixel_coord = make_float2(uv_coord.x * width, uv_coord.y * height);
-		pixel_coord = clamp(pixel_coord, make_float2(0), make_float2(width, height) - 1.0f);
-		return	textureReadBilinear(pixel_coord, filter_alpha);
+		float2 pixel_coord = uv_coord * dimensions;
+		pixel_coord = clamp(pixel_coord, make_float2(0), make_float2(dimensions - 1));
+		return textureReadBilinear(pixel_coord, filter_alpha);
 	}
 
 	//==================================================================================================
@@ -145,8 +146,7 @@ namespace KittlesPT
 
 		DeviceTextureBuffer dev_tex_buf;
 		dev_tex_buf.m_surface_object = surface;
-		dev_tex_buf.height = m_height;
-		dev_tex_buf.width = m_width;
+		dev_tex_buf.dimensions = make_int2(m_width, m_height);
 
 		return dev_tex_buf;
 	}

@@ -1,10 +1,9 @@
 #include "shading_kernel.cuh"
 #include "maths/vector_maths.cuh"
-#include "containers.cuh"
 
 namespace KittlesPT
 {
-	__device__ ShadingJob getShadingJob(const GlobalShaderData& shader_data)
+	__device__ ShadingJob getShadingJob(const int2& work_texture_size)
 	{
 		ShadingJob job;
 
@@ -13,11 +12,9 @@ namespace KittlesPT
 
 		job.pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
 
-		int2 frame_res = shader_data.frame_resolution;
+		job.uv_coord = (make_float2(job.pixel_coord) + 0.5f) / work_texture_size;//discrete to continous map
 
-		job.uv_coord = (make_float2(job.pixel_coord) + 0.5f) / frame_res;//discrete to continous map
-
-		job.invalid = ((job.pixel_coord.x >= frame_res.x) || (job.pixel_coord.y >= frame_res.y));
+		job.invalid = ((job.pixel_coord.x >= work_texture_size.x) || (job.pixel_coord.y >= work_texture_size.y));
 
 		return job;
 	}
