@@ -133,6 +133,7 @@ namespace SampleApp
 				ImGui::EndTable();
 
 				pt_settings_updated |= ImGui::Checkbox("Generate bloom", &pt_settings.generate_bloom);
+				pt_settings_updated |= ImGui::Checkbox("Use Karis average", &pt_settings.use_karis_average);
 			}
 
 			if (pt_settings_updated) {

@@ -46,14 +46,14 @@ namespace KittlesPT
 		checkCudaErrors(cudaGetLastError());
 	}
 
-	void launchBloomDownSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst)
+	void launchBloomDownSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst, bool karis_avg)
 	{
 		int thread_block_x = 8, thread_block_y = 8;//8x8=64=32x2
 		dim3 thread_block_dimensions = dim3(thread_block_x, thread_block_y);
 		dim3 thread_block_grid_dimensions = dim3(shader_data.frame_resolution.x / thread_block_x + 1,
 			shader_data.frame_resolution.y / thread_block_y + 1);
 
-		downSample << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst);
+		downSample << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst, karis_avg);
 		cudaDeviceSynchronize();
 		checkCudaErrors(cudaGetLastError());
 	}

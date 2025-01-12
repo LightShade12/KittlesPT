@@ -18,6 +18,7 @@ namespace KittlesPT
 	{
 		int max_bounce_depth = 3;
 		bool generate_bloom = false;
+		bool use_karis_average = false;
 	};
 
 	struct MaterialSceneEntity

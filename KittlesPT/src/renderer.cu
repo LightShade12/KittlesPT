@@ -403,7 +403,8 @@ namespace KittlesPT
 			DeviceTextureBuffer dsrc = src.enableCudaAccess();
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
-			launchBloomDownSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst);
+			launchBloomDownSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst,
+				(m_renderer_data->shader_global_data.pathtracer_settings.use_karis_average) ? (miplevel == 0) : false);
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);
