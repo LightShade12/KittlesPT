@@ -11,5 +11,5 @@ namespace KittlesPT
 	class IndependentSampler;
 
 	//russian roulette
-	__device__ bool russianRoulette(RGBSpectrum& throughput, float eta_scale, int bounce_depth, IndependentSampler& sampler);
+	__device__ bool russianRoulette(RGBSpectrum* throughput, float eta_scale, int bounce_depth, IndependentSampler& sampler);
 }

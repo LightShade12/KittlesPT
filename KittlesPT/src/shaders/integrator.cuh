@@ -6,7 +6,7 @@ namespace KittlesPT
 {
 	/*TODO:list of features below
 		*	-BBOX
-		*	-BVH
+		*	-BVH (Aggregate primitive)
 		*	-Triangles
 		*
 		*	-Utility code
@@ -19,7 +19,7 @@ namespace KittlesPT
 		*
 		*	PBRT base types:
 		*	- Primitive (Accelerator)
-		*	- Medium (abandoned)
+		*	- Medium
 		*/
 
 	struct GlobalShaderData;

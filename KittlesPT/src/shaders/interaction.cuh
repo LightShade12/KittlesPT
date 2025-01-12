@@ -15,6 +15,8 @@ namespace KittlesPT
 
 		__device__ BSDF getBSDF(const GlobalShaderData& shader_data) const;
 
+		__device__ void skipInteraction(Ray* ray);
+
 		__device__ Ray spawnRay(float3 wi, int scatter_flags) const;
 
 		__device__ Ray spawnRayTo(float3 target) const;

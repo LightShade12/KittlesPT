@@ -69,6 +69,17 @@ namespace KittlesPT
 		return bsdf;
 	}
 
+	__device__ void SurfaceInteraction::skipInteraction(Ray* ray)
+	{
+		float3 offset = world_geometric_normal * Constants::HIT_EPSILON;
+		if (dot(ray->getDirection(), world_geometric_normal) < 0) {
+			offset *= -1.0f;
+		}
+		float3 orig = world_position + offset;
+		float3 dir = ray->getDirection();
+		*ray = Ray(orig, dir);
+	}
+
 	__device__ Ray SurfaceInteraction::spawnRay(float3 wi, int scatter_flags) const
 	{
 		float3 ray_orig;
@@ -86,7 +97,7 @@ namespace KittlesPT
 	__device__ Ray SurfaceInteraction::spawnRayTo(float3 target) const
 	{
 		float3 ray_orig;
-		if (backface) 
+		if (backface)
 		{
 			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
 		}

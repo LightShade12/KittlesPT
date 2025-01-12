@@ -23,7 +23,7 @@ namespace KittlesPT
 		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
 	}
 
-	__device__ void DeviceTextureBuffer::textureWrite(float4 value, float2 uv_coord) const
+	__device__ void DeviceTextureBuffer::textureWriteUV(float4 value, float2 uv_coord) const
 	{
 		float2 a = make_float2(width, height) * uv_coord;
 		int2 pixel_coord = make_int2(a);
@@ -31,12 +31,19 @@ namespace KittlesPT
 		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
 	}
 
-	__device__ float4 DeviceTextureBuffer::textureReadNearest(int2 pixel_coord) const
+	__device__ float4 DeviceTextureBuffer::textureReadNearest(float2 pixel_coord) const
 	{
+		return surf2Dread<float4>(m_surface_object, int(pixel_coord.x) * (int)sizeof(float4), int(pixel_coord.y));
+	}
+
+	__device__ float4 DeviceTextureBuffer::textureReadNearestUV(float2 uv_coord) const
+	{
+		int2 pixel_coord = make_int2(uv_coord.x * width, uv_coord.y * height);
+		pixel_coord = clamp(pixel_coord, make_int2(0, 0), make_int2(width - 1, height - 1));
 		return surf2Dread<float4>(m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
 	}
 
-	__device__ float4 DeviceTextureBuffer::textureReadBilinear(float2 pixel_coord, float lerp_alpha) const
+	__device__ float4 DeviceTextureBuffer::textureReadBilinear(float2 pixel_coord, float filter_alpha) const
 	{
 		//TODO:consider half pixel for centre sampling
 
@@ -56,17 +63,17 @@ namespace KittlesPT
 		float wt = pixel_coord.y - t0;
 
 		// Sample 2x2 texel neighborhood
-		float4 cp0 = textureReadNearest(make_int2(s0, t0));
-		float4 cp1 = textureReadNearest(make_int2(s1, t0));
-		float4 cp2 = textureReadNearest(make_int2(s0, t1));
-		float4 cp3 = textureReadNearest(make_int2(s1, t1));
+		float4 cp0 = textureReadNearest(make_float2(s0, t0));
+		float4 cp1 = textureReadNearest(make_float2(s1, t0));
+		float4 cp2 = textureReadNearest(make_float2(s0, t1));
+		float4 cp3 = textureReadNearest(make_float2(s1, t1));
 
 		// Perform bilinear interpolation
 		float4 tc0 = lerp(cp0, cp1, ws);
 		float4 tc1 = lerp(cp2, cp3, ws);
 		float4 fc = lerp(tc0, tc1, wt);
 
-		if (!lerp_alpha) {
+		if (!filter_alpha) {
 			// Nearest neighbor for alpha
 			fc.w = (ws > 0.5f ? (wt > 0.5f ? cp3.w : cp1.w) : (wt > 0.5f ? cp2.w : cp0.w));
 		}
@@ -74,11 +81,11 @@ namespace KittlesPT
 		return fc;
 	}
 
-	__device__ float4 DeviceTextureBuffer::textureReadNearest(float2 uv_coord) const
+	__device__ float4 DeviceTextureBuffer::textureReadBilinearUV(float2 uv_coord, float filter_alpha) const
 	{
-		int2 pixel_coord = make_int2(uv_coord.x * width, uv_coord.y * height);
-		pixel_coord = clamp(pixel_coord, make_int2(0, 0), make_int2(width - 1, height - 1));
-		return surf2Dread<float4>(m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
+		float2 pixel_coord = make_float2(uv_coord.x * width, uv_coord.y * height);
+		pixel_coord = clamp(pixel_coord, make_float2(0), make_float2(width, height) - 1.0f);
+		return	textureReadBilinear(pixel_coord, filter_alpha);
 	}
 
 	//==================================================================================================
@@ -159,7 +166,7 @@ namespace KittlesPT
 		glDeleteTextures(1, &m_GL_texture);
 		GLenum err = glGetError();
 		if (err != GL_NO_ERROR) {
-			fprintf(stderr, "[TEXCOPY]: %s\n", glErrorString(err));
+			fprintf(stderr, "[DESTROY]: %s\n", glErrorString(err));
 		}
 		m_GL_texture = NULL;
 	}
@@ -172,7 +179,7 @@ namespace KittlesPT
 		glFinish();
 		GLenum err = glGetError();
 		if (err != GL_NO_ERROR) {
-			fprintf(stderr, "[TEXCOPY]: %s\n", glErrorString(err));
+			fprintf(stderr, "[TEXCOPY_TO_NAME]: %s\n", glErrorString(err));
 		}
 	}
 	void TextureBuffer::copyTo(const TextureBuffer& dst)
@@ -184,7 +191,7 @@ namespace KittlesPT
 		glFinish();
 		GLenum err = glGetError();
 		if (err != GL_NO_ERROR) {
-			fprintf(stderr, "[TEXCOPY]: %s\n", glErrorString(err));
+			fprintf(stderr, "[TEXCOPY_TO_OBJECT]: %s\n", glErrorString(err));
 		}
 	}
 }

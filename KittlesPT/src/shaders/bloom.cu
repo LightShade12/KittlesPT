@@ -93,13 +93,13 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 	//setup threads
 	int thread_pixel_coord_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int thread_pixel_coord_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int2 pixel_coord = make_int2(thread_pixel_coord_x, thread_pixel_coord_y);
+	float2 pixel_coord = make_float2(thread_pixel_coord_x, thread_pixel_coord_y);
 
 	if ((pixel_coord.x >= t_dst.width) || (pixel_coord.y >= t_dst.height)) {
 		return;
 	}
 
-	float2 scale_down_ratio = make_float2((float)pixel_coord.x / (float)t_dst.width, (float)pixel_coord.y / (float)t_dst.height);
+	float2 scale_down_ratio = make_float2(pixel_coord.x / (float)t_dst.width, pixel_coord.y / (float)t_dst.height);
 
 	float2 src_pixf = make_float2(scale_down_ratio.x * t_src.width, scale_down_ratio.y * t_src.height);
 
@@ -133,5 +133,5 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData t_shader_data,
 
 	final_col = make_float4(clampOutput(make_float3(final_col)), 1);
 
-	t_dst.textureWrite(final_col, pixel_coord);
+	t_dst.textureWrite(final_col, make_int2(pixel_coord));
 }

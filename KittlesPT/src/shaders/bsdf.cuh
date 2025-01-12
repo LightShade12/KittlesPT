@@ -60,6 +60,10 @@ namespace KittlesPT
 
 		__device__ BSDFSample sampleBSDF(float3 w_wo, float2 u2, float2 X2) const;
 
+		__device__ bool operator! () {
+			return is_medium;
+		}
+
 	private:
 		//BSDFs========================================================
 		//Opaque Dielectric BSDF--------------
@@ -113,6 +117,7 @@ namespace KittlesPT
 		float transmission = 0.0f;
 		float IOR = 1.45f;//eta
 		bool backface = false;
+		bool is_medium = false;
 
 		Mat3 tangent_matrix;
 	};

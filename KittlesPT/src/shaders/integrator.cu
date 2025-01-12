@@ -163,32 +163,39 @@ namespace KittlesPT
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in,
 			IndependentSampler& sampler, GBuffer* visible_surface)
 		{
-			RGBSpectrum light(0.0f);
-			RGBSpectrum throughput(1.0f);
-
-			float3 sun_direction = sphericalToSunDirection(shader_data.procedural_environment_data.sun_theta_rad, shader_data.procedural_environment_data.sun_phi_rad);
-
-			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_radiance_intensity);
-			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
-			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
-
+			RGBSpectrum light(0.0f);//L
+			RGBSpectrum throughput(1.0f);//beta
+			const int MAX_RAY_DEPTH = shader_data.pathtracer_settings.max_bounce_depth;
 			float eta_scale = 1.0;
 			float p_b = 1.0f;
 			LightSampleContext prev_ctx;
 
-			const int MAX_RAY_DEPTH = shader_data.pathtracer_settings.max_bounce_depth;
+			//TODO:store in heap
+			float3 sun_direction = sphericalToSunDirection(shader_data.procedural_environment_data.sun_theta_rad, shader_data.procedural_environment_data.sun_phi_rad);
+			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_radiance_intensity);
+			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
+			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
+
 			Ray ray = ray_in;
 
 			for (int bounce_depth = 0; bounce_depth <= MAX_RAY_DEPTH; bounce_depth++)
 			{
-				sampler.setSeed(sampler.getSeed() + bounce_depth);
-				bool first_surface = (bounce_depth == 0);
+				sampler.setSeed(sampler.getSeed() + bounce_depth); bool first_surface = (bounce_depth == 0);
 
 				Intersection intr = intersect(shader_data, ray, INFINITY);
 
+				//Sample participating media here--
+
+				//Handle interaction with a medium; else--
+
 				if (!intr)
 				{
-					//miss
+					//MISS
+					/*
+					* Sampling only one InfiniteLight with bsdf sampling here
+					* without any explicit sky sampling elsewhere, so no MIS used here
+					*/
+					//sample Le from sun and sky
 					RGBSpectrum sky_radiance = sampleSunDiskLe(shader_data, ray, atmosphere);
 					if (!sky_radiance)
 					{
@@ -198,12 +205,12 @@ namespace KittlesPT
 
 					break;
 				}
-				//hit
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
-				float3 wo = -ray.getDirection();
 
-				//Le
+				//Sample Le from surface
+				RGBSpectrum Le = surfintr.Le(shader_data, ray);
+				if (Le)
 				{
 					const Light* arealight = surfintr.light;
 					float w_l = 1.0f;
@@ -211,15 +218,24 @@ namespace KittlesPT
 						float light_pdf = light_sampler.PMF(arealight) * arealight->pdf_Li(prev_ctx, LightLiSample(surfintr));
 						w_l = powerHeuristic(1, p_b, 1, light_pdf);
 					}
-					light += surfintr.Le(shader_data, ray) * w_l * throughput;
+					light += Le * w_l * throughput;
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
+				//skipping over medium boundaries
+				if (!bsdf) {
+					surfintr.skipInteraction(&ray);
+					continue;
+				}
+
 				if (first_surface)
 				{
+					//using texture diffuse albedo for reflectance estimate
 					*visible_surface = GBuffer(bsdf.albedo_factor, surfintr);
 				}
+
+				//add regularize() here
 
 				RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
@@ -227,6 +243,7 @@ namespace KittlesPT
 				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
 				light += Ld_sun * throughput;
 
+				float3 wo = -ray.getDirection();
 				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
 				if (bs.scatterTypeIs(BSDFSample::Absorbed))
 				{
@@ -234,22 +251,19 @@ namespace KittlesPT
 				}
 
 				const float3& wi = bs.wi; float pdf = bs.pdf;
-
 				//uses absdot for allowing refraction
 				RGBSpectrum fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);
 				if (!fcos)
 				{
 					break;
 				}
-
 				throughput *= (fcos / pdf);
 
 				p_b = bsdf.pdf(wo, wi);
 				prev_ctx = LightSampleContext(surfintr);
 				ray = surfintr.spawnRay(wi, bs.scatter);
 
-				if (russianRoulette(throughput, eta_scale,
-					bounce_depth, sampler))
+				if (russianRoulette(&throughput, eta_scale, bounce_depth, sampler))
 				{
 					break;
 				}
@@ -260,7 +274,7 @@ namespace KittlesPT
 
 		__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample)
 		{
-			RGBSpectrum accumulated_sample = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(pixel_coord));
+			RGBSpectrum accumulated_sample = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(make_float2(pixel_coord)));
 			RGBSpectrum new_accumulated_sample = accumulated_sample + radiance_sample;
 
 			shader_data.accumulation_texture.textureWrite(make_float4(new_accumulated_sample.toFloat3(), 1), pixel_coord);

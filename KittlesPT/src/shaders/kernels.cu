@@ -100,12 +100,12 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	RGBSpectrum sensor_radiance = fs.weight * camera_weight * Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
 
 	float4 packed = visible_surface.packGBuffer();
-	shader_data.gbuffer_texture.textureWrite(packed, shading_job.uv_coord);
+	shader_data.gbuffer_texture.textureWriteUV(packed, shading_job.uv_coord);
 
 	//Monte-Carlo estimation; static accumulation
 	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
 
-	shader_data.main_texture.textureWrite(make_float4(sensor_radiance.toFloat3(), 1), shading_job.uv_coord);
+	shader_data.main_texture.textureWriteUV(make_float4(sensor_radiance.toFloat3(), 1), shading_job.uv_coord);
 }
 
 __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data)
@@ -119,10 +119,10 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 		return;
 	}
 
-	RGBSpectrum raw_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearest(shading_job.uv_coord));
+	RGBSpectrum raw_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
 
 	if (shader_data.pathtracer_settings.generate_bloom) {
-		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearest(shading_job.uv_coord));
+		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));
 		raw_radiance = lerp(raw_radiance, bloom_radiance, 0.3f);
 	}
 
@@ -130,5 +130,5 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 	raw_radiance *= shader_data.scene_camera.film.exposure;//TODO: proper exposure application
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(raw_radiance);
 
-	shader_data.main_texture.textureWrite(make_float4(frag_color, 1), shading_job.uv_coord);
+	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1), shading_job.uv_coord);
 }
