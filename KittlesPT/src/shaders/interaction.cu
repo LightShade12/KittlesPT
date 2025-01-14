@@ -62,9 +62,7 @@ namespace KittlesPT
 	{
 		const Material& mat = shader_data.materials_buffer.data[material_id];
 
-		MaterialEvalContext mat_ctx = MaterialEvalContext(*this);
-
-		BSDF bsdf = mat.getBSDF(shader_data, mat_ctx);
+		BSDF bsdf = mat.getBSDF(shader_data, MaterialEvalContext(*this));
 
 		return bsdf;
 	}
@@ -107,4 +105,4 @@ namespace KittlesPT
 		}
 		return Ray(ray_orig, normalize(target - ray_orig));
 	}
-}
+}/*KittlesPT*/

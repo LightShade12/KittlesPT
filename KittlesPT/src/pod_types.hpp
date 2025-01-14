@@ -19,6 +19,8 @@ namespace KittlesPT
 		int max_bounce_depth = 3;
 		bool generate_bloom = false;
 		bool use_karis_average = false;
+		float bloom_blend = 0.3f;
+		float bloom_internal_blend = 0.75f;
 	};
 
 	struct MaterialSceneEntity
@@ -117,4 +119,4 @@ namespace KittlesPT
 		std::vector<SphereSceneEntity> shape_entities;
 		std::vector<TextureSceneEntity> texture_entities;
 	};
-}
+}/*KittlesPT*/

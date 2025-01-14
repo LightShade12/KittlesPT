@@ -30,7 +30,7 @@ namespace KittlesPT
 	class Ray;
 	class BSDF;
 	class Atmosphere;
-	class LightSampler;
+	class UniformLightSampler;
 	class RGBSpectrum;
 	class IndependentSampler;
 
@@ -48,11 +48,11 @@ namespace KittlesPT
 		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere);
 
 		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
-			const SurfaceInteraction& surface, const LightSampler& light_sampler, IndependentSampler& sampler);
+			const SurfaceInteraction& surface, const UniformLightSampler& light_sampler, IndependentSampler& sampler);
 
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
 
 		//Monte-Carlo estimation; static accumulation
 		__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample);
 	}
-}
+}/*KittlesPT*/

@@ -11,5 +11,5 @@ namespace KittlesPT
 		bool invalid = false;
 	};
 
-	__device__ ShadingJob getShadingJob(const int2& work_texture_size);
-}
+	__device__ ShadingJob getShadingJob(int2 work_texture_size);
+}/*KittlesPT*/

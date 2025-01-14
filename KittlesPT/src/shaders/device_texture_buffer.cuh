@@ -53,4 +53,4 @@ namespace KittlesPT
 		GLuint m_GL_texture = NULL;
 		cudaGraphicsResource* m_graphics_resource = nullptr;
 	};
-}
+}/*KittlesPT*/

@@ -33,14 +33,14 @@ namespace KittlesPT
 			columns[0] = c1; columns[1] = c2; columns[2] = c3;
 		};
 
-		__host__ __device__ Matrix3x3(
+		__host__ __device__ constexpr Matrix3x3(
 			float c1r1, float c1r2, float c1r3,
 			float c2r1, float c2r2, float c2r3,
 			float c3r1, float c3r2, float c3r3)
 		{
-			columns[0] = make_float3(c1r1, c1r2, c1r3);
-			columns[1] = make_float3(c2r1, c2r2, c2r3);
-			columns[2] = make_float3(c3r1, c3r2, c3r3);
+			columns[0] = constexpr_float3(c1r1, c1r2, c1r3);
+			columns[1] = constexpr_float3(c2r1, c2r2, c2r3);
+			columns[2] = constexpr_float3(c3r1, c3r2, c3r3);
 		};
 
 		__host__ __device__ float3& operator [] (size_t idx) {
@@ -108,6 +108,7 @@ namespace KittlesPT
 			Matrix3x3 mat1 = this->transpose();  // rows enabled; interpret as columns
 
 			// Multiply each row with all columns; fill up entire rows
+#pragma unroll
 			for (int rowidx = 0; rowidx < 3; rowidx++) {
 				res[rowidx].x = dot(mat1[rowidx], mat2[0]);
 				res[rowidx].y = dot(mat1[rowidx], mat2[1]);
@@ -268,6 +269,7 @@ namespace KittlesPT
 			Matrix4x4 mat1 = this->transpose();//rows enabled;interpret as columns
 
 			//mult each row with all columns; fillup entire rows
+#pragma unroll
 			for (int rowidx = 0; rowidx < 4; rowidx++) {
 				res[rowidx].x = dot(mat1[rowidx], mat2[0]);
 				res[rowidx].y = dot(mat1[rowidx], mat2[1]);

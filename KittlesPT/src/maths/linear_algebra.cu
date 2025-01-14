@@ -4,23 +4,13 @@
 
 namespace KittlesPT
 {
-	__host__ __device__ float deg2rad(float degree)
-	{
-		return (degree * (Constants::PI / 180.f));
-	}
-
-	__host__ __device__ float Sqr(float v)
-	{
-		return v * v;
-	}
-
 	__device__ float Gaussian(float x, float mu, float sigma)
 	{
-		return (1.0f / sqrtf(2 * Constants::PI * sigma * sigma) *
-			exp(-Sqr(x - mu) / (2 * sigma * sigma)));
+		return (1.0f / sqrtf(2.0f * Constants::PI * sigma * sigma) *
+			expf(-Sqr(x - mu) / (2.0f * sigma * sigma)));
 	}
 
-	__constant__ constexpr float one_minus_epsilon = 0x1.fffffep-1;
+	__constant__ constexpr float ONE_MINUS_EPSILON = 0x1.fffffep-1;
 
 	__device__ float sampleLinear(float u, float a, float b)
 	{
@@ -28,7 +18,7 @@ namespace KittlesPT
 			return 0;
 		}
 		float x = u * (a + b) / (a + sqrtf(lerp(Sqr(a), Sqr(b), u)));
-		return fminf(x, one_minus_epsilon);
+		return fminf(x, ONE_MINUS_EPSILON);
 	}
 
 	__device__ float nextFloatDown(float v)
@@ -75,7 +65,7 @@ namespace KittlesPT
 		}
 
 		if (uRemapped) {
-			*uRemapped = fminf((up - sum) / weights[offset], one_minus_epsilon);
+			*uRemapped = fminf((up - sum) / weights[offset], ONE_MINUS_EPSILON);
 		}
 
 		return offset;

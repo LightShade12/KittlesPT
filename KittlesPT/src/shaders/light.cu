@@ -53,4 +53,4 @@ namespace KittlesPT
 
 		return LightLiSample(Le, wi, ss.wpos, ss.wgnorm, ss.pdf);
 	}
-}
+}/*KittlesPT*/

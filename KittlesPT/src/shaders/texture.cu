@@ -6,6 +6,7 @@
 
 namespace KittlesPT
 {
+	//TODO: replace with CUDA texture memory
 	__device__ TextureEvalContext::TextureEvalContext(const SurfaceInteraction& surf) :
 		wpos(surf.world_position), uv(surf.uv)
 	{}
@@ -16,19 +17,17 @@ namespace KittlesPT
 
 	//=================================================================================================================
 
-	__device__ RGBSpectrum Texture::evaluate(const GlobalShaderData& shader_data, TextureEvalContext ctx)
+	__device__ RGBSpectrum Texture::evaluate(const GlobalShaderData& shader_data, const TextureEvalContext& ctx)
 	{
-		float2 st = make_float2(ctx.uv.x - floorf(ctx.uv.x), ctx.uv.y - floorf(ctx.uv.y));
-
 		if (pixel_buffer_index < 0 || pixel_buffer_index >= shader_data.pixel_buffer.num)
 		{
 			return RGBSpectrum(0.0f);
 		}
 
-		unsigned char* px_buff = &shader_data.pixel_buffer.data[pixel_buffer_index];
-		size_t px_stride = channel_count * (bit_depth / 8); // `bit_depth` must be a multiple of 8
+		size_t px_stride = channel_count * (bit_depth / 8); // `bit_depth` is a guarenteed multiple of 8
 		size_t row_stride = width * px_stride;
 
+		float2 st = make_float2(ctx.uv.x - floorf(ctx.uv.x), ctx.uv.y - floorf(ctx.uv.y));
 		int x = int(st.x * width) % width;
 		int y = int(st.y * height) % height;
 
@@ -42,14 +41,13 @@ namespace KittlesPT
 			return RGBSpectrum(0.0f);
 		}
 
+		unsigned char* px_buff = &shader_data.pixel_buffer.data[pixel_buffer_index];
 		unsigned char* triplet_buff = &px_buff[px_offset];
 
-		RGBSpectrum rgb = RGBSpectrum(
-			triplet_buff[0] / 255.0f,
-			triplet_buff[1] / 255.0f,
-			triplet_buff[2] / 255.0f
+		return RGBSpectrum(
+			triplet_buff[0] * Constants::INV_255,
+			triplet_buff[1] * Constants::INV_255,
+			triplet_buff[2] * Constants::INV_255
 		);
-
-		return rgb;
 	}
-}
+}/*KittlesPT*/

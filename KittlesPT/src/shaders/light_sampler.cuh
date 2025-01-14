@@ -31,11 +31,11 @@ namespace KittlesPT
 	//--------------------------------------------------------------------------
 
 	//The Uniform light sampler
-	class LightSampler
+	class UniformLightSampler
 	{
 	public:
 
-		__device__ LightSampler(const Light* lights_buffer,
+		__device__ UniformLightSampler(const Light* lights_buffer,
 			size_t lights_buffer_size) :
 			lights_buffer(lights_buffer),
 			lights_buffer_size(lights_buffer_size) {};
@@ -53,4 +53,4 @@ namespace KittlesPT
 		const size_t lights_buffer_size = 0;
 		const Light* lights_buffer = nullptr;
 	};
-}
+}/*KittlesPT*/

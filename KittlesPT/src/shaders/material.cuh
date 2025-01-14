@@ -1,5 +1,5 @@
 #pragma once
-#include "maths/vector_maths.cuh"
+#include <vector_types.h>
 
 namespace KittlesPT
 {
@@ -10,7 +10,7 @@ namespace KittlesPT
 	struct MaterialEvalContext
 	{
 		__device__ explicit MaterialEvalContext(const SurfaceInteraction& surf);
-		
+
 		float2 uv;
 		float3 wpos;
 		float3 wgnorm;
@@ -41,13 +41,13 @@ namespace KittlesPT
 		__device__ BSDF getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx) const;
 
 		//----
-		float3 albedo = make_float3(0.8f);
+		float3 albedo{ 0.8f,0.8f,0.8f };
 		int albedo_texture_id = -1;
 		float metallicity = 0.0f;
 		float roughness = 0.5f;
 		float transmission = 0.0f;
 		float ior = 1.45f;
-		float3 emissive_factor = make_float3(0.0f);
+		float3 emissive_factor{ 0.0f,0.0f,0.0f };
 		float emission_scale = 1.0f;
 	};
-}
+}/*KittlesPT*/

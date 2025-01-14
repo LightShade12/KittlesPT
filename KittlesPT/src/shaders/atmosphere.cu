@@ -1,5 +1,8 @@
 #include "atmosphere.cuh"
 #include "ray.cuh"
+#include "maths/linear_algebra.cuh"
+#include "maths/constants.cuh"
+#include <cuda/std/span>
 
 namespace KittlesPT
 {
@@ -128,9 +131,9 @@ namespace KittlesPT
 			current_t += step_length;
 		}
 
-		RGBSpectrum col = (sum_R_transmission * betaR_scattering_coeff * phaseR + sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity;
-		//float3 col = (sum_R_transmission * betaR_scattering_coeff * phaseR) * m_sun_intensity;//rayleigh only
-		//float3 col = (sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity; //mie only
-		return col;
+		RGBSpectrum atmosphere_radiance = (sum_R_transmission * betaR_scattering_coeff * phaseR + sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity;
+		//float3 atmosphere_radiance = (sum_R_transmission * betaR_scattering_coeff * phaseR) * m_sun_intensity;//rayleigh only
+		//float3 atmosphere_radiance = (sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity; //mie only
+		return atmosphere_radiance;
 	}
-}
+}/*KittlesPT*/

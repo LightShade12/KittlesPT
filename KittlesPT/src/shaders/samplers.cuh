@@ -43,4 +43,4 @@ namespace KittlesPT
 	__device__ float3 toSphericalDirection(float theta, float phi);
 
 	__device__ float3 sampleUniformCone(float2 u, float cos_theta_max);
-}
+}/*KittlesPT*/

@@ -42,4 +42,4 @@ namespace KittlesPT
 		float distance = -1;
 		int instance_id = -1;
 	};
-}
+}/*KittlesPT*/

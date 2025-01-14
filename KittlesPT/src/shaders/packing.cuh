@@ -70,4 +70,4 @@ namespace KittlesPT
 		* variance estimates
 		*/
 	};
-}
+}/*KittlesPT*/

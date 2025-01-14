@@ -1,6 +1,5 @@
 #pragma once
 #include "maths/matrix_maths.cuh"
-#include "maths/constants.cuh"
 #include "color.cuh"
 
 namespace KittlesPT
@@ -14,7 +13,8 @@ namespace KittlesPT
 	{
 		BSDFSample() = default;
 
-		__device__ BSDFSample(int scatter, RGBSpectrum f, float3 wi, float pdf) :scatter(scatter), f(f), wi(wi), pdf(pdf) {};
+		__device__ BSDFSample(int scatter, RGBSpectrum f, float3 wi, float pdf) :
+			scatter(scatter), f(f), wi(wi), pdf(pdf) {};
 
 		__device__ bool scatterTypeIs(int flag) const
 		{
@@ -33,9 +33,9 @@ namespace KittlesPT
 		};
 
 		int scatter = Absorbed;
-		RGBSpectrum f = RGBSpectrum(0);
-		float3 wi{};
-		float pdf = 0;
+		RGBSpectrum f{ 0.0f,0.0f,0.0f };
+		float3 wi{ 0.0f, 0.0f, 0.0f };
+		float pdf = 0.0f;
 	};
 
 	//===================================================================================================================================================
@@ -44,24 +44,30 @@ namespace KittlesPT
 	{
 	public:
 
-		__device__ BSDF(float3 t, float3 b, float3 n) :tangent_matrix(Mat3(t, b, n)) {};
+		__device__ BSDF(float3 t, float3 b, float3 n) :m_tangent_basis(Mat3(t, b, n)) {};
 
 		__device__ BSDF(const Mat3& tangent_basis,
-			float3 albedo,
+			RGBSpectrum albedo,
 			float metallicity,
 			float roughness,
 			float transmission,
 			float ior,
 			bool is_backface);
 
+		//------------------------------------
+
 		__device__ RGBSpectrum f(float3 r_wo, float3 r_wi) const;
 
 		__device__ float pdf(float3 r_wo, float3 r_wi) const;
 
-		__device__ BSDFSample sampleBSDF(float3 w_wo, float2 u2, float2 X2) const;
+		__device__ BSDFSample sampleF(float3 w_wo, float2 u2, float2 X2) const;
 
 		__device__ bool operator! () {
-			return is_medium;
+			return m_is_medium;
+		}
+
+		__device__ RGBSpectrum getAlbedo() {
+			return m_albedo_factor;
 		}
 
 	private:
@@ -87,38 +93,36 @@ namespace KittlesPT
 
 		__device__ float pdfTransparentDielectric(float3 wo, float3 wi) const;
 
-		//BRDFs========================================================
-		//diffuse brdf
+		//BxDFs========================================================
+		//diffuse BRDF
 		__device__ float3 sampleDiffuseBRDF(float2 u2) const;
 
 		__device__ float fDiffuseBRDF(float3 wo, float3 wi) const;
 
 		__device__ float pdfDiffuseBRDF(float3 wo, float3 wi) const;
 
-		//microfacet glossy brdf
+		//microfacet glossy BRDF
 		__device__ float3 sampleGlossyMicrofacetBRDF_VNDF(float3 wo, float2 u2) const;
 
 		__device__ RGBSpectrum  fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
 
 		__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 h) const;
 
-		//microfacet glossy btdf
+		//microfacet glossy BTDF
 		__device__ float pdfGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
 
 		__device__ RGBSpectrum fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const;
 
 		//---------------------------------------------------------------------------------------------------
 
-	public:
-
-		RGBSpectrum albedo_factor = RGBSpectrum(1, 0, 0);//reflectance spectrum
-		float roughness = 0.5f;//alpha_x alpha_y TODO: anisotropy
-		float metallicity = 0.0f;
-		float transmission = 0.0f;
-		float IOR = 1.45f;//eta
-		bool backface = false;
-		bool is_medium = false;
-
-		Mat3 tangent_matrix;
+	private:
+		Mat3 m_tangent_basis;
+		RGBSpectrum m_albedo_factor{ 1.0f,0.0f,1.0f };//reflectance spectrum
+		float m_roughness = 0.5f;//alpha_x alpha_y TODO: anisotropy
+		float m_metallicity = 0.0f;
+		float m_transmission = 0.0f;
+		float m_IOR = 1.45f;//eta
+		bool m_is_backface = false;
+		bool m_is_medium = false;
 	};
-}
+}/*KittlesPT*/

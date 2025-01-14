@@ -99,7 +99,7 @@
       <FastMath>true</FastMath>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
-      <AdditionalOptions>-diag-suppress 20012 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-diag-suppress 20012 --std=c++17 %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -122,6 +122,7 @@
     <ClInclude Include="src\shaders\interaction.cuh" />
     <ClInclude Include="src\shaders\light.cuh" />
     <ClInclude Include="src\shaders\light_sampler.cuh" />
+    <CudaCompile Include="src\shaders\filter.cu" />
     <CudaCompile Include="src\shaders\integrator.cu" />
     <CudaCompile Include="src\shaders\interaction.cu" />
     <CudaCompile Include="src\shaders\light.cu" />

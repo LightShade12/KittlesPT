@@ -8,7 +8,7 @@
 //#define __CUDACC__
 //#include <device_functions.h>
 
-#include <cuda_runtime_api.h>//should be used instead of device_fnctions.h
+#include <cuda_runtime_api.h>//should be used instead of device_functions.h
 
 #include <iostream>
 
@@ -20,26 +20,25 @@ namespace KittlesPT
 
 	__device__ void DeviceTextureBuffer::textureWrite(float4 value, int2 pixel_coord) const
 	{
-		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
+		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y, cudaBoundaryModeZero);
 	}
 
 	__device__ void DeviceTextureBuffer::textureWriteUV(float4 value, float2 uv_coord) const
 	{
 		int2 pixel_coord = make_int2(uv_coord * dimensions);
-		pixel_coord = clamp(pixel_coord, make_int2(0, 0), dimensions - 1);
-		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
+		surf2Dwrite<float4>(value, m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y, cudaBoundaryModeZero);
 	}
 
 	__device__ float4 DeviceTextureBuffer::textureReadNearest(float2 pixel_coord) const
 	{
-		return surf2Dread<float4>(m_surface_object, int(pixel_coord.x) * (int)sizeof(float4), int(pixel_coord.y));
+		return surf2Dread<float4>(m_surface_object, int(pixel_coord.x) * (int)sizeof(float4), int(pixel_coord.y), cudaBoundaryModeClamp);
 	}
 
 	__device__ float4 DeviceTextureBuffer::textureReadNearestUV(float2 uv_coord) const
 	{
 		int2 pixel_coord = make_int2(uv_coord * dimensions);
-		pixel_coord = clamp(pixel_coord, make_int2(0, 0), dimensions - 1);
-		return surf2Dread<float4>(m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y);
+		//pixel_coord = clamp(pixel_coord, make_int2(0, 0), dimensions - 1);
+		return surf2Dread<float4>(m_surface_object, pixel_coord.x * (int)sizeof(float4), pixel_coord.y, cudaBoundaryModeClamp);
 	}
 
 	__device__ float4 DeviceTextureBuffer::textureReadBilinear(float2 pixel_coord, float filter_alpha) const
@@ -57,10 +56,10 @@ namespace KittlesPT
 		int2 discrete = make_int2(pixel_coord);
 
 		//tap coord components
-		int s0 = clamp(discrete.x, 0, dimensions.x - 1);
-		int s1 = clamp(discrete.x + 1, 0, dimensions.x - 1);
-		int t0 = clamp(discrete.y, 0, dimensions.y - 1);
-		int t1 = clamp(discrete.y + 1, 0, dimensions.y - 1);
+		int s0 = discrete.x;
+		int s1 = discrete.x + 1;
+		int t0 = discrete.y;
+		int t1 = discrete.y + 1;
 
 		float ws = pixel_coord.x - discrete.x;
 		float wt = pixel_coord.y - discrete.y;
@@ -85,7 +84,6 @@ namespace KittlesPT
 	__device__ float4 DeviceTextureBuffer::textureReadBilinearUV(float2 uv_coord, float filter_alpha) const
 	{
 		float2 pixel_coord = uv_coord * dimensions;
-		pixel_coord = clamp(pixel_coord, make_float2(0), make_float2(dimensions - 1));
 		return textureReadBilinear(pixel_coord, filter_alpha);
 	}
 
@@ -194,4 +192,4 @@ namespace KittlesPT
 			fprintf(stderr, "[TEXCOPY_TO_OBJECT]: %s\n", glErrorString(err));
 		}
 	}
-}
+}/*KittlesPT*/

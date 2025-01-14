@@ -178,4 +178,4 @@ namespace KittlesPT
 		gb.depth = uintBitsToFloat(in.w);
 		return gb;
 	}
-}
+}/*KittlesPT*/

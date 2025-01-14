@@ -56,4 +56,4 @@ namespace KittlesPT
 		float3 world_position;
 		float radius = 1;
 	};
-}
+}/*KittlesPT*/

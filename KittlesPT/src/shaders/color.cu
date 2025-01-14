@@ -63,4 +63,4 @@ namespace KittlesPT
 	{
 		return RGBSpectrum(KittlesPT::clampOutput(toFloat3()));
 	}
-}
+}/*KittlesPT*/

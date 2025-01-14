@@ -123,7 +123,7 @@ namespace KittlesPT
 
 		//-------------------------
 
-		m_renderer_data->shader_global_data.scene_camera = Camera(make_float3(0), make_float3(0, 0, -1));
+		m_renderer_data->shader_global_data.scene_camera = Camera(make_float3(0));
 	}
 	void Renderer::shutdown()
 	{
@@ -138,7 +138,6 @@ namespace KittlesPT
 		{
 			return;
 		}
-
 		m_width = width; m_height = height;
 		m_renderer_data->shader_global_data.frame_resolution = make_int2(m_width, m_height);
 		glm::mat4 view = glm::mat4

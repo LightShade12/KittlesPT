@@ -61,16 +61,16 @@ namespace KittlesPT
 			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0);
-			const float3 sun_direction = atmosphere.m_sun_direction;
-			float3 sun_position = sun_direction * SUN_DISTANCE_METERS;
+			const float3 sun_direction = atmosphere.getSunDirection();
+			float3 sun_position = sun_direction * SUN_VISIBILITY_DISTANCE_METERS;
 			float sun_radius = angularDiameterToPhysicalDiameter(
 				shader_data.procedural_environment_data.sun_angular_diameter_rad,
-				SUN_DISTANCE_METERS) / 2.0f;
+				SUN_VISIBILITY_DISTANCE_METERS) / 2.0f;
 			float3 sample_offset = make_float3(sampler.get2D() * 2 - 1, sampler.get1D() * 2 - 1);
 			float3 target = sun_position + (sample_offset * sun_radius);
 
 			float3 wo = -ray.getDirection();
-			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
+			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
 
 			RGBSpectrum fcos = bsdf.f(wo, sun_direction) *
 				fmaxf(0, dot(sun_direction, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));
@@ -95,7 +95,7 @@ namespace KittlesPT
 			float sun_area = Constants::PI * Sqr(sun_radius);
 			float3 sun_n = normalize(target - sun_position), wi = normalize(target - surface.world_position);
 			float cos_sun = AbsDot(sun_n, -wi);
-			float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_DISTANCE_METERS));
+			float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_VISIBILITY_DISTANCE_METERS));
 			//TODO: pbr values; better sun sampling/pdf
 			Ld = (fcos * sun_color * 5000.0f * shader_data.procedural_environment_data.sun_radiance_intensity) / pdf;
 
@@ -103,7 +103,7 @@ namespace KittlesPT
 		}
 
 		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
-			const SurfaceInteraction& surface, const LightSampler& light_sampler, IndependentSampler& sampler)
+			const SurfaceInteraction& surface, const UniformLightSampler& light_sampler, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0);
 
@@ -147,38 +147,36 @@ namespace KittlesPT
 
 		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
 		{
-			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
+			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
 			constexpr float SUN_BRIGHTNESS_FACTOR = 10.0f;
 
 			float min_similarity_threshold = cosf(shader_data.procedural_environment_data.sun_angular_diameter_rad / 2.0f);
-			float similarity = dot(ray.getDirection(), atmosphere.m_sun_direction);
+			float similarity = dot(ray.getDirection(), atmosphere.getSunDirection());
 			float shape_mask_factor = (similarity > min_similarity_threshold) ? 1 : 0;//step
 
 			RGBSpectrum sampled_sun_col = atmosphere.sampleLe(atmosphere_observer_position,
-				atmosphere.m_sun_direction, 0, INFINITY);
+				atmosphere.getSunDirection(), 0, INFINITY);
 
 			return sampled_sun_col * (shader_data.procedural_environment_data.sun_radiance_intensity * SUN_BRIGHTNESS_FACTOR) * shape_mask_factor;
 		}
 
-		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in,
-			IndependentSampler& sampler, GBuffer* visible_surface)
+		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
 		{
 			RGBSpectrum light(0.0f);//L
 			RGBSpectrum throughput(1.0f);//beta
-			const int MAX_RAY_DEPTH = shader_data.pathtracer_settings.max_bounce_depth;
+			const int max_ray_depth = shader_data.pathtracer_settings.max_bounce_depth;
 			float eta_scale = 1.0;
 			float p_b = 1.0f;
-			LightSampleContext prev_ctx;
+			LightSampleContext prev_ctx{};
 
 			//TODO:store in heap
 			float3 sun_direction = sphericalToSunDirection(shader_data.procedural_environment_data.sun_theta_rad, shader_data.procedural_environment_data.sun_phi_rad);
 			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_radiance_intensity);
-			float3 atmosphere_observer_position = make_float3(0, atmosphere.m_earth_radius + 1, 0);
-			LightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
+			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
+			UniformLightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
 			Ray ray = ray_in;
-
-			for (int bounce_depth = 0; bounce_depth <= MAX_RAY_DEPTH; bounce_depth++)
+			for (int bounce_depth = 0; bounce_depth <= max_ray_depth; bounce_depth++)
 			{
 				sampler.setSeed(sampler.getSeed() + bounce_depth); bool first_surface = (bounce_depth == 0);
 
@@ -186,7 +184,7 @@ namespace KittlesPT
 
 				//Sample participating media here--
 
-				//Handle interaction with a medium; else--
+				//Handle interaction with a medium; else surface scatter--
 
 				if (!intr)
 				{
@@ -209,8 +207,7 @@ namespace KittlesPT
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
 				//Sample Le from surface
-				RGBSpectrum Le = surfintr.Le(shader_data, ray);
-				if (Le)
+				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le)
 				{
 					const Light* arealight = surfintr.light;
 					float w_l = 1.0f;
@@ -232,10 +229,10 @@ namespace KittlesPT
 				if (first_surface)
 				{
 					//using texture diffuse albedo for reflectance estimate
-					*visible_surface = GBuffer(bsdf.albedo_factor, surfintr);
+					*visible_surface = GBuffer(bsdf.getAlbedo(), surfintr);
 				}
 
-				//add regularize() here
+				//add regularize() here---
 
 				RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
@@ -244,7 +241,7 @@ namespace KittlesPT
 				light += Ld_sun * throughput;
 
 				float3 wo = -ray.getDirection();
-				BSDFSample bs = bsdf.sampleBSDF(wo, sampler.get2D(), sampler.get2D());
+				BSDFSample bs = bsdf.sampleF(wo, sampler.get2D(), sampler.get2D());
 				if (bs.scatterTypeIs(BSDFSample::Absorbed))
 				{
 					break;

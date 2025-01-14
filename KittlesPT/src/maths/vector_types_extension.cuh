@@ -1493,4 +1493,7 @@ inline __host__ __device__ bool operator==(float3 a, float3 b)
 	return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
 }
 
+inline constexpr __host__ __device__ float3 constexpr_float3(float x, float y, float z) {
+	return { x, y, z };
+}
 #endif //HELPER_MATH_H

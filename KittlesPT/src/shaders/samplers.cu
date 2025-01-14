@@ -79,4 +79,4 @@ namespace KittlesPT
 		float phi = u.y * 2 * Constants::PI;
 		return toSphericalDirection(sin_theta, cos_theta, phi);
 	}
-}
+}/*KittlesPT*/

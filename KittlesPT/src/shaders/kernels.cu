@@ -122,7 +122,7 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 
 	if (shader_data.pathtracer_settings.generate_bloom) {
 		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));
-		raw_radiance = lerp(raw_radiance, bloom_radiance, 0.3f);
+		raw_radiance = lerp(raw_radiance, bloom_radiance, shader_data.pathtracer_settings.bloom_blend);
 	}
 
 	//post process
@@ -130,4 +130,4 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(raw_radiance);
 
 	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1), shading_job.uv_coord);
-}
+}/*KittlesPT*/

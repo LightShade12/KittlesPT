@@ -6,8 +6,10 @@ int main()
 	fprintf(stdout, "Initializing app\n");
 
 	SampleAppGUI::GUIApplication application;
-	application.window_settings.window_title = "main window";
-	application.window_settings.initial_window_width = 764;
+	application.window_settings.window_title = "KittlesPT";
+	//application.window_settings.initial_window_width = 760;
+	application.window_settings.initial_window_width = 960;
+	application.window_settings.initial_window_height = 540;
 
 	application.init(std::make_shared<SampleApp::SampleAppWindow>());
 

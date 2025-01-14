@@ -4,7 +4,7 @@
 namespace KittlesPT
 {
 	//sample a light
-	__device__ SampledLight LightSampler::sample(const float X) const
+	__device__ SampledLight UniformLightSampler::sample(const float X) const
 	{
 		//handle empty buffer
 		if (lights_buffer_size < 1)
@@ -20,7 +20,7 @@ namespace KittlesPT
 	}
 
 	//probability of sampling the light
-	__device__ float LightSampler::PMF(const Light* light) const
+	__device__ float UniformLightSampler::PMF(const Light* light) const
 	{
 		//handle empty buffer
 		if (lights_buffer_size < 1)
@@ -29,4 +29,4 @@ namespace KittlesPT
 		}
 		return (1.0f / lights_buffer_size);
 	}
-}
+}/*KittlesPT*/

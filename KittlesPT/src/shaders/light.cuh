@@ -85,4 +85,4 @@ namespace KittlesPT
 		float emission_scale;
 		float area;
 	};
-}
+}/*KittlesPT*/
