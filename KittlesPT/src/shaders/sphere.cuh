@@ -1,4 +1,6 @@
 #pragma once
+#include "maths/constants.cuh"
+#include "maths/linear_algebra.cuh"
 
 #include <vector_types.h>
 
@@ -46,14 +48,20 @@ namespace KittlesPT
 
 		__device__ ShapeSample sample(float2 u2, ShapeSampleContext ctx) const;
 
-		__host__ __device__ float getArea() const;
+		__host__ __device__ float getArea() const
+		{
+			return 4.0f * Constants::PI * Sqr(radius);
+		}
 
-		__host__ __device__ float getProjectedArea() const;
+		__host__ __device__ float getProjectedArea() const
+		{
+			return Constants::PI * Sqr(radius);
+		}
 
 	public:
 		int material_id = -1;
 		int light_id = -1;
 		float3 world_position;
-		float radius = 1;
+		float radius = 1.0f;
 	};
 }/*KittlesPT*/

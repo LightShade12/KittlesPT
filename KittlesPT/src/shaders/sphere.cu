@@ -1,11 +1,7 @@
 #include "sphere.cuh"
-
 #include "interaction.cuh"
-
 #include "samplers.cuh"
 #include "ray.cuh"
-#include "maths/linear_algebra.cuh"
-#include "maths/constants.cuh"
 #include "light.cuh"
 
 #include <cuda/std/span>
@@ -51,7 +47,6 @@ namespace KittlesPT
 		return intr;
 	}
 
-
 	__device__ ShapeSample Sphere::sample(float2 u2) const
 	{
 		ShapeSample ss;
@@ -86,15 +81,5 @@ namespace KittlesPT
 		float pdf = 1.0f / (2.0f * Constants::PI * oneMinusCosThetaMax);
 
 		return ShapeSample(p, n, pdf);
-	}
-
-	__host__ __device__ float Sphere::getArea() const
-	{
-		return 4.0f * Constants::PI * Sqr(radius);
-	}
-
-	__host__ __device__ float Sphere::getProjectedArea() const
-	{
-		return Constants::PI * Sqr(radius);
 	}
 }/*KittlesPT*/

@@ -6,11 +6,6 @@
 
 namespace KittlesPT
 {
-	__device__ bool Intersection::operator!()
-	{
-		return (instance_id < 0);
-	}
-
 	__device__ SurfaceInteraction Intersection::getSurfaceInteraction(const GlobalShaderData& shader_data, const Ray& ray)
 	{
 		SurfaceInteraction surfintr;
@@ -30,7 +25,7 @@ namespace KittlesPT
 		}
 
 		if (sphere.light_id >= 0) {
-			surfintr.light = &(shader_data.lights_buffer.data[sphere.light_id]);
+			surfintr.arealight = &(shader_data.lights_buffer.data[sphere.light_id]);
 		}
 
 		float3 p = (surfintr.world_position - sphere.world_position) / sphere.radius;
@@ -48,7 +43,7 @@ namespace KittlesPT
 	__device__ RGBSpectrum SurfaceInteraction::Le(const GlobalShaderData& shader_data, const Ray& ray) const
 	{
 		RGBSpectrum emission(0);
-		if (!light)
+		if (!arealight)
 		{
 			return emission;
 		}
@@ -74,14 +69,13 @@ namespace KittlesPT
 			offset *= -1.0f;
 		}
 		float3 orig = world_position + offset;
-		float3 dir = ray->getDirection();
-		*ray = Ray(orig, dir);
+		*ray = Ray(orig, ray->getDirection());
 	}
 
 	__device__ Ray SurfaceInteraction::spawnRay(float3 wi, int scatter_flags) const
 	{
 		float3 ray_orig;
-		if (scatter_flags & BSDFSample::Scatter::Transmitted)
+		if (scatter_flags & BSDFSample::Transmitted)
 		{
 			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
 		}

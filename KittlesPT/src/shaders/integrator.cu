@@ -209,7 +209,7 @@ namespace KittlesPT
 				//Sample Le from surface
 				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le)
 				{
-					const Light* arealight = surfintr.light;
+					const Light* arealight = surfintr.arealight;
 					float w_l = 1.0f;
 					if (arealight && !first_surface) {
 						float light_pdf = light_sampler.PMF(arealight) * arealight->pdf_Li(prev_ctx, LightLiSample(surfintr));

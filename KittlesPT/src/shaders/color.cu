@@ -56,11 +56,4 @@ namespace KittlesPT
 	{
 		return convertXYZ2RGB(convertYxy2XYZ(_Yxy));
 	}
-
-	//RGB SPECTRUM=========================================================
-
-	__device__ RGBSpectrum RGBSpectrum::clampOutput()
-	{
-		return RGBSpectrum(KittlesPT::clampOutput(toFloat3()));
-	}
 }/*KittlesPT*/

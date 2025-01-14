@@ -1,4 +1,5 @@
 #pragma once
+#include "maths/constants.cuh"
 #include <cuda_runtime.h>
 #include <cstdint>
 
@@ -7,25 +8,42 @@ namespace KittlesPT
 	class RNG
 	{
 	public:
-		__device__ uint32_t pcg_hash(uint32_t input);
+		inline __device__ uint32_t pcg_hash(uint32_t input)
+		{
+			uint32_t state = input * 747796405u + 2891336453u;
+			uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+			return (word >> 22u) ^ word;
+		}
 	};
 
 	class IndependentSampler
 	{
 	public:
 
-		__device__ void initPixelSeed(int2 pixel, int width, int index, int dimension = 0);
+		inline __device__ void initPixelSeed(int2 pixel, int width, int index, int dimension = 0)
+		{
+			m_seed = pixel.x + pixel.y * width;
+			m_seed *= (index == 0) ? 1.0f : index;
+			m_seed += dimension;
+		}
 
-		__device__ float get1D();
+		inline __device__ float get1D()
+		{
+			m_seed = m_rng.pcg_hash(m_seed);
+			return (float)m_seed * Constants::INV_UINT32MAX;
+		}
 
-		__device__ uint32_t getSeed() { return seed; }
-		__device__ void setSeed(uint32_t x) { seed = x; }
+		__device__ float2 get2D()
+		{
+			return make_float2(get1D(), get1D());
+		}
 
-		__device__ float2 get2D();
+		__device__ uint32_t getSeed() { return m_seed; }
+		__device__ void setSeed(uint32_t v) { m_seed = v; }
 
-	public:
-		uint32_t seed;
-		RNG rng;
+	private:
+		uint32_t m_seed;
+		RNG m_rng;
 	};
 
 	//TODO: learn more about these

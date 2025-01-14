@@ -1,12 +1,14 @@
 #pragma once
 #include "color.cuh"
+#include "interaction.cuh"
+#include "maths/constants.cuh"
+
 #include <vector_types.h>
 #include <cuda_runtime.h>
 
 namespace KittlesPT
 {
 	class Sphere;
-	struct SurfaceInteraction;
 	struct GlobalShaderData;
 
 	//Surface data type; passed to sampler
@@ -14,7 +16,9 @@ namespace KittlesPT
 	{
 		LightSampleContext() = default;
 
-		__device__ explicit LightSampleContext(const SurfaceInteraction& si);
+		explicit __device__ LightSampleContext(const SurfaceInteraction& si) :
+			w_pos(si.world_position), wgnorm(si.world_geometric_normal)
+		{};
 
 		//----------------------------------
 
@@ -36,7 +40,9 @@ namespace KittlesPT
 			: L(L), wi(wi), wpos_light(pLight), wgnorm(gwn), pdf(pdf)
 		{}
 
-		__device__ explicit LightLiSample(const SurfaceInteraction& surf);
+		__device__ explicit LightLiSample(const SurfaceInteraction& surf)
+			: wpos_light(surf.world_position), wgnorm(surf.world_geometric_normal), L(0.0f)
+		{}
 
 		//op---------------------------------------
 
@@ -48,11 +54,11 @@ namespace KittlesPT
 		//---------------------------------------
 
 		//TODO: can add float2 uv, float3 wo via Interaction struct
-		float3 wpos_light;
-		float3 wgnorm;
+		float3 wpos_light{ 0.0f,0.0f,0.0f };
+		float3 wgnorm{ 0.0f,0.0f,0.0f };
 
 		RGBSpectrum L;
-		float3 wi{};
+		float3 wi{ 0.0f,0.0f,0.0f };
 		float pdf = 0;
 	};
 
@@ -62,27 +68,32 @@ namespace KittlesPT
 	class Light
 	{
 	public:
-		//ctor-------------------------------------------------------------------------
 		__host__ __device__ Light(float area, int prim_id, float3 color, float power) :
 			L_emit(color), emission_scale(power), prim_id(prim_id), area(area) {};
 
 		//----------------------------------------------------------------------------
 
-		__device__ RGBSpectrum L(float3 p, float3 n, float3 wi) const;
+		__device__ RGBSpectrum L(float3 p, float3 n, float3 wi) const
+		{
+			return L_emit * emission_scale;
+		};
 
 		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
 
 		//TODO: maybe consider allowing this method to test intersection on its shape for bug free, reliable operation
 		__device__ float pdf_Li(const LightSampleContext& ctx, const LightLiSample& confirmed_ls) const;
 
-		__device__ float phi();
+		__device__ float phi()
+		{
+			return (Constants::PI * 2.0f * area * L_emit * emission_scale);
+		}
 
 		//-----------------------------------------------------------------------------
 
 		int prim_id = -1;
 	private:
 		RGBSpectrum L_emit;
-		float emission_scale;
-		float area;
+		float emission_scale = 0.0f;
+		float area = 0.0f;
 	};
 }/*KittlesPT*/

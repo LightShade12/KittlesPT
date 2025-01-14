@@ -71,7 +71,7 @@ namespace KittlesPT
 
 		//Fifth order
 // Mean error^2: 3.6705141e-06
-		__device__ float3 agxDefaultContrastApprox(float3 x)
+		__device__ inline float3 agxDefaultContrastApprox(float3 x)
 		{
 			float3 x2 = x * x;
 			float3 x4 = x2 * x2;

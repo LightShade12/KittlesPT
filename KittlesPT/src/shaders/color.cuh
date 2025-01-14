@@ -175,16 +175,19 @@ namespace KittlesPT
 		//================================================================================================================
 
 		//max val=1000
-		__device__ RGBSpectrum clampOutput();
+		__device__ RGBSpectrum clampOutput()
+		{
+			return RGBSpectrum(KittlesPT::clampOutput(toFloat3()));
+		}
 
-		__device__  float maxComponentValue()
+		__device__ float maxComponentValue()
 		{
 			return fmaxf(r, fmaxf(g, b));
 		}
 
 		__device__ float Average() const
 		{
-			return (r + g + b) / 3;
+			return (r + g + b) / 3.0f;
 		}
 
 		//for readonly
