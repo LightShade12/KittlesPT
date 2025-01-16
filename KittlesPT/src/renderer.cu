@@ -270,9 +270,24 @@ namespace KittlesPT
 		return m_renderer_data->shader_global_data.pathtracer_settings;
 	}
 
-	void Renderer::setExposure(float exposure)
+	float getSaturationBasedExposure(float aperture, float shutterSpeed, float iso)
 	{
-		m_renderer_data->shader_global_data.scene_camera.film.exposure = exposure;
+		float l_max = (7800.0f / 65.0f) * Sqr(aperture) / (iso * shutterSpeed);
+		return 1.0f / l_max;
+	}
+
+	float getStandardOutputBasedExposure(float aperture,
+		float shutterSpeed,
+		float iso,
+		float middleGrey = 0.18f)
+	{
+		float l_avg = (1000.0f / 65.0f) * Sqr(aperture) / (iso * shutterSpeed);
+		return middleGrey / l_avg;
+	}
+
+	void Renderer::setExposure(float aperture_f_num, float shutter_speed_sec, float iso)
+	{
+		m_renderer_data->shader_global_data.scene_camera.film.exposure_EV = getSaturationBasedExposure(aperture_f_num, shutter_speed_sec, iso);
 		resetAccumulation();
 	}
 

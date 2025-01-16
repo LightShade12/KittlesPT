@@ -100,13 +100,21 @@ namespace SampleApp
 	{
 		return m_fov_y_rad;
 	}
-	float CameraController::getExposure()
+	float CameraController::getISO()
 	{
-		return m_exposure;
+		return m_ISO;
 	}
-	void CameraController::setExposure(float exposure)
+	void CameraController::setISO(float ISO)
 	{
-		m_exposure = exposure;
+		m_ISO = ISO;
+	}
+	void CameraController::setShutterSpeedSec(float secs)
+	{
+		m_shutter_sec = secs;
+	}
+	void CameraController::setApertureNumber(float f_num)
+	{
+		m_aperture_num = f_num;
 	}
 	void CameraController::setVerticalFOV_Radians(float fov_y_rad)
 	{

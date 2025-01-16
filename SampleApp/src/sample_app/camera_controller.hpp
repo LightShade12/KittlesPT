@@ -13,12 +13,19 @@ namespace SampleApp
 		bool processInput(GLFWwindow* window_ctx, float delta_ts_ms);
 		glm::mat4 getViewMatrix();
 		float getVerticalFOV_Radians();
-		float getExposure();
-		void setExposure(float exposure);
+		float getISO();
+		float getShutterSpeedSec() { return m_shutter_sec; };
+		float getApertureNumber() { return m_aperture_num; };
+
+		void setISO(float ISO);
+		void setShutterSpeedSec(float secs);
+		void setApertureNumber(float f_num);
 		void setVerticalFOV_Radians(float fov_y_rad);
 
 	private:
-		float m_exposure = 0.001f;//NOTE: does not belong here cleanly; this class should only contain transform relative data
+		float m_ISO = 100.0f;//NOTE: does not belong here cleanly; this class should only contain transform relative data
+		float m_shutter_sec = 1.0f / 20.0f;
+		float m_aperture_num = 11.0f;
 		float m_fov_y_rad = glm::radians(90.0f);
 		float m_movement_speed = 5.0f;
 		float m_rotation_speed = 0.8f;

@@ -5,6 +5,7 @@
 #define GLFW_INCLUDE_NONE //glad loader instead of local gl
 #include "glfw/include/GLFW/glfw3.h"
 #include "glm/glm.hpp"
+#include <vector>
 
 namespace SampleApp
 {
@@ -79,7 +80,12 @@ namespace SampleApp
 			if (camera_controller_ref != nullptr)
 			{
 				float fov_y_rad = camera_controller_ref->getVerticalFOV_Radians();
-				float exposure = camera_controller_ref->getExposure();
+				float aperture_f_num = camera_controller_ref->getApertureNumber();
+				float ISO = camera_controller_ref->getISO();
+				float shutter_speed_sec = camera_controller_ref->getShutterSpeedSec();
+				std::vector<float> cdata = { aperture_f_num,ISO,shutter_speed_sec };
+				int iso = ISO;
+				bool cam_settings_updated = false;
 
 				if (ImGui::BeginTable("cameraedittable", 2))
 				{
@@ -96,12 +102,34 @@ namespace SampleApp
 					};
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Aperture");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					cam_settings_updated |= ImGui::SliderFloat("###aperture_control", &cdata[0], 0.0, 24.0f, "F/%.3f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("ISO");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					if (ImGui::SliderFloat("###exposure_control", &exposure, 0.0, 100.0,
-						"%.3f unitless", ImGuiSliderFlags_Logarithmic)) {
-						event_dispatcher_ref->emitSignal(Event("exposure_changed"), exposure);
+					//cam_settings_updated |= ImGui::SliderFloat("###iso_control", &cdata[1], 100, 10000);
+					if (ImGui::InputInt("###iso_control", &iso, 100, 100)) {
+						cam_settings_updated |= true;
+						iso = glm::max(iso, 0);
+						cdata[1] = iso;
+					};
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Shutter speed");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					cam_settings_updated |= ImGui::SliderFloat("###shutter_control", &cdata[2], 0.001, 10,
+						"%.3f sec", ImGuiSliderFlags_Logarithmic);
+
+					if (cam_settings_updated)
+					{
+						event_dispatcher_ref->emitSignal(Event("exposure_changed"), cdata);
 					};
 
 					ImGui::EndTable();

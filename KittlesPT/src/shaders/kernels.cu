@@ -107,23 +107,6 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 	shader_data.main_texture.textureWriteUV(make_float4(sensor_radiance.toFloat3(), 1), shading_job.uv_coord);
 }
 
-namespace KittlesPT {
-	__device__ float getSaturationBasedExposure(float aperture, float shutterSpeed, float iso)
-	{
-		float l_max = (7800.0f / 65.0f) * Sqr(aperture) / (iso * shutterSpeed);
-		return 1.0f / l_max;
-	}
-
-	__device__ float getStandardOutputBasedExposure(float aperture,
-		float shutterSpeed,
-		float iso,
-		float middleGrey = 0.18f)
-	{
-		float l_avg = (1000.0f / 65.0f) * Sqr(aperture) / (iso * shutterSpeed);
-		return middleGrey / l_avg;
-	}
-}
-
 __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data)
 {
 	using namespace KittlesPT;
@@ -143,10 +126,7 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 	}
 
 	//post process
-	//raw_radiance *= 78.0f / (100.0f * 0.65f) * powf(2.0f, shader_data.scene_camera.film.exposure);//TODO: proper exposure application
-	raw_radiance *= getSaturationBasedExposure(16.0f,
-		1.0f / shader_data.scene_camera.film.exposure,
-		shader_data.scene_camera.film.exposure);//TODO: proper exposure application
+	raw_radiance *= shader_data.scene_camera.film.exposure_EV;//TODO: proper exposure application
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(raw_radiance);
 
 	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1), shading_job.uv_coord);

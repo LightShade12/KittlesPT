@@ -106,7 +106,7 @@ namespace SampleApp
 				0.0f,
 				1.45f,
 				glm::vec3(0.2, 0.7, 1),
-				12.0e4f,
+				35,
 				-1));
 
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 0, -3), 0));
@@ -137,8 +137,11 @@ namespace SampleApp
 		m_event_dispatcher.registerListener(Event("exposure_changed"),
 			Listener([this](const std::any& data)
 				{
-					m_camera.setExposure(std::any_cast<float>(data));
-					m_renderer.setExposure(m_camera.getExposure());
+					auto cdata= std::any_cast<std::vector<float>>(data);
+					m_camera.setApertureNumber(cdata[0]);
+					m_camera.setISO(cdata[1]);
+					m_camera.setShutterSpeedSec(cdata[2]);
+					m_renderer.setExposure(m_camera.getApertureNumber(), m_camera.getShutterSpeedSec(), m_camera.getISO());
 				}));
 
 		m_event_dispatcher.registerListener(Event("material_changed"),
