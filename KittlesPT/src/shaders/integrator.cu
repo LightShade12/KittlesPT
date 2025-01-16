@@ -97,7 +97,7 @@ namespace KittlesPT
 			float cos_sun = AbsDot(sun_n, -wi);
 			float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_VISIBILITY_DISTANCE_METERS));
 			//TODO: pbr values; better sun sampling/pdf
-			Ld = (fcos * sun_color * 5000.0f * shader_data.procedural_environment_data.sun_radiance_intensity) / pdf;
+			Ld = (fcos * sun_color * shader_data.procedural_environment_data.sun_emission_nits) / pdf;
 
 			return Ld;
 		}
@@ -148,7 +148,7 @@ namespace KittlesPT
 		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
 		{
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
-			constexpr float SUN_BRIGHTNESS_FACTOR = 10.0f;
+			constexpr float SUN_BRIGHTNESS_FACTOR = 1.0f;
 
 			float min_similarity_threshold = cosf(shader_data.procedural_environment_data.sun_angular_diameter_rad / 2.0f);
 			float similarity = dot(ray.getDirection(), atmosphere.getSunDirection());
@@ -157,7 +157,7 @@ namespace KittlesPT
 			RGBSpectrum sampled_sun_col = atmosphere.sampleLe(atmosphere_observer_position,
 				atmosphere.getSunDirection(), 0, INFINITY);
 
-			return sampled_sun_col * (shader_data.procedural_environment_data.sun_radiance_intensity * SUN_BRIGHTNESS_FACTOR) * shape_mask_factor;
+			return sampled_sun_col * (shader_data.procedural_environment_data.sun_emission_nits * SUN_BRIGHTNESS_FACTOR) * shape_mask_factor;
 		}
 
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
@@ -171,7 +171,7 @@ namespace KittlesPT
 
 			//TODO:store in heap
 			float3 sun_direction = sphericalToSunDirection(shader_data.procedural_environment_data.sun_theta_rad, shader_data.procedural_environment_data.sun_phi_rad);
-			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_radiance_intensity);
+			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_emission_nits);
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
 			UniformLightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 

@@ -134,7 +134,7 @@
     <CudaCompile Include="src\shaders\texture.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\kittles_pt\kittles_pt.hpp" />
+    <ClInclude Include="include\kittlesPT\kittlesPT.hpp" />
     <ClInclude Include="src\containers.cuh" />
     <ClInclude Include="src\error_check.cuh" />
     <ClInclude Include="src\maths\constants.cuh" />

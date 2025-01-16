@@ -68,14 +68,14 @@ namespace KittlesPT
 	class Light
 	{
 	public:
-		__host__ __device__ Light(float area, int prim_id, float3 color, float power) :
-			L_emit(color), emission_scale(power), prim_id(prim_id), area(area) {};
+		__host__ Light(float area, int prim_id, float3 color, float power) :
+			L_emit(color), emission_nits(power), prim_id(prim_id), area(area) {};
 
 		//----------------------------------------------------------------------------
 
 		__device__ RGBSpectrum L(float3 p, float3 n, float3 wi) const
 		{
-			return L_emit * emission_scale;
+			return L_emit * emission_nits;
 		};
 
 		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
@@ -85,7 +85,7 @@ namespace KittlesPT
 
 		__device__ float phi()
 		{
-			return (Constants::PI * 2.0f * area * L_emit * emission_scale);
+			return (Constants::PI * 2.0f * area * L_emit * emission_nits);
 		}
 
 		//-----------------------------------------------------------------------------
@@ -93,7 +93,7 @@ namespace KittlesPT
 		int prim_id = -1;
 	private:
 		RGBSpectrum L_emit;
-		float emission_scale = 0.0f;
+		float emission_nits = 0.0f;
 		float area = 0.0f;
 	};
 }/*KittlesPT*/

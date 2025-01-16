@@ -48,6 +48,6 @@ namespace KittlesPT
 		float transmission = 0.0f;
 		float ior = 1.45f;
 		float3 emissive_factor{ 0.0f,0.0f,0.0f };
-		float emission_scale = 1.0f;
+		float emission_scale = 1.0f;//unit: nit(cd/m2) qty name: luminance
 	};
 }/*KittlesPT*/

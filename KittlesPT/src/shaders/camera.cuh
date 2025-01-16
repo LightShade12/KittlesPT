@@ -11,7 +11,7 @@ namespace KittlesPT
 	public:
 		__device__ float3 getDisplayRGB(RGBSpectrum HDR_linear_radiance) const;
 
-		float exposure = 1.0f;
+		float exposure = 0.001f;
 	};
 
 	class Camera
@@ -20,7 +20,7 @@ namespace KittlesPT
 
 		Camera() = default;
 
-		__host__ __device__ Camera(float3 pos) :
+		__host__ Camera(float3 pos) :
 			world_position(pos) {};
 
 		//generate camera rays; -1 => forawrd depth

@@ -48,12 +48,12 @@ namespace KittlesPT
 
 		__device__ ShapeSample sample(float2 u2, ShapeSampleContext ctx) const;
 
-		__host__ __device__ float getArea() const
+		__device__ float getArea() const
 		{
 			return 4.0f * Constants::PI * Sqr(radius);
 		}
 
-		__host__ __device__ float getProjectedArea() const
+		__device__ float getProjectedArea() const
 		{
 			return Constants::PI * Sqr(radius);
 		}

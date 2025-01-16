@@ -98,7 +98,7 @@ namespace SampleApp
 				1.0,
 				1));
 
-			//emissive material
+			//60 watt lightbulb emission
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
 				glm::vec3(0.0, 1.0, 0.0),
 				0.0f,
@@ -106,7 +106,7 @@ namespace SampleApp
 				0.0f,
 				1.45f,
 				glm::vec3(0.2, 0.7, 1),
-				35.0,
+				12.0e4f,
 				-1));
 
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 0, -3), 0));

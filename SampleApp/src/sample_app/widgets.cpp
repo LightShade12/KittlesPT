@@ -96,7 +96,7 @@ namespace SampleApp
 					};
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Exposure");
+					ImGui::Text("ISO");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 					if (ImGui::SliderFloat("###exposure_control", &exposure, 0.0, 100.0,
@@ -158,7 +158,7 @@ namespace SampleApp
 				ImGui::Text("Sun radiance intensity");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderFloat("###sun_radiance_intensity", &env_data.sun_radiance_intensity, 0, 500,
+				env_updated |= ImGui::SliderFloat("###sun_radiance_intensity", &env_data.sun_emission_nits, 0, 10e5f,
 					"%.3f unitless", ImGuiSliderFlags_Logarithmic);
 
 				ImGui::TableNextRow();

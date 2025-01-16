@@ -5,7 +5,7 @@
 #include "event_dispatcher.hpp"
 #include "shared_state.hpp"
 
-#include "kittles_pt/kittles_pt.hpp"
+#include "kittlesPT/kittlesPT.hpp"
 
 namespace SampleApp
 {
