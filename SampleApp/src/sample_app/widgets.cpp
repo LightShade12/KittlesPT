@@ -96,7 +96,7 @@ namespace SampleApp
 					};
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("ISO");
+					ImGui::Text("exposure");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 					if (ImGui::SliderFloat("###exposure_control", &exposure, 0.0, 100.0,

@@ -144,9 +144,7 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 
 	//post process
 	//raw_radiance *= 78.0f / (100.0f * 0.65f) * powf(2.0f, shader_data.scene_camera.film.exposure);//TODO: proper exposure application
-	raw_radiance *= getSaturationBasedExposure(16.0f,
-		1.0f / shader_data.scene_camera.film.exposure,
-		shader_data.scene_camera.film.exposure);//TODO: proper exposure application
+	raw_radiance *= shader_data.scene_camera.film.exposure;//TODO: proper exposure application
 	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(raw_radiance);
 
 	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1), shading_job.uv_coord);

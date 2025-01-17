@@ -18,7 +18,7 @@ namespace SampleApp
 		void setVerticalFOV_Radians(float fov_y_rad);
 
 	private:
-		float m_exposure = 0.001f;//NOTE: does not belong here cleanly; this class should only contain transform relative data
+		float m_exposure = 1.0f;//NOTE: does not belong here cleanly; this class should only contain transform relative data
 		float m_fov_y_rad = glm::radians(90.0f);
 		float m_movement_speed = 5.0f;
 		float m_rotation_speed = 0.8f;

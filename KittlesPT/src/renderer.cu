@@ -212,14 +212,20 @@ namespace KittlesPT
 
 		Material old_mat = m_renderer_data->scene_materials[idx];
 		Material material(
+			old_mat.albedo_texture_id,
 			make_float3(albedo_factor.r, albedo_factor.g, albedo_factor.b),
+			old_mat.ORM_texture_id,
 			metallicity,
 			roughness,
+			old_mat.transmission_texture_id,
 			transmission,
 			ior,
+			old_mat.emission_texture_id,
 			old_mat.emissive_factor,
-			old_mat.emission_scale,
-			old_mat.albedo_texture_id);
+			old_mat.emission_scale_nits,
+			old_mat.normal_texture_id,
+			old_mat.normal_scale
+		);
 		m_renderer_data->scene_materials[idx] = material;
 
 		resetAccumulation();
@@ -235,9 +241,9 @@ namespace KittlesPT
 		}
 		Material mat = m_renderer_data->scene_materials[idx];
 		*albedo_factor = glm::vec3(mat.albedo.x, mat.albedo.y, mat.albedo.z);
-		*metallicity = mat.metallicity;
-		*roughness = mat.roughness;
-		*transmission = mat.transmission;
+		*metallicity = mat.metallic_factor;
+		*roughness = mat.roughness_factor;
+		*transmission = mat.transmission_factor;
 		*ior = mat.ior;
 
 		return true;
@@ -310,17 +316,23 @@ namespace KittlesPT
 
 		printf("loaded %zu textures\nstarting materials\n", m_renderer_data->scene_textures.size());
 
+		//TODO: add utility to convert glm to float3
 		for (const MaterialSceneEntity& mat : parsed_scene.material_entities)
 		{
 			m_renderer_data->scene_materials.push_back(Material(
+				mat.albedo_texture_id,
 				make_float3(mat.albedo_factor.r, mat.albedo_factor.g, mat.albedo_factor.b),
-				mat.metallicity,
-				mat.roughness,
-				mat.transmission,
+				mat.ORM_texture_id,
+				mat.metallic_factor,
+				mat.roughness_factor,
+				mat.transmission_texture_id,
+				mat.transmission_factor,
 				mat.ior,
+				mat.emission_texture_id,
 				make_float3(mat.emission_factor.r, mat.emission_factor.g, mat.emission_factor.b),
-				mat.emission_scale,
-				mat.albedo_tex_id
+				mat.emission_scale_nits,
+				mat.normal_texture_id,
+				mat.normal_scale
 			));
 		}
 
@@ -334,11 +346,12 @@ namespace KittlesPT
 
 			if (is_light)
 			{
+				int prim_id = (int)(m_renderer_data->scene_spheres.size());
 				m_renderer_data->scene_lights.push_back(
 					Light(sphere.getArea(),
-						(int)(m_renderer_data->scene_spheres.size()),
+						prim_id,
 						make_float3(sphere_mat.emission_factor.r, sphere_mat.emission_factor.g, sphere_mat.emission_factor.b),
-						sphere_mat.emission_scale)
+						sphere_mat.emission_scale_nits)
 				);
 				light_id = (int)(m_renderer_data->scene_lights.size() - 1);
 			}

@@ -59,55 +59,50 @@ namespace SampleApp
 			scene.addTexture(texture3);
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(1.0, 1.0, 1.0),
-				0.0f,
-				0.1f,
-				0.0f,
+				0, glm::vec3(1.0, 1.0, 1.0),
+				-1, 0.0f, 0.1f,
+				-1, 0.0f,
 				1.45f,
-				glm::vec3(0),
-				1.0,
-				0));
+				-1, glm::vec3(0.0f), 1.0f,
+				-1, 1.0f
+			));
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(0.5, 0.5, 0.5),
-				0.0f,
-				0.1f,
-				0.0f,
+				3, glm::vec3(0.5, 0.5, 0.5),
+				-1, 0.0f, 0.1f,
+				-1, 0.0f,
 				1.45f,
-				glm::vec3(0),
-				1.0,
-				3));
+				-1, glm::vec3(0.0f), 1.0f,
+				-1, 1.0f
+			));
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(0.9, 0.9, 0.9),
-				1.0f,
-				0.3f,
-				0.0f,
+				2, glm::vec3(0.9f, 0.9f, 0.9f),
+				-1, 1.0f, 0.3f,
+				-1, 0.0f,
 				1.45f,
-				glm::vec3(0),
-				1.0,
-				2));
+				-1, glm::vec3(0.0f), 1.0f,
+				-1, 1.0f
+			));
 
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(1.0, 1.0, 1.0),
-				0.0f,
-				0.0f,
-				1.0f,
+				1, glm::vec3(1.0f, 1.0f, 1.0f),
+				-1, 0.0f, 0.0f,
+				-1, 1.0f,
 				1.45f,
-				glm::vec3(0),
-				1.0,
-				1));
+				-1, glm::vec3(0.0f), 1.0f,
+				-1, 1.0f
+			));
 
-			//60 watt lightbulb emission
+			//60-watt lightbulb emission; 800 lm; 233 nits
 			scene.addMaterial(KittlesPT::MaterialSceneEntity(
-				glm::vec3(0.0, 1.0, 0.0),
-				0.0f,
-				0.85f,
-				0.0f,
+				-1, glm::vec3(0.0f, 1.0f, 0.0f),
+				-1, 0.0f, 0.85f,
+				-1, 0.0f,
 				1.45f,
-				glm::vec3(0.2, 0.7, 1),
-				12.0e4f,
-				-1));
+				-1, glm::vec3(0.2f, 0.7f, 1.0f), 233.0f,
+				-1, 1.0f
+			));
 
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(0, 0, -3), 0));
 			scene.addShape(KittlesPT::SphereSceneEntity(0.5f, glm::vec3(-1.5, 0, -3), 2));
