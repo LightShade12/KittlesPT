@@ -31,26 +31,52 @@ namespace KittlesPT
 	//====================================================================================================================
 
 	/*
+	* AgX Minimal Implementation
 	Courtesy: Benjamin Wrensch
 	From: https://iolite-engine.com/blog_posts/minimal_agx_implementation
 	*/
 	namespace AgXMinimal
 	{
-		__constant__ constexpr Mat3 g_AgX_mat = Mat3(
-			0.842479062253094f, 0.0423282422610123f, 0.0423756549057051f,
-			0.0784335999999992f, 0.878468636469772f, 0.0784336f,
-			0.0792237451477643f, 0.0791661274605434f, 0.879142973793104f);
+		/*namespace BaseValues {
+			__constant__ constexpr Mat3 g_AgX_mat = Mat3(
+				0.842479062253094f, 0.0423282422610123f, 0.0423756549057051f,
+				0.0784335999999992f, 0.878468636469772f, 0.0784336f,
+				0.0792237451477643f, 0.0791661274605434f, 0.879142973793104f);
 
-		__constant__ constexpr Mat3 g_AgX_mat_inv = Mat3(
-			1.19687900512017f, -0.0528968517574562f, -0.0529716355144438f,
-			-0.0980208811401368f, 1.15190312990417f, -0.0980434501171241f,
-			-0.0990297440797205f, -0.0989611768448433f, 1.15107367264116f);
+			__constant__ constexpr Mat3 g_AgX_mat_inv = Mat3(
+				1.19687900512017f, -0.0528968517574562f, -0.0529716355144438f,
+				-0.0980208811401368f, 1.15190312990417f, -0.0980434501171241f,
+				-0.0990297440797205f, -0.0989611768448433f, 1.15107367264116f);
 
-		__constant__ constexpr float3 g_luminance_weights{ 0.2126f, 0.7152f, 0.0722f };//spectral curve coefficients
+			const float min_ev = -12.47393f;
+			const float max_ev = 4.026069f;
+		}*/
+
+		/*
+		* Modified AgX (closer to Blender)
+		* Courtesy: https://github.com/Calinou
+		* From: https://github.com/godotengine/godot/blob/master/servers/rendering/renderer_rd/shaders/effects/tonemap.glsl
+		*/
+
+		__constant__ constexpr Mat3 LINEAR_SRGB_TO_LINEAR_REC2020 = Mat3(
+			constexpr_float3(0.6274, 0.0691, 0.0164),
+			constexpr_float3(0.3293, 0.9195, 0.0880),
+			constexpr_float3(0.0433, 0.0113, 0.8956));
+
+		__constant__ constexpr Mat3 AgX_INSET_MATRIX = Mat3(
+			0.856627153315983, 0.137318972929847, 0.11189821299995,
+			0.0951212405381588, 0.761241990602591, 0.0767994186031903,
+			0.0482516061458583, 0.101439036467562, 0.811302368396859);
+
+		__constant__ constexpr Mat3 AgX_OUTSET_REC2020_TO_sRGB_MATRIX = Mat3(
+			1.9648846919172409596, -0.29937618452442253746, -0.16440106280678278299,
+			-0.85594737466675834968, 1.3263980951083531115, -0.23819967517076844919,
+			-0.10883731725048386702, -0.02702191058393112346, 1.4025007379775505276);
+
+		__constant__ constexpr float3 LUMINANCE_COEFFICIENTS{ 0.2126f, 0.7152f, 0.0722f };//spectral curve coefficients
 		__constant__ constexpr float MIDDLE_GRAY = 0.18f;
+
 		//original values for reference
-		//const float min_ev = -12.47393f;
-		//const float max_ev = 4.026069f;
 
 		// 0: Default, 1: Golden, 2: Punchy
 #define AGX_LOOK 0
@@ -58,7 +84,7 @@ namespace KittlesPT
 		// ASC CDL based look transform
 		__device__ float3 AgXLook(float3 val)
 		{
-			float luma = dot(val, g_luminance_weights);
+			float luma = dot(val, LUMINANCE_COEFFICIENTS);
 
 			// Default
 			float3 offset{ 0.0f,0.0f,0.0f };
@@ -84,8 +110,8 @@ namespace KittlesPT
 		}
 
 		//Fifth order
-		// Mean error^2: 3.6705141e-06
-		__device__ inline float3 agxDefaultContrastApprox(float3 x)
+		//Mean error^2: 3.6705141e-06
+		__device__ inline float3 AgXDefaultContrastApprox(float3 x)
 		{
 			float3 x2 = x * x;
 			float3 x4 = x2 * x2;
@@ -115,15 +141,23 @@ namespace KittlesPT
 			const float AgX_min_ev = log2(pow(2, black_point_ev) * MIDDLE_GRAY);
 			const float AgX_max_ev = log2(pow(2, white_point_ev) * MIDDLE_GRAY);
 			const float dynamic_range = AgX_max_ev - AgX_min_ev;
+
+			//AgX in Rec 2020 to match Blender better
+			linear_rec_709 = LINEAR_SRGB_TO_LINEAR_REC2020 * linear_rec_709;
+			//prevent -ve values for AgX inset; loss of information if done before REC2020 transform
+			linear_rec_709 = fmaxf(linear_rec_709, make_float3(0.0f));
+
 			// Input transform (inset)
-			linear_rec_709 = g_AgX_mat * linear_rec_709;
+			linear_rec_709 = AgX_INSET_MATRIX * linear_rec_709;
+
+			//linear_rec_709 = BaseValues::g_AgX_mat * linear_rec_709;
 
 			// Log2 space encoding
 			float3 log2_rec_709 = clamp(log2f(linear_rec_709), AgX_min_ev, AgX_max_ev);
 			log2_rec_709 = (log2_rec_709 - AgX_min_ev) / dynamic_range;//normalization
 
 			// Apply sigmoid function approximation
-			float3 color_out = agxDefaultContrastApprox(log2_rec_709);
+			float3 color_out = AgXDefaultContrastApprox(log2_rec_709);
 
 			return color_out;
 		}
@@ -131,19 +165,30 @@ namespace KittlesPT
 		//Outputs NON-LINEAR Rec. 709
 		__device__ float3 AgXFittedOETF(float3 val)
 		{
+			// Convert back to linear before applying outset matrix.
+			val = powf(val, make_float3(2.4));
+
 			// Inverse input transform (outset)
-			float3 non_linear_rec_709 = g_AgX_mat_inv * val;
+			//float3 non_linear_rec_709 = BaseValues::g_AgX_mat_inv * val;
+
+			// Apply outset to make the result more chroma-laden and then go back to linear sRGB.
+			float3 non_linear_rec_709 = AgX_OUTSET_REC2020_TO_sRGB_MATRIX * val;
 
 			// sRGB IEC 61966-2-1 2.2 Exponent Reference EOTF Display
 			// NOTE: We're linearizing the output here. Comment/adjust when
 			// *not* using a sRGB render target
 			//non_linear_rec_709 = powf(non_linear_rec_709, make_float3(2.2f));
 
+			// sRGB approx OETF
+			non_linear_rec_709 = fmaxf(non_linear_rec_709, make_float3(0.0f));
+			non_linear_rec_709 = powf(non_linear_rec_709,
+				constexpr_float3(0.45454545454545453f, 0.45454545454545453f, 0.45454545454545453f));//sRGB OETF approx (1.0/2.2)
+
 			return non_linear_rec_709;
 		}
 	}
 
-	//============================================================================================
+	//FILM============================================================================================
 
 	__device__ float3 Film::getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const
 	{
