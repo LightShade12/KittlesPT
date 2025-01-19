@@ -17,19 +17,19 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-__global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader_data);
+__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderData shader_data);
 __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data);
 
 namespace KittlesPT
 {
-	void launchPathTraceComputeKernel(const GlobalShaderData& shader_data)
+	void launchPathTraceComputeMegaKernel(const GlobalShaderData& shader_data)
 	{
 		int thread_block_x = 8, thread_block_y = 8;//8x8=64=32x2
 		dim3 thread_block_dimensions = dim3(thread_block_x, thread_block_y);
 		dim3 thread_block_grid_dimensions = dim3(shader_data.frame_resolution.x / thread_block_x + 1,
 			shader_data.frame_resolution.y / thread_block_y + 1);
 
-		computePathTraceSamples << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data);
+		computePathTraceSamplesMegaKernel << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data);
 		cudaDeviceSynchronize();
 		checkCudaErrors(cudaGetLastError());
 	}
@@ -71,7 +71,7 @@ namespace KittlesPT
 	}
 }
 
-__global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader_data)
+__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderData shader_data)
 {
 	using namespace KittlesPT;
 
@@ -82,29 +82,30 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 		return;
 	}
 
-	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
-	GBuffer visible_surface;
-
 	IndependentSampler sampler;
 	sampler.initPixelSeed(shading_job.pixel_coord, frame_res.x, shader_data.frame_index);
 
 	BoxFilter filter({ 1.0f,1.0f });
 	FilterSample fs = filter.sample(sampler.get2D());
+
+	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
 	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc, frame_res);
 
+	GBuffer visible_surface;
 	float camera_weight = 1.0f;
 	//evaluate integral(f(x)/p(x)) at Xi
-	RGBSpectrum sensor_radiance = fs.weight * camera_weight * Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
+	RGBSpectrum sensor_radiance = fs.weight * camera_weight * Integrator::Li(shader_data,
+		primary_ray, sampler, &visible_surface);
 
-	float4 packed = visible_surface.packGBuffer();
-	shader_data.gbuffer_texture.textureWriteUV(packed, shading_job.uv_coord);
+	shader_data.gbuffer_texture.textureWriteUV(visible_surface.packGBuffer(), shading_job.uv_coord);
 
 	//Monte-Carlo estimation; static accumulation
 	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
 
-	shader_data.main_texture.textureWriteUV(make_float4(sensor_radiance.toFloat3(), 1), shading_job.uv_coord);
+	float4 frag_color = make_float4(sensor_radiance.toFloat3(), 1.0f);
+	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
 __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data)
@@ -117,19 +118,19 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 		return;
 	}
 
-	RGBSpectrum raw_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
+	RGBSpectrum sensor_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
 
 	if (shader_data.pathtracer_settings.generate_bloom) {
 		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));
-		raw_radiance = lerp(raw_radiance, bloom_radiance, shader_data.pathtracer_settings.bloom_blend);
+		sensor_radiance = lerp(sensor_radiance, bloom_radiance, shader_data.pathtracer_settings.bloom_blend);
 	}
 
-	//post process
-	//TODO: proper exposure application
-	//raw_radiance *= (1 / powf(2.0f, shader_data.scene_camera.film.exposure));
-	raw_radiance *= shader_data.scene_camera.film.exposure;
+	//TODO: proper exposure_EV application
+	//sensor_radiance *= (1 / powf(2.0f, shader_data.scene_camera.film.exposure_EV));
+	sensor_radiance *= shader_data.scene_camera.film.exposure_EV;
 
-	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(raw_radiance);
+	float3 frag_color = shader_data.scene_camera.film.getDisplayNonLinearSRGB(sensor_radiance);
 
-	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1), shading_job.uv_coord);
+	//non linear srgb target; expects gamma correction
+	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1.0f), shading_job.uv_coord);
 }/*KittlesPT*/

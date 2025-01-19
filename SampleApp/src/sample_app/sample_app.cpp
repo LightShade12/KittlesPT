@@ -126,7 +126,8 @@ namespace SampleApp
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.pathtracer_settings = m_renderer.getPathTracerSettings();
 		m_renderer.setExposure(m_camera.getAperture(), m_camera.getISO(),
-			m_camera.getShutter(), m_camera.getExposureCompensation());
+			m_camera.getShutter(), m_camera.getExposureCompensation(),
+			m_camera.getWhitePoint(), m_camera.getBlackPoint());
 
 		//========================================================================================================
 		//REGISTER EVENT LISTENERS
@@ -136,12 +137,17 @@ namespace SampleApp
 			Listener([this](const std::any& data)
 				{
 					std::vector<float>cm_val = std::any_cast<std::vector<float>>(data);
+
 					m_camera.setAperture(cm_val[0]);
 					m_camera.setExposureCompensation(cm_val[1]);
 					m_camera.setISO(static_cast<int>(cm_val[2]));
 					m_camera.setShutter(cm_val[3]);
+					m_camera.setWhitePoint(cm_val[4]);
+					m_camera.setBlackPoint(cm_val[5]);
+
 					m_renderer.setExposure(m_camera.getAperture(), m_camera.getISO(),
-						m_camera.getShutter(), m_camera.getExposureCompensation());
+						m_camera.getShutter(), m_camera.getExposureCompensation(),
+						m_camera.getWhitePoint(), m_camera.getBlackPoint());
 				}));
 
 		m_event_dispatcher.registerListener(Event("material_changed"),

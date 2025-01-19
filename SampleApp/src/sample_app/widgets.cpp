@@ -87,7 +87,8 @@ namespace SampleApp
 				int ISO = camera_controller_ref->getISO();
 				float shutter_secs = camera_controller_ref->getShutter();
 
-				std::vector<float>camera_values = { aperture_f_num,exp_comp,static_cast<float>(ISO),shutter_secs };
+				std::vector<float>camera_values = { aperture_f_num,exp_comp,static_cast<float>(ISO),shutter_secs,
+					camera_controller_ref->getWhitePoint(),camera_controller_ref->getBlackPoint() };
 				bool exposure_updated = false;
 
 				if (ImGui::BeginTable("cameraedittable", 2))
@@ -124,13 +125,13 @@ namespace SampleApp
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 
-					static int factor = 0;
 					constexpr int MAX_ISO = 6400;
+					int factor = static_cast<int>(log2(ISO / 100));//keep it outside; mind the slider modifying it below
 					if (ImGui::InputInt("###iso_control", &ISO, 100, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
 						bool inc = (camera_values[2] < ISO);
 						factor = glm::max(factor - (!inc), 0);
 						ISO = static_cast<int>(camera_values[2]) + (((inc) ? 1 : -1) * 100 * static_cast<int>(pow(2, factor)));
-						factor += (inc ^ (ISO > MAX_ISO));
+						//factor += (inc ^ (ISO > MAX_ISO));
 						camera_values[2] = static_cast<float>(glm::clamp(ISO, 100, MAX_ISO));
 						exposure_updated |= true;
 					};
@@ -147,6 +148,25 @@ namespace SampleApp
 						camera_values[3] = shutter_secs;
 						exposure_updated |= true;
 					};
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Separator();
+					ImGui::Text("View Transform");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("White point");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					exposure_updated |= ImGui::SliderFloat("###white_point_control", &camera_values[4], 5.0f, 30.0f, "%.3f EV");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Black point");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					exposure_updated |= ImGui::SliderFloat("###black_point_control", &camera_values[5], -15.0f, -3.0f, "%.3f EV");
 
 					ImGui::EndTable();
 				}

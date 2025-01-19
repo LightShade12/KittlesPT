@@ -25,11 +25,18 @@ namespace SampleApp
 		float getShutter() const { return m_shutter_secs; }
 		void setShutter(float secs) { m_shutter_secs = secs; }
 
+		float getBlackPoint() const { return m_black_point; }
+		void setBlackPoint(float blackPoint) { m_black_point = blackPoint; }
+		float getWhitePoint() const { return m_white_point; }
+		void setWhitePoint(float whitePoint) { m_white_point = whitePoint; }
+
 	private:
 		float m_aperture_f_num = 2.8f;
 		float m_shutter_secs = 0.01666f; //1/60th sec
-		int m_ISO = 100;
+		int m_ISO = 6400;
 		float m_exposure_compensation = 0.0f;
+		float m_black_point = -10.0f;//Unit in EV?
+		float m_white_point = 6.5f;
 
 		float m_fov_y_rad = glm::radians(90.0f);
 

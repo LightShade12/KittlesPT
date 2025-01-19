@@ -21,14 +21,20 @@ namespace KittlesPT
 		world_position = make_float3(inv_view[3]);
 	}
 
-	__host__ void Camera::setExposure(float exposure)
+	__host__ void Camera::setExposure(float exposure, float white_point, float black_point)
 	{
-		film.exposure = exposure;
+		film.exposure_EV = exposure;
+		film.white_point = white_point;
+		film.black_point = black_point;
 	}
 
 	//====================================================================================================================
 
-	namespace AgxMinimal
+	/*
+	Courtesy: Benjamin Wrensch
+	From: https://iolite-engine.com/blog_posts/minimal_agx_implementation
+	*/
+	namespace AgXMinimal
 	{
 		__constant__ constexpr Mat3 g_AgX_mat = Mat3(
 			0.842479062253094f, 0.0423282422610123f, 0.0423756549057051f,
@@ -40,14 +46,17 @@ namespace KittlesPT
 			-0.0980208811401368f, 1.15190312990417f, -0.0980434501171241f,
 			-0.0990297440797205f, -0.0989611768448433f, 1.15107367264116f);
 
-		__constant__ constexpr float3 g_luminance_weights = constexpr_float3(0.2126f, 0.7152f, 0.0722f);
-		__constant__ constexpr float min_ev = -12.47393f;
-		__constant__ constexpr float max_ev = 4.026069f;
+		__constant__ constexpr float3 g_luminance_weights{ 0.2126f, 0.7152f, 0.0722f };//spectral curve coefficients
+		__constant__ constexpr float MIDDLE_GRAY = 0.18f;
+		//original values for reference
+		//const float min_ev = -12.47393f;
+		//const float max_ev = 4.026069f;
 
 		// 0: Default, 1: Golden, 2: Punchy
 #define AGX_LOOK 0
 
-		__device__ float3 agxLook(float3 val)
+		// ASC CDL based look transform
+		__device__ float3 AgXLook(float3 val)
 		{
 			float luma = dot(val, g_luminance_weights);
 
@@ -69,13 +78,13 @@ namespace KittlesPT
 			sat = 1.4;
 #endif
 
-			// ASC CDL
+			// ASC CDL based look transform
 			val = powf(val * slope + offset, power);
 			return luma + sat * (val - luma);
 		}
 
 		//Fifth order
-// Mean error^2: 3.6705141e-06
+		// Mean error^2: 3.6705141e-06
 		__device__ inline float3 agxDefaultContrastApprox(float3 x)
 		{
 			float3 x2 = x * x;
@@ -90,43 +99,58 @@ namespace KittlesPT
 				- 0.00232f;
 		}
 
-		__device__ float3 agx_fitted(float3 val)
+		//Input is expected as linear tristimulus with Rec.709(BT 709) primary chromaticities ("linear sRGB")
+		__device__ float3 AgXFitted(float3 linear_rec_709, float white_point_ev, float black_point_ev)
 		{
+			/*From https://gist.github.com/nxrighthere/eb208dae8b66dbe452af223f276e46cc
+			// DEFAULT_LOG2_MIN      = -10.0
+			// DEFAULT_LOG2_MAX      =  +6.5
+			// MIDDLE_GRAY           =  0.18
+			// log2(pow(2, VALUE) * MIDDLE_GRAY)
+			// Adjusted for Unreal's zero exposure compensation
+			const float min_ev = -12.47393f; // Default: -12.47393f;
+			const float max_ev = 0.526069f;  // Default:  4.026069f;
+			*/
+
+			const float AgX_min_ev = log2(pow(2, black_point_ev) * MIDDLE_GRAY);
+			const float AgX_max_ev = log2(pow(2, white_point_ev) * MIDDLE_GRAY);
+			const float dynamic_range = AgX_max_ev - AgX_min_ev;
 			// Input transform (inset)
-			val = g_AgX_mat * val;
+			linear_rec_709 = g_AgX_mat * linear_rec_709;
 
 			// Log2 space encoding
-			val = clamp(log2f(val), min_ev, max_ev);
-			val = (val - min_ev) / (max_ev - min_ev);
+			float3 log2_rec_709 = clamp(log2f(linear_rec_709), AgX_min_ev, AgX_max_ev);
+			log2_rec_709 = (log2_rec_709 - AgX_min_ev) / dynamic_range;//normalization
 
 			// Apply sigmoid function approximation
-			val = agxDefaultContrastApprox(val);
+			float3 color_out = agxDefaultContrastApprox(log2_rec_709);
 
-			return val;
+			return color_out;
 		}
 
-		__device__ float3 agx_fitted_Eotf(float3 val)
+		//Outputs NON-LINEAR Rec. 709
+		__device__ float3 AgXFittedOETF(float3 val)
 		{
 			// Inverse input transform (outset)
-			val = g_AgX_mat_inv * val;
+			float3 non_linear_rec_709 = g_AgX_mat_inv * val;
 
 			// sRGB IEC 61966-2-1 2.2 Exponent Reference EOTF Display
 			// NOTE: We're linearizing the output here. Comment/adjust when
 			// *not* using a sRGB render target
-			val = powf(val, make_float3(2.2f));
+			//non_linear_rec_709 = powf(non_linear_rec_709, make_float3(2.2f));
 
-			return float3(val);
+			return non_linear_rec_709;
 		}
 	}
 
 	//============================================================================================
 
-	__device__ float3 Film::getDisplayRGB(RGBSpectrum HDR_linear_radiance) const
+	__device__ float3 Film::getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const
 	{
-		float3 display_color = AgxMinimal::agx_fitted(HDR_linear_radiance.toFloat3());
-		display_color = AgxMinimal::agxLook(display_color);
-		display_color = AgxMinimal::agx_fitted_Eotf(display_color);
-
+		float3 display_color = AgXMinimal::AgXFitted(linear_radiance.toFloat3(), white_point, black_point);
+		display_color = AgXMinimal::AgXLook(display_color);
+		display_color = AgXMinimal::AgXFittedOETF(display_color);
+		//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF
 		return display_color;
 	}
 }/*KittlesPT*/

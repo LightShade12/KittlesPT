@@ -25,7 +25,7 @@ namespace KittlesPT
 				ctx.uv *= 100.0f;
 			}*/
 			RGBSpectrum sampled = shader_data.texture_buffer.data[albedo_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			sampled = powf(sampled, 2.2f);//srgb to linear
+			sampled = powf(sampled, 2.2f);//srgb to linear approx
 			eval_albedo *= sampled;
 		}
 

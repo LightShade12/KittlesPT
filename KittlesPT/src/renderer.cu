@@ -171,7 +171,7 @@ namespace KittlesPT
 		m_renderer_data->shader_global_data.accumulation_texture = m_renderer_data->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_data->shader_global_data.gbuffer_texture = m_renderer_data->m_frame_textures["gbuffer_texture"].enableCudaAccess();
 
-		launchPathTraceComputeKernel(m_renderer_data->shader_global_data);
+		launchPathTraceComputeMegaKernel(m_renderer_data->shader_global_data);
 
 		//generate bloom buffer
 		if (m_renderer_data->shader_global_data.pathtracer_settings.generate_bloom)
@@ -292,10 +292,11 @@ namespace KittlesPT
 		return middleGrey / l_avg;
 	}
 
-	void Renderer::setExposure(float aperture_f_num, int iso, float shutter_sec, float exp_comp)
+	void Renderer::setExposure(float aperture_f_num, int iso, float shutter_sec, float exp_comp, float white_point, float black_point)
 	{
 		float exposure = getStandardOutputBasedExposure(aperture_f_num, shutter_sec, (float)iso);
-		m_renderer_data->shader_global_data.scene_camera.setExposure(glm::max(exposure + exp_comp, 0.0f));
+		m_renderer_data->shader_global_data.scene_camera.setExposure(glm::max(exposure + exp_comp, 0.0f),
+			white_point, black_point);
 		resetAccumulation();
 	}
 
@@ -433,7 +434,7 @@ namespace KittlesPT
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
 			launchBloomDownSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst,
-				(m_renderer_data->shader_global_data.pathtracer_settings.use_karis_average) ? (miplevel == 0) : false);
+				(m_renderer_data->shader_global_data.pathtracer_settings.use_karis_average && miplevel == 0));
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);
