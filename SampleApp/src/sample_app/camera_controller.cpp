@@ -83,7 +83,7 @@ namespace SampleApp
 		return m_moved;
 	}
 
-	glm::mat4 CameraController::getViewMatrix()
+	glm::mat4 CameraController::getViewMatrix() const
 	{
 		glm::mat4 view
 		(
@@ -94,22 +94,5 @@ namespace SampleApp
 		);
 
 		return view;
-	}
-
-	float CameraController::getVerticalFOV_Radians()
-	{
-		return m_fov_y_rad;
-	}
-	float CameraController::getExposure()
-	{
-		return m_exposure;
-	}
-	void CameraController::setExposure(float exposure)
-	{
-		m_exposure = exposure;
-	}
-	void CameraController::setVerticalFOV_Radians(float fov_y_rad)
-	{
-		m_fov_y_rad = fov_y_rad;
 	}
 }

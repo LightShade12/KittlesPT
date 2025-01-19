@@ -72,14 +72,23 @@ namespace SampleApp
 		ImGui::Text("Runtime secs: %.3f s",
 			std::chrono::duration_cast<std::chrono::duration<float>>(last_frame_time_point.time_since_epoch()).count() - start_time_secs);
 
+		//ImGui::ShowDemoWindow();
+
 		//camera edit
 		{
 			ImGui::Separator();
 			ImGui::SeparatorText("Camera edit");
 			if (camera_controller_ref != nullptr)
 			{
-				float fov_y_rad = camera_controller_ref->getVerticalFOV_Radians();
-				float exposure = camera_controller_ref->getExposure();
+				float fov_y_radians = camera_controller_ref->getVerticalFOV_Radians();
+
+				float aperture_f_num = camera_controller_ref->getAperture();
+				float exp_comp = camera_controller_ref->getExposureCompensation();
+				int ISO = camera_controller_ref->getISO();
+				float shutter_secs = camera_controller_ref->getShutter();
+
+				std::vector<float>camera_values = { aperture_f_num,exp_comp,static_cast<float>(ISO),shutter_secs };
+				bool exposure_updated = false;
 
 				if (ImGui::BeginTable("cameraedittable", 2))
 				{
@@ -88,24 +97,63 @@ namespace SampleApp
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("FOV");
+					ImGui::Text("Vertical FOV");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					if (ImGui::SliderAngle("###fov_control", &fov_y_rad, 0.0, 120.0)) {
-						event_dispatcher_ref->emitSignal(Event("fov_changed"), fov_y_rad);
+					if (ImGui::SliderAngle("###fov_control", &fov_y_radians, 0.0, 120.0)) {
+						event_dispatcher_ref->emitSignal(Event("fov_changed"), fov_y_radians);
 					};
+
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("exposure");
+					ImGui::Text("EV compensation");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					if (ImGui::SliderFloat("###exposure_control", &exposure, 0.0, 100.0,
-						"%.3f unitless", ImGuiSliderFlags_Logarithmic)) {
-						event_dispatcher_ref->emitSignal(Event("exposure_changed"), exposure);
+					exposure_updated |= ImGui::SliderFloat("###evcomp_control", &camera_values[1], -3.0f, 3.0, "%.3f EV");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Aperture F-stop");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					exposure_updated |= ImGui::SliderFloat("###aperture_control", &camera_values[0], 2.8f, 22.0f, "f/%.3f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("ISO");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+
+					static int factor = 0;
+					constexpr int MAX_ISO = 6400;
+					if (ImGui::InputInt("###iso_control", &ISO, 100, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
+						bool inc = (camera_values[2] < ISO);
+						factor = glm::max(factor - (!inc), 0);
+						ISO = static_cast<int>(camera_values[2]) + (((inc) ? 1 : -1) * 100 * static_cast<int>(pow(2, factor)));
+						factor += (inc ^ (ISO > MAX_ISO));
+						camera_values[2] = static_cast<float>(glm::clamp(ISO, 100, MAX_ISO));
+						exposure_updated |= true;
+					};
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Shutter speed secs");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					float denominator = 1.0f / shutter_secs;
+					if (ImGui::SliderFloat("###shutter_control", &denominator, 0.1f, 800.0f,
+						"1/%.1fs", ImGuiSliderFlags_Logarithmic)) {
+						shutter_secs = 1.0f / denominator;
+						camera_values[3] = shutter_secs;
+						exposure_updated |= true;
 					};
 
 					ImGui::EndTable();
 				}
+				if (exposure_updated)
+				{
+					event_dispatcher_ref->emitSignal(Event("exposure_changed"), camera_values);
+				};
 			}
 		}
 

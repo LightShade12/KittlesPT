@@ -51,7 +51,7 @@ namespace KittlesPT
 		void setPathTracerSettings(PathtracerSettings cfg);
 		PathtracerSettings getPathTracerSettings();
 
-		void setExposure(float exposure);
+		void setExposure(float aperture_f_num, int iso, float shutter_sec, float exp_comp);
 
 		void resetAccumulation();
 

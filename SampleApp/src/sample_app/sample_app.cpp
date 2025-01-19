@@ -20,8 +20,9 @@ namespace SampleApp
 		m_viewport.init(m_viewport_texture);
 		m_renderer.init();
 
-		g_custom_font = ImGuiThemes::VictorSix();
-		//ImGuiThemes::VS();
+		//g_custom_font = ImGuiThemes::VictorSix();
+		//ImGuiThemes::Dark();
+		ImGui::StyleColorsDark();
 
 		//scene parsing
 		{
@@ -124,6 +125,8 @@ namespace SampleApp
 		m_application_data.materials_count = m_renderer.getMaterialsCount();
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.pathtracer_settings = m_renderer.getPathTracerSettings();
+		m_renderer.setExposure(m_camera.getAperture(), m_camera.getISO(),
+			m_camera.getShutter(), m_camera.getExposureCompensation());
 
 		//========================================================================================================
 		//REGISTER EVENT LISTENERS
@@ -132,8 +135,13 @@ namespace SampleApp
 		m_event_dispatcher.registerListener(Event("exposure_changed"),
 			Listener([this](const std::any& data)
 				{
-					m_camera.setExposure(std::any_cast<float>(data));
-					m_renderer.setExposure(m_camera.getExposure());
+					std::vector<float>cm_val = std::any_cast<std::vector<float>>(data);
+					m_camera.setAperture(cm_val[0]);
+					m_camera.setExposureCompensation(cm_val[1]);
+					m_camera.setISO(static_cast<int>(cm_val[2]));
+					m_camera.setShutter(cm_val[3]);
+					m_renderer.setExposure(m_camera.getAperture(), m_camera.getISO(),
+						m_camera.getShutter(), m_camera.getExposureCompensation());
 				}));
 
 		m_event_dispatcher.registerListener(Event("material_changed"),

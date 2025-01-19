@@ -74,6 +74,7 @@ namespace KittlesPT
 		std::vector<TextureBuffer> mip_textures;
 	};
 
+	//TODO: add API for direct content management
 	struct RendererData
 	{
 		thrust::universal_vector<Sphere> scene_spheres;
@@ -276,9 +277,25 @@ namespace KittlesPT
 		return m_renderer_data->shader_global_data.pathtracer_settings;
 	}
 
-	void Renderer::setExposure(float exposure)
+	float getSaturationBasedExposure(float aperture, float shutterSpeed, float iso)
 	{
-		m_renderer_data->shader_global_data.scene_camera.film.exposure = exposure;
+		float l_max = (7800.0f / 65.0f) * Sqr(aperture) / (iso * shutterSpeed);
+		return 1.0f / l_max;
+	}
+
+	float getStandardOutputBasedExposure(float aperture,
+		float shutterSpeed,
+		float iso,
+		float middleGrey = 0.18f)
+	{
+		float l_avg = (1000.0f / 65.0f) * Sqr(aperture) / (iso * shutterSpeed);
+		return middleGrey / l_avg;
+	}
+
+	void Renderer::setExposure(float aperture_f_num, int iso, float shutter_sec, float exp_comp)
+	{
+		float exposure = getStandardOutputBasedExposure(aperture_f_num, shutter_sec, (float)iso);
+		m_renderer_data->shader_global_data.scene_camera.setExposure(glm::max(exposure + exp_comp, 0.0f));
 		resetAccumulation();
 	}
 

@@ -21,6 +21,11 @@ namespace KittlesPT
 		world_position = make_float3(inv_view[3]);
 	}
 
+	__host__ void Camera::setExposure(float exposure)
+	{
+		film.exposure = exposure;
+	}
+
 	//====================================================================================================================
 
 	namespace AgxMinimal

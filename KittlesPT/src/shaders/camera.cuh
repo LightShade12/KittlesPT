@@ -27,6 +27,7 @@ namespace KittlesPT
 		__device__ Ray generateRay(float2 ndc_coords, int2 frame_resolution) const;
 
 		__host__ void setView(Mat4 inv_proj, Mat4 inv_view);
+		__host__ void setExposure(float exposure);
 
 	public:
 		Film film;
