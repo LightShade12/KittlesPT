@@ -125,9 +125,9 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 		sensor_radiance = lerp(sensor_radiance, bloom_radiance, shader_data.pathtracer_settings.bloom_blend);
 	}
 
-	//TODO: proper exposure_EV application
-	//sensor_radiance *= (1 / powf(2.0f, shader_data.scene_camera.film.exposure_EV));
-	sensor_radiance *= shader_data.scene_camera.film.exposure_EV;
+	float3 Yxy = sensor_radiance.toYxy();
+	Yxy.x *= shader_data.scene_camera.film.luminance_exposure_scalar;//scale scene luminance
+	sensor_radiance = RGBSpectrum::fromYxy(Yxy);
 
 	float3 frag_color = shader_data.scene_camera.film.getDisplayNonLinearSRGB(sensor_radiance);
 

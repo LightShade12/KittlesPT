@@ -30,12 +30,19 @@ namespace SampleApp
 		float getWhitePoint() const { return m_white_point; }
 		void setWhitePoint(float whitePoint) { m_white_point = whitePoint; }
 
+		static constexpr int ISO_MAX = 6400;
+		static constexpr int ISO_MIN = 100;
+		static constexpr float AP_F_MAX = 22.0f;//Aperture F-number max
+		static constexpr float AP_F_MIN = 1.8f;
+		static constexpr float SHUTTER_DENOM_MIN = 30.0f;
+		static constexpr float SHUTTER_DENOM_MAX = 400.0f;
+
 	private:
-		//DayTime preset
+		//default: DayTime preset
 		float m_aperture_f_num = 11.0f;
-		float m_shutter_secs = 0.004f; //1/60th sec
-		int m_ISO = 100;
 		float m_exposure_compensation = 0.0f;
+		int m_ISO = 100;
+		float m_shutter_secs = 0.004f; //1/60th sec
 		float m_white_point = 6.5f;
 		float m_black_point = -10.0f;//Unit in EV?
 

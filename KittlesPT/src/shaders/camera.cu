@@ -21,9 +21,9 @@ namespace KittlesPT
 		world_position = make_float3(inv_view[3]);
 	}
 
-	__host__ void Camera::setExposure(float exposure, float white_point, float black_point)
+	__host__ void Camera::setExposure(float luminance_exposure_scalar, float white_point, float black_point)
 	{
-		film.exposure_EV = exposure;
+		film.luminance_exposure_scalar = luminance_exposure_scalar;
 		film.white_point = white_point;
 		film.black_point = black_point;
 	}

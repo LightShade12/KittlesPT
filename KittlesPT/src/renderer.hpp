@@ -7,7 +7,7 @@
 
 namespace KittlesPT
 {
-	struct RendererData;
+	struct RendererResource;
 
 	class Renderer
 	{
@@ -51,7 +51,7 @@ namespace KittlesPT
 		void setPathTracerSettings(PathtracerSettings cfg);
 		PathtracerSettings getPathTracerSettings();
 
-		void setExposure(float aperture_f_num, int iso, float shutter_sec, float exp_comp, float white_point, float black_point);
+		void setExposure(float aperture_f_num, int iso, float shutter_sec, float ev_comp, float white_point, float black_point);
 
 		void resetAccumulation();
 
@@ -66,6 +66,6 @@ namespace KittlesPT
 		void executeBloomGeneration();
 		int m_width = 0, m_height = 0;
 
-		RendererData* m_renderer_data = nullptr;
+		RendererResource* m_renderer_rsrc = nullptr;
 	};
 }

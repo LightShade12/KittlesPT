@@ -108,7 +108,6 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	t_dst.textureWrite(min_filtered_color, shading_job.pixel_coord);
 }
 
-//TODO: WRONG UPSAMPLING
 __global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src,
 	KittlesPT::DeviceTextureBuffer t_dst)
 {

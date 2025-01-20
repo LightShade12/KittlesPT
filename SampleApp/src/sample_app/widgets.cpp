@@ -109,28 +109,29 @@ namespace SampleApp
 				ImGui::Text("EV Compensation");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				exposure_updated |= ImGui::SliderFloat("###evcomp_control", &camera_values[1], -3.0f, 3.0, "%.3f EV");
+				exposure_updated |= ImGui::SliderFloat("###evcomp_control", &camera_values[1],
+					-3.0f, 3.0, "%.3f EV");
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Aperture F-Stops");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				exposure_updated |= ImGui::SliderFloat("###aperture_control", &camera_values[0], 2.8f, 22.0f, "f/%.3f");
+				exposure_updated |= ImGui::SliderFloat("###aperture_control", &camera_values[0],
+					CameraController::AP_F_MIN, CameraController::AP_F_MAX, "f/%.3f");
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("ISO");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-
-				constexpr int MAX_ISO = 6400;
-				int factor = static_cast<int>(log2(ISO / 100));//keep it outside; mind the slider modifying it below
+				int factor = static_cast<int>(log2(ISO / 100));//keep it outside; mind the slider modifying ISO below
 				if (ImGui::InputInt("###iso_control", &ISO, 100, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
 					bool inc = (camera_values[2] < ISO);
 					factor = glm::max(factor - (!inc), 0);
 					ISO = static_cast<int>(camera_values[2]) + (((inc) ? 1 : -1) * 100 * static_cast<int>(pow(2, factor)));
-					camera_values[2] = static_cast<float>(glm::clamp(ISO, 100, MAX_ISO));
+					camera_values[2] = static_cast<float>(glm::clamp(ISO,
+						CameraController::ISO_MIN, CameraController::ISO_MAX));
 					exposure_updated |= true;
 				};
 
@@ -140,8 +141,9 @@ namespace SampleApp
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				float denominator = 1.0f / shutter_secs;
-				if (ImGui::SliderFloat("###shutter_control", &denominator, 0.1f, 800.0f,
-					"1/%.1fs", ImGuiSliderFlags_Logarithmic)) {
+				if (ImGui::SliderFloat("###shutter_control", &denominator,
+					CameraController::SHUTTER_DENOM_MIN, CameraController::SHUTTER_DENOM_MAX, "1/%.1fs",
+					ImGuiSliderFlags_Logarithmic)) {
 					shutter_secs = 1.0f / denominator;
 					camera_values[3] = shutter_secs;
 					exposure_updated |= true;
