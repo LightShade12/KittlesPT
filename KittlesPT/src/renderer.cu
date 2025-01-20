@@ -81,6 +81,8 @@ namespace KittlesPT
 		thrust::universal_vector<Light> scene_lights;
 		thrust::universal_vector<Material> scene_materials;
 		thrust::universal_vector<Texture> scene_textures;
+		thrust::device_vector<float> histogram_buffer;
+
 		thrust::device_vector<unsigned char> pixel_buffer;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
@@ -88,6 +90,7 @@ namespace KittlesPT
 
 		void destroy()
 		{
+			cudaFree(shader_global_data.scene_average_luminance);
 			bloom_mipchain.destroy();
 
 			for (std::pair<const std::string, TextureBuffer>& tex : m_frame_textures)
@@ -101,6 +104,7 @@ namespace KittlesPT
 			scene_textures.clear();
 			pixel_buffer.clear();
 			m_frame_textures.clear();
+			histogram_buffer.clear();
 		}
 
 		~RendererResource()
@@ -120,10 +124,14 @@ namespace KittlesPT
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"] = TextureBuffer();
 		m_renderer_rsrc->bloom_mipchain.init();
+		m_renderer_rsrc->histogram_buffer = thrust::device_vector<float>((size_t)Constants::HISTOGRAM_SIZE, 0.0f);
 		submitScene();
 
 		//-------------------------
 
+		cudaMallocManaged(&m_renderer_rsrc->shader_global_data.scene_average_luminance, sizeof(float));
+		m_renderer_rsrc->shader_global_data.histogram_buffer = Buffer<float>(
+			thrust::raw_pointer_cast(m_renderer_rsrc->histogram_buffer.data()), Constants::HISTOGRAM_SIZE);
 		m_renderer_rsrc->shader_global_data.scene_camera = Camera(make_float3(0));
 	}
 	void Renderer::shutdown()
@@ -165,8 +173,9 @@ namespace KittlesPT
 
 		m_renderer_rsrc->bloom_mipchain.resize(m_width, m_height);
 	}
-	void Renderer::executeRendering()
+	void Renderer::executeRendering(float delta_time_ms)
 	{
+		m_renderer_rsrc->shader_global_data.frame_delta = delta_time_ms;
 		m_renderer_rsrc->shader_global_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
@@ -179,7 +188,9 @@ namespace KittlesPT
 			executeBloomGeneration();
 			m_renderer_rsrc->shader_global_data.bloom_texture = m_renderer_rsrc->bloom_mipchain.mip_textures[0].enableCudaAccess();
 		}
-
+		launchHistogramComputeKernel(m_renderer_rsrc->shader_global_data);
+		launchHistogramAverageComputeKernel(m_renderer_rsrc->shader_global_data);
+		//printf("[delta %.3fms]: avg scene lm: %.3f\n", delta_time_ms, *(m_renderer_rsrc->shader_global_data.scene_average_luminance));
 		launchPostProcessComputeKernel(m_renderer_rsrc->shader_global_data);
 
 		if (m_renderer_rsrc->shader_global_data.pathtracer_settings.generate_bloom) {

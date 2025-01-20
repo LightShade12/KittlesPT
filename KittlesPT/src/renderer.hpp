@@ -19,7 +19,7 @@ namespace KittlesPT
 
 		void resizeFrame(int width, int height);
 
-		void executeRendering();
+		void executeRendering(float delta_time_ms);
 
 		void getRenderTargetTexture(GLuint r_texture);
 

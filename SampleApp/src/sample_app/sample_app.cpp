@@ -217,7 +217,7 @@ namespace SampleApp
 	{
 		m_viewport_texture.resize(m_window_width, m_window_height);
 		m_renderer.resizeFrame(m_window_width, m_window_height);
-		m_renderer.executeRendering();
+		m_renderer.executeRendering(m_developer_window.getDeltaTS());
 		m_renderer.getRenderTargetTexture(m_viewport_texture.m_GL_texture_name);
 
 		m_viewport.draw(m_window_ctx_handle);

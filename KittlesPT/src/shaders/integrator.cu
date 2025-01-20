@@ -148,7 +148,6 @@ namespace KittlesPT
 		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
 		{
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
-			constexpr float SUN_BRIGHTNESS_FACTOR = 1.0f;
 
 			float min_similarity_threshold = cosf(shader_data.procedural_environment_data.sun_angular_diameter_rad / 2.0f);
 			float similarity = dot(ray.getDirection(), atmosphere.getSunDirection());
@@ -157,7 +156,7 @@ namespace KittlesPT
 			RGBSpectrum sampled_sun_col = atmosphere.sampleLe(atmosphere_observer_position,
 				atmosphere.getSunDirection(), 0, INFINITY);
 
-			return sampled_sun_col * (shader_data.procedural_environment_data.sun_emission_nits * SUN_BRIGHTNESS_FACTOR) * shape_mask_factor;
+			return sampled_sun_col * shader_data.procedural_environment_data.sun_emission_nits * shape_mask_factor;
 		}
 
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
@@ -186,8 +185,7 @@ namespace KittlesPT
 
 				//Handle interaction with a medium; else surface scatter--
 
-				if (!intr)
-				{
+				if (!intr) {
 					//MISS
 					/*
 					* Sampling only one InfiniteLight with bsdf sampling here
@@ -195,20 +193,17 @@ namespace KittlesPT
 					*/
 					//sample Le from sun and sky
 					RGBSpectrum sky_radiance = sampleSunDiskLe(shader_data, ray, atmosphere);
-					if (!sky_radiance)
-					{
+					if (!sky_radiance) {
 						sky_radiance = atmosphere.sampleLe(atmosphere_observer_position, ray.getDirection(), 0, INFINITY);
 					}
 					light += sky_radiance * throughput;
-
 					break;
 				}
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
 				//Sample Le from surface
-				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le)
-				{
+				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le) {
 					const Light* arealight = surfintr.arealight;
 					float w_l = 1.0f;
 					if (arealight && !first_surface) {
@@ -220,14 +215,13 @@ namespace KittlesPT
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 
-				//skipping over medium boundaries
+				//skip over medium boundaries
 				if (!bsdf) {
 					surfintr.skipInteraction(&ray);
 					continue;
 				}
 
-				if (first_surface)
-				{
+				if (first_surface) {
 					//using texture diffuse albedo for reflectance estimate
 					*visible_surface = GBuffer(bsdf.getAlbedo(), surfintr);
 				}
@@ -236,32 +230,27 @@ namespace KittlesPT
 
 				RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
 				light += Ld * throughput;
-
 				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
 				light += Ld_sun * throughput;
 
 				float3 wo = -ray.getDirection();
 				BSDFSample bs = bsdf.sampleF(wo, sampler.get2D(), sampler.get2D());
-				if (bs.scatterTypeIs(BSDFSample::Absorbed))
-				{
+				if (bs.scatterTypeIs(BSDFSample::Absorbed)) {
 					break;
 				}
 
 				const float3& wi = bs.wi; float pdf = bs.pdf;
 				//uses absdot for allowing refraction
 				RGBSpectrum fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);
-				if (!fcos)
-				{
+				if (!fcos) {
 					break;
 				}
 				throughput *= (fcos / pdf);
-
 				p_b = bsdf.pdf(wo, wi);
 				prev_ctx = LightSampleContext(surfintr);
 				ray = surfintr.spawnRay(wi, bs.scatter);
 
-				if (russianRoulette(&throughput, eta_scale, bounce_depth, sampler))
-				{
+				if (russianRoulette(&throughput, eta_scale, bounce_depth, sampler)) {
 					break;
 				}
 			}
