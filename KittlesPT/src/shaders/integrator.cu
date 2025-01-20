@@ -97,7 +97,7 @@ namespace KittlesPT
 			float cos_sun = AbsDot(sun_n, -wi);
 			float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_VISIBILITY_DISTANCE_METERS));
 			//TODO: pbr values; better sun sampling/pdf
-			Ld = (fcos * sun_color * 5000.0f * shader_data.procedural_environment_data.sun_emission_nits) / pdf;
+			Ld = (fcos * sun_color * shader_data.procedural_environment_data.sun_emission_nits) / pdf;
 
 			return Ld;
 		}

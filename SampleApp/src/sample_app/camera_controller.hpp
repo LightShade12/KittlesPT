@@ -31,12 +31,13 @@ namespace SampleApp
 		void setWhitePoint(float whitePoint) { m_white_point = whitePoint; }
 
 	private:
-		float m_aperture_f_num = 2.8f;
-		float m_shutter_secs = 0.01666f; //1/60th sec
-		int m_ISO = 6400;
+		//DayTime preset
+		float m_aperture_f_num = 11.0f;
+		float m_shutter_secs = 0.004f; //1/60th sec
+		int m_ISO = 100;
 		float m_exposure_compensation = 0.0f;
-		float m_black_point = -10.0f;//Unit in EV?
 		float m_white_point = 6.5f;
+		float m_black_point = -10.0f;//Unit in EV?
 
 		float m_fov_y_rad = glm::radians(90.0f);
 
@@ -50,4 +51,43 @@ namespace SampleApp
 		glm::vec3 up = { 0,1,0 };
 		glm::vec3 right = { 1,0,0 };
 	};
+
+	//DayTime preset
+	inline void applySunnyDayCameraPreset(CameraController* cam)
+	{
+		/*
+		A fast shutter speed (1/250s) to capture detail without motion blur,
+		low ISO (100) for minimal noise in bright conditions,
+		and a narrower aperture (f/11) for a sharper focus across the landscape.
+		*/
+		cam->setAperture(11.0f);
+		cam->setShutter(0.004f);//1/250s
+		cam->setISO(100);
+	}
+
+	//Indoor Portrait preset
+	inline void applyIndoorPortraitCameraPreset(CameraController* cam)
+	{
+		/*
+		Slightly slower shutter speed (1/125s) to allow more light for indoor settings,
+		higher ISO (400) to compensate for lower light levels without introducing too much noise,
+		and a wider aperture (f/2.8) for a soft background blur while keeping the subject in focus.
+		*/
+		cam->setAperture(2.8f);
+		cam->setShutter(0.008f);//1/125s
+		cam->setISO(400);
+	}
+
+	//NightTime Cityscape preset
+	inline void applyNightTimeCityscapeCameraPreset(CameraController* cam)
+	{
+		/*
+		Longer exposure (2s) to capture light in low-light conditions,
+		moderate ISO (800) for sensitivity without excessive noise,
+		and a moderate aperture (f/4) to balance depth of field and light intake.
+		*/
+		cam->setAperture(4.0f);
+		cam->setShutter(0.05f);//2s
+		cam->setISO(800);
+	}
 }

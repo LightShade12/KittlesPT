@@ -3,6 +3,12 @@
 #include <device_launch_parameters.h>
 #include <vector_types.h>
 
+/*
+* TODO: bloom feature list:
+* Bloom dispersion scatter scale(radius)
+* Threshold?
+*/
+
 namespace KittlesPT
 {
 	__device__ float4 textureRead36Texels(const DeviceTextureBuffer& t_texture, float2 t_pixel_coord, bool karis_avg);

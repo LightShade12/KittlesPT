@@ -29,7 +29,7 @@ namespace KittlesPT
 		{
 			return make_float3(0);
 		}
-		return clamp(v, 0, 1000);
+		return clamp(v, 0, 1.0e8f);
 	}
 
 	inline __device__ float3 log2f(const float3 a)
