@@ -198,7 +198,7 @@ namespace SampleApp
 				pt_settings_updated |= ImGui::SliderInt("###max_bounces", &pt_settings.max_bounce_depth, 0, 32);
 				ImGui::EndTable();
 
-				pt_settings_updated |= ImGui::Checkbox("Generate Bloom", &pt_settings.generate_bloom);
+				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.generate_bloom);
 				ImGui::Indent();
 				pt_settings_updated |= ImGui::Checkbox("Use Karis Average", &pt_settings.use_karis_average);
 				if (ImGui::BeginTable("bloomedittable", 2)) {

@@ -97,6 +97,7 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 		return;
 	}
 
+	//TODO: use shading_job.uv_coord?
 	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
 	float2 src_pixel_coord = dst_uv * t_src.dimensions;
 
@@ -107,7 +108,9 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	t_dst.textureWrite(min_filtered_color, shading_job.pixel_coord);
 }
 
-__global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst)
+//TODO: WRONG UPSAMPLING
+__global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src,
+	KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;
 
