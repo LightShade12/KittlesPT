@@ -43,8 +43,8 @@ namespace SampleApp
 		float m_exposure_compensation = 0.0f;
 		int m_ISO = 100;
 		float m_shutter_secs = 0.004f; //1/60th sec
-		float m_white_point = 6.5f;
-		float m_black_point = -10.0f;//Unit in EV?
+		float m_white_point = 6.5f;//Units probably in EV
+		float m_black_point = -10.0f;//Unit probably in EV
 
 		float m_fov_y_rad = glm::radians(90.0f);
 

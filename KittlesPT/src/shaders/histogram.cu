@@ -15,9 +15,9 @@
 namespace KittlesPT
 {
 	// For a given color and luminance range, return the histogram bin index
-	__device__ uint colorToBin(float3 hdrColor, float minLogLum, float inverseLogLumRange)
+	__device__ uint colorToBin(float3 hdr_color, float min_log_lum, float inverse_log_lum_range)
 	{
-		float lum = RGBSpectrum(hdrColor).getLuminance();
+		float lum = RGBSpectrum(hdr_color).getLuminance();
 
 		// Avoid taking the log of zero
 		if (lum < Constants::HISTOGRAM_LUMINANCE_EPSILON) {
@@ -26,30 +26,29 @@ namespace KittlesPT
 
 		// Calculate the log_2 luminance and express it as a value in [0.0, 1.0]
 		// where 0.0 represents the minimum luminance, and 1.0 represents the max.
-		float log_lum = clamp((log2(lum) - minLogLum) * inverseLogLumRange, 0.0, 1.0);
+		float log_lum = clamp((log2(lum) - min_log_lum) * inverse_log_lum_range, 0.0, 1.0);//normalization
 
 		// Map [0, 1] to [1, 255]. The zeroth bin is handled by the epsilon check above.
 		return uint(log_lum * 254.0 + 1.0);
 	};
 
-	__device__ float meteringWeight(const GlobalShaderData& shader_data, int2 pixel_coord)
+	__device__ float centerMeteringWeight(int2 frame_resolution, int2 pixel_coord, float radius_factor)
 	{
-		int2 centre_spot = shader_data.frame_resolution / 2.0f;
-
-		constexpr float radius_factor = 1.0f;//TODO: can be user param
+		int2 centre_spot = frame_resolution / 2.0f;
 
 		float distance = length(make_float2(centre_spot - pixel_coord));
 		distance *= (1.0f / radius_factor);
 
-		float max_distance = fminf(shader_data.frame_resolution.x, shader_data.frame_resolution.y) / 2.0f;//not using width?
+		float max_distance = fminf(frame_resolution.x, frame_resolution.y) / 2.0f;//not using width?
 		float normalized_distance = distance / max_distance;
 
 		float weight = 1.0f - smoothstep(0.0f, 1.0f, normalized_distance);
 
 		return clamp(weight, 0.0f, 1.0f);
 	};
-	//__constant__ constexpr float LOG_LUM_RANGE = 15.f;//TODO: what values for these?
-	//__constant__ constexpr float MIN_LOG_LUM = -10.f;
+	//for reference:
+	//float LOG_LUM_RANGE = 15.f;
+	//float MIN_LOG_LUM = -10.f;
 }/*KittlesPT*/
 
 //Launch with thread dims 16x16=256
@@ -77,7 +76,7 @@ __global__ void histogramComputeKernel(const KittlesPT::GlobalShaderData shader_
 		float dynamic_range = shader_data.scene_camera.film.white_point - shader_data.scene_camera.film.black_point;
 		uint bin_idx = colorToBin(linear_radiance, shader_data.scene_camera.film.black_point, (1.0f / dynamic_range));
 
-		float weight = meteringWeight(shader_data, shading_job.pixel_coord);
+		float weight = centerMeteringWeight(frame_res, shading_job.pixel_coord, 1.0f);//TODO: user param radius
 
 		//shader_data.gbuffer_texture.textureWrite(make_float4(make_float3(weight), 1), shading_job.pixel_coord);
 
@@ -91,7 +90,7 @@ __global__ void histogramComputeKernel(const KittlesPT::GlobalShaderData shader_
 	}
 }
 
-//launch with thread dims= 256 x 1;
+//launched with thread dims = 256 x 1;
 __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::GlobalShaderData shader_data)
 {
 	using namespace KittlesPT;
@@ -133,17 +132,15 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::GlobalSh
 			__syncthreads();
 		}
 
-		// We only need to calculate this once, so only a single thread is needed.
 		if (local_index == 0) {
 			// Here we take our weighted sum and divide it by the number of pixels
 			// that had luminance greater than zero (since the index == 0, we can
 			// use count_for_this_bin to find the number of black pixels)
-			//float denom = max((frame_res.x * frame_res.y) - float(weights_sum_for_this_bin), 1.0);//works cuz we dont store weight sum for black px
 
 			//weights_sum_for_this_bin is no of black px for thread 0
 			//shared_net_weights[0] is no of black px + valid weights
 			//shared_weighted_luminance_histogram[0] doesnt have black pixels since their luminance is 0
-			float denom = max(shared_net_weights[0] - weights_sum_for_this_bin, 1.0);//works cuz we dont store weight sum for black px
+			float denom = max(shared_net_weights[0] - weights_sum_for_this_bin, 1.0);//works cuz we dont store weighted-sum for black px
 			float weighted_log_average = (shared_weighted_luminance_histogram[0] / denom) - 1.0;
 
 			float dynamic_range = shader_data.scene_camera.film.white_point - shader_data.scene_camera.film.black_point;

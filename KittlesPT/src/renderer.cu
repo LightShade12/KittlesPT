@@ -173,12 +173,75 @@ namespace KittlesPT
 
 		m_renderer_rsrc->bloom_mipchain.resize(m_width, m_height);
 	}
+
+	static float g_ev_comp = 0.0f;
+	static float g_aperture = 0.0f;
+	static float g_shutter = 0.0f;
+	static float g_iso = 0.0f;
+	static float g_white_point = 0.0f;
+	static float g_black_point = 0.0f;
+
+	// Notes:
+	// EV below refers to EV at ISO 100
+
+	float computeEV100(float average_luminance)
+	{
+		// K is a light meter calibration constant
+		constexpr float K = 12.5f;
+		return log2(average_luminance * 100.0f / K);
+	}
+
+	// Given an aperture, shutter speed, and exposure value compute the required ISO value
+	float ComputeISO(float aperture, float shutterSpeed, float ev)
+	{
+		return (Sqr(aperture) * 100.0f) / (shutterSpeed * pow(2.0f, ev));
+	}
+
+	// Given the camera settings compute the current exposure value
+	float ComputeEV(float aperture, float shutterSpeed, float iso)
+	{
+		return log2((Sqr(aperture) * 100.0f) / (shutterSpeed * iso));
+	}
+
+	constexpr int MAX_ISO = 6400;
+	constexpr float MIN_SHUTTER = 0.00025;//1/4000s
+	constexpr float MAX_SHUTTER = 0.0333;//1/30s
+	constexpr int MIN_ISO = 100;
+
+	void ApplyAperturePriority(float focalLength,
+		float targetEV,
+		float& aperture,
+		float& shutterSpeed,
+		float& iso)
+	{
+		// Start with the assumption that we want a shutter speed of 1/f
+		shutterSpeed = 1.0f / (focalLength * 1000.0f);
+
+		// Compute the resulting ISO if we left the shutter speed here
+		iso = clamp(ComputeISO(aperture, shutterSpeed, targetEV),
+			static_cast<float>(MIN_ISO), static_cast<float>(MAX_ISO));
+
+		// Figure out how far we were from the target exposure value
+		float evDiff = targetEV - ComputeEV(aperture, shutterSpeed, iso);
+
+		// Compute the final shutter speed
+		shutterSpeed = clamp(shutterSpeed * pow(2.0f, -evDiff), MIN_SHUTTER, MAX_SHUTTER);
+	}
+
 	void Renderer::executeRendering(float delta_time_ms)
 	{
 		m_renderer_rsrc->shader_global_data.frame_delta = delta_time_ms;
 		m_renderer_rsrc->shader_global_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
+
+		if (true)
+		{
+			float ev_target = computeEV100(*m_renderer_rsrc->shader_global_data.scene_average_luminance);
+			ev_target = ev_target - g_ev_comp;
+			ApplyAperturePriority(2.0f, ev_target, g_aperture, g_shutter, g_iso);
+			setExposure(g_aperture, g_iso, g_shutter, g_ev_comp, g_white_point, g_black_point);
+		}
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_global_data);
 
@@ -307,19 +370,6 @@ namespace KittlesPT
 		return middleGrey / l_avg;
 	}
 
-	float computeEV100(float average_luminance)
-	{
-		// K is a light meter calibration constant
-		constexpr float K = 12.5f;
-		return log2(average_luminance * 100.0f / K);
-	}
-
-	//stupid thing
-	float getEV100(float aperture_f_num, float iso, float shutter_time)
-	{
-		return log2(Sqr(aperture_f_num) * 100.0f / (shutter_time * iso));
-	}
-
 	//TODO: ev_comp is non functional
 	void Renderer::setExposure(float aperture_f_num, int iso, float shutter_sec, float ev_comp, float white_point, float black_point)
 	{
@@ -331,11 +381,11 @@ namespace KittlesPT
 		* q = 0.65
 		*/
 		//float EVt = computeEV100(4.0) - ev_comp;
+		g_aperture = aperture_f_num; g_iso = iso; g_shutter = shutter_sec; g_ev_comp = ev_comp; g_white_point = white_point; g_black_point = black_point;
 
 		float luminance_exposure_scalar = getStandardOutputBasedExposure(aperture_f_num, shutter_sec, (float)iso);
 		m_renderer_rsrc->shader_global_data.scene_camera.setExposure(luminance_exposure_scalar,
 			white_point, black_point);
-		resetAccumulation();
 	}
 
 	void Renderer::resetAccumulation()
