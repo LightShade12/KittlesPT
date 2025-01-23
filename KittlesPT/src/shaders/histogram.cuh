@@ -5,7 +5,7 @@
 
 namespace KittlesPT
 {
-	__device__ uint colorToBin(float3 hdr_color, float min_log_lum, float inverse_log_lum_range);
+	__device__ uint luminanceToBin(float luminance, float min_log_lum, float inverse_log_lum_range);
 	__device__ float centerMeteringWeight(const int2 frame_resolution , int2 pixel_coord, float radius_factor);
 }
 //Launch with thread dims 16x16=256

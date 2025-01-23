@@ -134,6 +134,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 
 	GBuffer visible_surface;
 	float camera_weight = 1.0f;
+	//We estimate radiance directly as RGB triplets
 	//evaluate integral(f(x)/p(x)) at Xi
 	RGBSpectrum sensor_radiance = fs.weight * camera_weight * Integrator::Li(shader_data,
 		primary_ray, sampler, &visible_surface);

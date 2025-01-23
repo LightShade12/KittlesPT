@@ -174,15 +174,15 @@ namespace KittlesPT
 		m_renderer_rsrc->bloom_mipchain.resize(m_width, m_height);
 	}
 
-	// Notes:
-	// EV below refers to EV at ISO 100
-
 	float computeEV100(float average_luminance)
 	{
 		// K is a light meter calibration constant
 		constexpr float K = 12.5f;
-		return log2(average_luminance * 100.0f / K);
+		return log2((average_luminance * 100.0f) / K);
 	}
+
+	// Notes:
+	// EV below refers to EV at ISO 100
 
 	// Given an aperture, shutter speed, and exposure value compute the required ISO value
 	float ComputeISO(float aperture, float shutterSpeed, float ev)
@@ -245,10 +245,11 @@ namespace KittlesPT
 
 			float avg_lum = *m_renderer_rsrc->shader_global_data.scene_average_luminance;
 			float ev_target = computeEV100(avg_lum) - g_ev_comp;
+			ev_target += 6.0f;//TODO:FIXME:Nasty fix for auto exposure undererestimation
 			applyAperturePriority(0.1f, ev_target,
 				g_exposure_values.aperture_f_num, g_exposure_values.shutter_speed_secs, g_exposure_values.ISO);
 			setExposure(g_exposure_values, g_ev_comp, g_white_point, g_black_point);
-			printf("[delta %.3fms]: avg scene lm: %.3f\n", delta_time_ms, avg_lum);
+			//printf("[delta %.3fms]: avg scene lm: %.3f\n", delta_time_ms, avg_lum);
 		}
 
 		launchPostProcessComputeKernel(m_renderer_rsrc->shader_global_data);
