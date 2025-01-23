@@ -5,7 +5,6 @@
 #define GLFW_INCLUDE_NONE //glad loader instead of local gl
 #include "glfw/include/GLFW/glfw3.h"
 #include "glm/glm.hpp"
-#include <vector>
 
 namespace SampleApp
 {
