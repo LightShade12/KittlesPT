@@ -228,7 +228,7 @@ namespace SampleApp
 		if (m_renderer.getPathTracerSettings().enable_auto_exposure)
 		{
 			KittlesPT::Renderer::ExposureValues cam_val = m_renderer.getExposure();
-			m_camera.setISO(cam_val.ISO);
+			m_camera.setISO(static_cast<int>(cam_val.ISO));
 			m_camera.setShutterSecs(cam_val.shutter_speed_secs);
 		}
 

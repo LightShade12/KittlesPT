@@ -18,8 +18,8 @@ namespace KittlesPT
 			ExposureValues() = default;
 
 			ExposureValues(float aperture_f_num, int iso, float shutter_secs,
-				int max_iso = 6400, int min_iso = 100, float max_shutter_secs = 0.0333, float min_shutter_secs = 0.00025) :
-				aperture_f_num(aperture_f_num), ISO(iso), shutter_speed_secs(shutter_secs),
+				int max_iso = 6400, int min_iso = 100, float max_shutter_secs = 0.0333f, float min_shutter_secs = 0.00025f) :
+				aperture_f_num(aperture_f_num), ISO((float)iso), shutter_speed_secs(shutter_secs),
 				MAX_ISO(max_iso), MIN_ISO(min_iso), MAX_SHUTTER_SECS(max_shutter_secs), MIN_SHUTTER_SECS(min_shutter_secs)
 			{}
 
@@ -29,8 +29,8 @@ namespace KittlesPT
 
 			int MAX_ISO = 6400;
 			int MIN_ISO = 100;
-			float MIN_SHUTTER_SECS = 0.00025;//1/4000s
-			float MAX_SHUTTER_SECS = 0.0333;//1/30s
+			float MIN_SHUTTER_SECS = 0.00025f;//1/4000s
+			float MAX_SHUTTER_SECS = 0.0333f;//1/30s
 		};
 
 		void init();
