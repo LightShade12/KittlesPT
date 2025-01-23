@@ -67,7 +67,7 @@ namespace KittlesPT
 		}
 
 		__device__ RGBSpectrum getAlbedo() {
-			return m_albedo_factor;
+			return m_albedo;
 		}
 
 	private:
@@ -117,7 +117,7 @@ namespace KittlesPT
 
 	private:
 		Mat3 m_tangent_basis;
-		RGBSpectrum m_albedo_factor{ 1.0f,0.0f,1.0f };//reflectance spectrum
+		RGBSpectrum m_albedo{ 1.0f,0.0f,1.0f };//reflectance spectrum
 		float m_roughness = 0.5f;//alpha_x alpha_y TODO: anisotropy
 		float m_metallicity = 0.0f;
 		float m_transmission = 0.0f;

@@ -20,34 +20,56 @@ namespace KittlesPT
 	struct Material
 	{
 		__device__ __host__ Material(
+			int albedo_texture_id,
 			float3 albedo,
+			int orm_texture_id,
 			float metallicity,
 			float roughness,
+			int transmission_texture_id,
 			float transmission,
 			float ior,
+			int emission_texture_id,
 			float3 emission_factor,
 			float emission_scale,
-			int albedo_texture_id) :
+			int normal_texture_id,
+			float normal_scale
+		) :
+			albedo_texture_id(albedo_texture_id),
 			albedo(albedo),
-			metallicity(metallicity),
-			roughness(roughness),
-			transmission(transmission),
+			ORM_texture_id(orm_texture_id),
+			metallic_factor(metallicity),
+			roughness_factor(roughness),
+			transmission_texture_id(transmission_texture_id),
+			transmission_factor(transmission),
 			ior(ior),
+			emission_texture_id(emission_texture_id),
 			emissive_factor(emission_factor),
-			emission_scale(emission_scale),
-			albedo_texture_id(albedo_texture_id)
+			emission_scale_nits(emission_scale),
+			normal_texture_id(normal_texture_id),
+			normal_scale(normal_scale)
 		{}
 
 		__device__ BSDF getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx) const;
 
 		//----
-		float3 albedo{ 0.8f,0.8f,0.8f };
+	public:
 		int albedo_texture_id = -1;
-		float metallicity = 0.0f;
-		float roughness = 0.5f;
-		float transmission = 0.0f;
+		float3 albedo{ 0.8f,0.8f,0.8f };
+
+		int ORM_texture_id = -1;
+		float metallic_factor = 0.0f;
+		float roughness_factor = 0.5f;
+
+		int transmission_texture_id = -1;
+		float transmission_factor = 0.0f;
+
 		float ior = 1.45f;
+
+		int emission_texture_id = -1;
 		float3 emissive_factor{ 0.0f,0.0f,0.0f };
-		float emission_scale = 1.0f;//unit: nit(cd/m2) qty name: luminance
+		float emission_scale_nits = 1.0f;//unit: nit(cd/m2) qty name:luminance
+
+		int normal_texture_id = -1;
+		float normal_scale = 1.0f;
 	};
 }/*KittlesPT*/

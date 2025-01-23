@@ -68,14 +68,14 @@ namespace KittlesPT
 	class Light
 	{
 	public:
-		__host__ Light(float area, int prim_id, float3 color, float power) :
-			L_emit(color), emission_nits(power), prim_id(prim_id), area(area) {};
+		__host__ Light(float area, int prim_id, float3 emission_color, float emission_nits) :
+			emission_spectrum_rgb(emission_color), emission_nits(emission_nits), prim_id(prim_id), area(area) {};
 
 		//----------------------------------------------------------------------------
 
 		__device__ RGBSpectrum L(float3 p, float3 n, float3 wi) const
 		{
-			return L_emit * emission_nits;
+			return emission_spectrum_rgb * emission_nits;
 		};
 
 		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
@@ -83,16 +83,16 @@ namespace KittlesPT
 		//TODO: maybe consider allowing this method to test intersection on its shape for bug free, reliable operation
 		__device__ float pdf_Li(const LightSampleContext& ctx, const LightLiSample& confirmed_ls) const;
 
+		//Net power
 		__device__ float phi()
 		{
-			return (Constants::PI * 2.0f * area * L_emit * emission_nits);
+			return (Constants::PI * 2.0f * area * emission_spectrum_rgb * emission_nits);
 		}
 
-		//-----------------------------------------------------------------------------
-
+	public:
 		int prim_id = -1;
 	private:
-		RGBSpectrum L_emit;
+		RGBSpectrum emission_spectrum_rgb;
 		float emission_nits = 0.0f;
 		float area = 0.0f;
 	};

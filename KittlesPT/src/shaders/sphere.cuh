@@ -61,7 +61,7 @@ namespace KittlesPT
 	public:
 		int material_id = -1;
 		int light_id = -1;
-		float3 world_position;
+		float3 world_position{ 0.0f,0.0f,0.0f };
 		float radius = 1.0f;
 	};
 }/*KittlesPT*/

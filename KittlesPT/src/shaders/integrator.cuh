@@ -9,7 +9,7 @@ namespace KittlesPT
 		*	-BVH (Aggregate primitive)
 		*	-Triangles
 		*
-		*	-Utility code
+		*	-Utility code(From GLSL,HLSL .etc)
 		*
 		*	-Wavefront rendering
 		*

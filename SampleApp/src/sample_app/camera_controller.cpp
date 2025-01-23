@@ -83,7 +83,7 @@ namespace SampleApp
 		return m_moved;
 	}
 
-	glm::mat4 CameraController::getViewMatrix()
+	glm::mat4 CameraController::getViewMatrix() const
 	{
 		glm::mat4 view
 		(
@@ -94,30 +94,5 @@ namespace SampleApp
 		);
 
 		return view;
-	}
-
-	float CameraController::getVerticalFOV_Radians()
-	{
-		return m_fov_y_rad;
-	}
-	float CameraController::getISO()
-	{
-		return m_ISO;
-	}
-	void CameraController::setISO(float ISO)
-	{
-		m_ISO = ISO;
-	}
-	void CameraController::setShutterSpeedSec(float secs)
-	{
-		m_shutter_sec = secs;
-	}
-	void CameraController::setApertureNumber(float f_num)
-	{
-		m_aperture_num = f_num;
-	}
-	void CameraController::setVerticalFOV_Radians(float fov_y_rad)
-	{
-		m_fov_y_rad = fov_y_rad;
 	}
 }

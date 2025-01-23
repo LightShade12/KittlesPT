@@ -275,4 +275,9 @@ namespace KittlesPT
 	{
 		return a + t * (b - a);
 	}
+
+	inline __device__ RGBSpectrum powf(RGBSpectrum x, float y)
+	{
+		return RGBSpectrum(::powf(x.r, y), ::powf(x.g, y), ::powf(x.b, y));
+	}
 }/*KittlesPT*/

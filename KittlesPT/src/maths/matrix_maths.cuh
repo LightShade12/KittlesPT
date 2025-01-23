@@ -3,6 +3,7 @@
 #include "vector_maths.cuh"
 
 #include "glm/mat4x4.hpp"
+
 #include <stdio.h>//for prints
 
 // column-major maths
@@ -29,7 +30,7 @@ namespace KittlesPT
 			columns[2] = make_float3(mat[2][0], mat[2][1], mat[2][2]);  // Third column
 		}
 
-		__host__ __device__ Matrix3x3(float3 c1, float3 c2, float3 c3) {
+		__host__ __device__ constexpr Matrix3x3(float3 c1, float3 c2, float3 c3) {
 			columns[0] = c1; columns[1] = c2; columns[2] = c3;
 		};
 

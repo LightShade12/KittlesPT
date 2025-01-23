@@ -15,7 +15,7 @@ namespace KittlesPT
 		float3 wpos;
 		float2 uv;
 	};
-
+	//TODO: decode from srgb before using
 	class Texture
 	{
 	public:

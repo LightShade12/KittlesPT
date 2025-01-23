@@ -49,7 +49,7 @@ namespace KittlesPT
 		}
 
 		const Material& mat = shader_data.materials_buffer.data[material_id];
-		emission = RGBSpectrum(mat.emissive_factor * mat.emission_scale);
+		emission = RGBSpectrum(mat.emissive_factor * mat.emission_scale_nits);
 		return emission;
 	}
 

@@ -26,7 +26,9 @@ namespace KittlesPT
 		int frame_index = 0;
 		float frame_delta = 0.0f;
 
+		float* scene_average_luminance = nullptr;
 		Buffer<Sphere> geometry_buffer;
+		Buffer<float> histogram_buffer;
 		Buffer<Material> materials_buffer;
 		Buffer<Light> lights_buffer;
 		Buffer<Texture> texture_buffer;

@@ -12,66 +12,105 @@
 #include "packing.cuh"
 #include "filter.cuh"
 #include "bloom.cuh"
+#include "histogram.cuh"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-__global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader_data);
+__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderData shader_data);
 __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data);
 
 namespace KittlesPT
 {
-	void launchPathTraceComputeKernel(const GlobalShaderData& shader_data)
+	void launchPathTraceComputeMegaKernel(const GlobalShaderData& shader_data)
 	{
-		int thread_block_x = 8, thread_block_y = 8;//8x8=64=32x2
-		dim3 thread_block_dimensions = dim3(thread_block_x, thread_block_y);
-		dim3 thread_block_grid_dimensions = dim3(shader_data.frame_resolution.x / thread_block_x + 1,
-			shader_data.frame_resolution.y / thread_block_y + 1);
+		//8 x 8 = 64 = 32 x 2
+		dim3 thread_block_dimensions = dim3(8, 8, 1);
+		dim3 block_grid_dimensions = dim3(
+			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			1);
 
-		computePathTraceSamples << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data);
-		cudaDeviceSynchronize();
+		computePathTraceSamplesMegaKernel << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
 		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
 	void launchPostProcessComputeKernel(const GlobalShaderData& shader_data)
 	{
-		int thread_block_x = 8, thread_block_y = 8;//8x8=64=32x2
-		dim3 thread_block_dimensions = dim3(thread_block_x, thread_block_y);
-		dim3 thread_block_grid_dimensions = dim3(shader_data.frame_resolution.x / thread_block_x + 1,
-			shader_data.frame_resolution.y / thread_block_y + 1);
+		//8 x 8 = 64 = 32 x 2
+		dim3 thread_block_dimensions = dim3(8, 8, 1);
+		dim3 block_grid_dimensions = dim3(
+			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			1);
 
-		computePostProcess << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data);
-		cudaDeviceSynchronize();
+		computePostProcess << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
 		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	void launchBloomDownSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst, bool karis_avg)
+	void launchHistogramComputeKernel(const GlobalShaderData& shader_data)
 	{
-		int thread_block_x = 8, thread_block_y = 8;//8x8=64=32x2
-		dim3 thread_block_dimensions = dim3(thread_block_x, thread_block_y);
-		dim3 thread_block_grid_dimensions = dim3(shader_data.frame_resolution.x / thread_block_x + 1,
-			shader_data.frame_resolution.y / thread_block_y + 1);
+		//16x16 = 256
+		dim3 thread_block_dimensions = dim3(16, 16, 1);
+		dim3 block_grid_dimensions = dim3(
+			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			1);
 
-		downSample << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst, karis_avg);
-		cudaDeviceSynchronize();
+		histogramComputeKernel << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
+
 		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
+	}
+
+	void launchHistogramAverageComputeKernel(const GlobalShaderData& shader_data)
+	{
+		//256 x 1
+		dim3 thread_block_dimensions = dim3(Constants::HISTOGRAM_SIZE, 1, 1);
+		dim3 block_grid_dimensions = dim3(1, 1, 1);
+
+		histogramAverageLuminanceComputeKernel << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
+
+		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
+	}
+
+	void launchBloomDownSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src,
+		const DeviceTextureBuffer& dst, bool karis_avg)
+	{
+		//8x8=64=32x2
+		dim3 thread_block_dimensions = dim3(8, 8, 1);
+		dim3 block_grid_dimensions = dim3(
+			dst.dimensions.x / thread_block_dimensions.x + 1,
+			dst.dimensions.y / thread_block_dimensions.y + 1,
+			1);
+
+		downSample << < block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst, karis_avg);
+
+		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
 	void launchBloomUpSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst)
 	{
-		int thread_block_x = 8, thread_block_y = 8;//8x8=64=32x2
-		dim3 thread_block_dimensions = dim3(thread_block_x, thread_block_y);
-		dim3 thread_block_grid_dimensions = dim3(shader_data.frame_resolution.x / thread_block_x + 1,
-			shader_data.frame_resolution.y / thread_block_y + 1);
+		//8x8=64=32x2
+		dim3 thread_block_dimensions = dim3(8, 8, 1);
+		dim3 block_grid_dimensions = dim3(
+			dst.dimensions.x / thread_block_dimensions.x + 1,
+			dst.dimensions.y / thread_block_dimensions.y + 1,
+			1);
 
-		upSampleCombine << < thread_block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst);
-		cudaDeviceSynchronize();
+		upSampleCombine << < block_grid_dimensions, thread_block_dimensions >> > (shader_data, src, dst);
+
 		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
 	}
-}
+}/*KittlesPT*/
 
-__global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader_data)
+__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderData shader_data)
 {
 	using namespace KittlesPT;
 
@@ -82,29 +121,36 @@ __global__ void computePathTraceSamples(const KittlesPT::GlobalShaderData shader
 		return;
 	}
 
-	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
-	GBuffer visible_surface;
-
 	IndependentSampler sampler;
 	sampler.initPixelSeed(shading_job.pixel_coord, frame_res.x, shader_data.frame_index);
 
 	BoxFilter filter({ 1.0f,1.0f });
 	FilterSample fs = filter.sample(sampler.get2D());
+
+	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
 	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc, frame_res);
 
+	GBuffer visible_surface;
 	float camera_weight = 1.0f;
+	//We estimate radiance directly as RGB triplets
 	//evaluate integral(f(x)/p(x)) at Xi
-	RGBSpectrum sensor_radiance = fs.weight * camera_weight * Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
+	RGBSpectrum sensor_radiance = fs.weight * camera_weight * Integrator::Li(shader_data,
+		primary_ray, sampler, &visible_surface);
 
-	float4 packed = visible_surface.packGBuffer();
-	shader_data.gbuffer_texture.textureWriteUV(packed, shading_job.uv_coord);
+	shader_data.gbuffer_texture.textureWriteUV(visible_surface.packGBuffer(), shading_job.uv_coord);
 
 	//Monte-Carlo estimation; static accumulation
 	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
 
-	shader_data.main_texture.textureWriteUV(make_float4(sensor_radiance.toFloat3(), 1), shading_job.uv_coord);
+	float4 frag_color = make_float4(sensor_radiance.toFloat3(), 1.0f);
+
+	//float scale = centerMeteringWeight(frame_res, shading_job.pixel_coord, 1.0f);
+	//scale = ceilf(scale);
+	//if (!scale) frag_color += make_float4(1.0f) * length(make_float3(frag_color));
+
+	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
 __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data)
@@ -113,21 +159,23 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 
 	ShadingJob shading_job = getShadingJob(shader_data.frame_resolution);
 
-	if (shading_job.invalid)
-	{
+	if (shading_job.invalid) {
 		return;
 	}
 
-	RGBSpectrum raw_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
+	RGBSpectrum sensor_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
 
 	if (shader_data.pathtracer_settings.generate_bloom) {
 		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));
-		raw_radiance = lerp(raw_radiance, bloom_radiance, shader_data.pathtracer_settings.bloom_blend);
+		sensor_radiance = lerp(sensor_radiance, bloom_radiance, shader_data.pathtracer_settings.bloom_blend);
 	}
 
-	//post process
-	raw_radiance *= shader_data.scene_camera.film.exposure_EV;//TODO: proper exposure application
-	float3 frag_color = shader_data.scene_camera.film.getDisplayRGB(raw_radiance);
+	float3 Yxy = sensor_radiance.toYxy();
+	Yxy.x *= shader_data.scene_camera.film.luminance_exposure_scalar;//scale scene luminance
+	sensor_radiance = RGBSpectrum::fromYxy(Yxy);
 
-	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1), shading_job.uv_coord);
-}/*KittlesPT*/
+	float3 frag_color = shader_data.scene_camera.film.getDisplayNonLinearSRGB(sensor_radiance);
+	//frag_color = make_float3(shader_data.gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
+	//non-linear srgb target; expects gamma correction
+	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1.0f), shading_job.uv_coord);
+}
