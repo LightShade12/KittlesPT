@@ -80,13 +80,13 @@ namespace SampleApp
 			float fov_y_radians = camera_controller_ref->getVerticalFOV_Radians();
 
 			float aperture_f_num = camera_controller_ref->getAperture();
-			float exp_comp = camera_controller_ref->getExposureCompensation();
+			float exp_comp = camera_controller_ref->getExposureCompensationEV();
 			int ISO = camera_controller_ref->getISO();
-			float shutter_secs = camera_controller_ref->getShutter();
+			float shutter_secs = camera_controller_ref->getShutterSecs();
 
 			//TODO: make this into CameraSettings struct?
 			std::vector<float>camera_values = { aperture_f_num,exp_comp,static_cast<float>(ISO),shutter_secs,
-				camera_controller_ref->getWhitePoint(),camera_controller_ref->getBlackPoint() };
+				camera_controller_ref->getWhitePointEV(),camera_controller_ref->getBlackPointEV() };
 
 			bool exposure_updated = false;
 
@@ -159,6 +159,13 @@ namespace SampleApp
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Dynamic Range:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::Text("%.3f EV", camera_values[4] - camera_values[5]);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("White Point");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -200,6 +207,8 @@ namespace SampleApp
 				pt_settings_updated |= ImGui::SliderInt("###max_bounces", &pt_settings.max_bounce_depth, 0, 32);
 				ImGui::EndTable();
 
+				pt_settings_updated |= ImGui::Checkbox("Enable AutoExposure", &pt_settings.enable_auto_exposure);
+
 				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.generate_bloom);
 				ImGui::Indent();
 				pt_settings_updated |= ImGui::Checkbox("Use Karis Average", &pt_settings.use_karis_average);
@@ -223,8 +232,8 @@ namespace SampleApp
 
 					ImGui::EndTable();
 				}
+				ImGui::Unindent();
 			}
-			ImGui::Unindent();
 
 			if (pt_settings_updated) {
 				event_dispatcher_ref->emitSignal(Event("pathtracer_settings_changed"), pt_settings);

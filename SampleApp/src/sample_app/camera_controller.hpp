@@ -18,17 +18,17 @@ namespace SampleApp
 
 		float getAperture() const { return m_aperture_f_num; }
 		void setAperture(float f_num) { m_aperture_f_num = f_num; }
-		float getExposureCompensation() const { return m_exposure_compensation; }
-		void setExposureCompensation(float exposure) { m_exposure_compensation = exposure; }
+		float getExposureCompensationEV() const { return m_exposure_compensation_ev; }
+		void setExposureCompensationEV(float exposure_ev) { m_exposure_compensation_ev = exposure_ev; }
 		int getISO() const { return m_ISO; }
 		void setISO(int iso) { m_ISO = iso; }
-		float getShutter() const { return m_shutter_secs; }
-		void setShutter(float secs) { m_shutter_secs = secs; }
+		float getShutterSecs() const { return m_shutter_secs; }
+		void setShutterSecs(float secs) { m_shutter_secs = secs; }
 
-		float getBlackPoint() const { return m_black_point; }
-		void setBlackPoint(float blackPoint) { m_black_point = blackPoint; }
-		float getWhitePoint() const { return m_white_point; }
-		void setWhitePoint(float whitePoint) { m_white_point = whitePoint; }
+		float getBlackPointEV() const { return m_black_point_ev; }
+		void setBlackPointEV(float black_point_ev) { m_black_point_ev = black_point_ev; }
+		float getWhitePointEV() const { return m_white_point_ev; }
+		void setWhitePointEV(float white_point_ev) { m_white_point_ev = white_point_ev; }
 
 		static constexpr int ISO_MAX = 6400;
 		static constexpr int ISO_MIN = 100;
@@ -40,11 +40,11 @@ namespace SampleApp
 	private:
 		//default: DayTime preset
 		float m_aperture_f_num = 11.0f;
-		float m_exposure_compensation = 0.0f;
+		float m_exposure_compensation_ev = 0.0f;
 		int m_ISO = 100;
 		float m_shutter_secs = 0.004f; //1/60th sec
-		float m_white_point = 6.5f;//Units probably in EV
-		float m_black_point = -10.0f;//Unit probably in EV
+		float m_white_point_ev = 6.5f;
+		float m_black_point_ev = -10.0f;
 
 		float m_fov_y_rad = glm::radians(90.0f);
 
@@ -68,7 +68,7 @@ namespace SampleApp
 		and a narrower aperture (f/11) for a sharper focus across the landscape.
 		*/
 		cam->setAperture(11.0f);
-		cam->setShutter(0.004f);//1/250s
+		cam->setShutterSecs(0.004f);//1/250s
 		cam->setISO(100);
 	}
 
@@ -81,7 +81,7 @@ namespace SampleApp
 		and a wider aperture (f/2.8) for a soft background blur while keeping the subject in focus.
 		*/
 		cam->setAperture(2.8f);
-		cam->setShutter(0.008f);//1/125s
+		cam->setShutterSecs(0.008f);//1/125s
 		cam->setISO(400);
 	}
 
@@ -94,7 +94,7 @@ namespace SampleApp
 		and a moderate aperture (f/4) to balance depth of field and light intake.
 		*/
 		cam->setAperture(4.0f);
-		cam->setShutter(0.05f);//2s
+		cam->setShutterSecs(0.05f);//2s
 		cam->setISO(800);
 	}
 }

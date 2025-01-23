@@ -1,6 +1,6 @@
 #include "histogram.cuh"
 
-#define __CUDACC__
+//#define __CUDACC__
 
 #include "color.cuh"
 #include "maths/constants.cuh"
@@ -8,8 +8,8 @@
 #include "containers.cuh"
 #include "shading_kernel.cuh"
 
-#include <device_functions.h>
-//#include <cuda_runtime.h>
+//#include <device_functions.h>
+#include <cuda_runtime.h>
 #include <cooperative_groups.h>
 
 namespace KittlesPT
@@ -17,19 +17,19 @@ namespace KittlesPT
 	// For a given color and luminance range, return the histogram bin index
 	__device__ uint colorToBin(float3 hdr_color, float min_log_lum, float inverse_log_lum_range)
 	{
-		float lum = RGBSpectrum(hdr_color).getLuminance();
+		float lum = RGBSpectrum(hdr_color).Y();
 
-		// Avoid taking the log of zero
+		// Avoid taking the log of zero(effectively black pixel)
 		if (lum < Constants::HISTOGRAM_LUMINANCE_EPSILON) {
 			return 0;
 		}
 
-		// Calculate the log_2 luminance and express it as a value in [0.0, 1.0]
-		// where 0.0 represents the minimum luminance, and 1.0 represents the max.
-		float log_lum = clamp((log2(lum) - min_log_lum) * inverse_log_lum_range, 0.0, 1.0);//normalization
+		// Calculate the log_2 luminance(so EV) and express it as a value in [0.0, 1.0]
+		// where 0.0 represents the minimum luminance(EVmin), and 1.0 represents the max(EVmax).
+		float log_lum_bin_idx_normalized = clamp((log2(lum) - min_log_lum) * inverse_log_lum_range, 0.0f, 1.0f);//normalization
 
 		// Map [0, 1] to [1, 255]. The zeroth bin is handled by the epsilon check above.
-		return uint(log_lum * 254.0 + 1.0);
+		return uint(log_lum_bin_idx_normalized * 254.0 + 1.0);
 	};
 
 	__device__ float centerMeteringWeight(int2 frame_resolution, int2 pixel_coord, float radius_factor)
@@ -73,16 +73,17 @@ __global__ void histogramComputeKernel(const KittlesPT::GlobalShaderData shader_
 		__syncthreads();
 
 		float3 linear_radiance = make_float3(shader_data.main_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
-		float dynamic_range = shader_data.scene_camera.film.white_point - shader_data.scene_camera.film.black_point;
-		uint bin_idx = colorToBin(linear_radiance, shader_data.scene_camera.film.black_point, (1.0f / dynamic_range));
+		float dynamic_range_ev = shader_data.scene_camera.film.white_point_ev - shader_data.scene_camera.film.black_point_ev;
+		uint log_lum_bin_idx = colorToBin(linear_radiance,
+			shader_data.scene_camera.film.black_point_ev, (1.0f / dynamic_range_ev));
 
 		float weight = centerMeteringWeight(frame_res, shading_job.pixel_coord, 1.0f);//TODO: user param radius
 
 		//shader_data.gbuffer_texture.textureWrite(make_float4(make_float3(weight), 1), shading_job.pixel_coord);
 
-		weight = bin_idx > 0 ? weight : 1;//store pixels count for black pixels(bin_idx==0) instead of weights sum
+		weight = (log_lum_bin_idx > 0) ? weight : 1.0f;//store pixels count for black pixels(log_lum_bin_idx==0) instead of weights sum
 
-		atomicAdd(&(shared_histogram[bin_idx]), weight);
+		atomicAdd(&(shared_histogram[log_lum_bin_idx]), weight);
 
 		__syncthreads();
 
@@ -105,52 +106,49 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::GlobalSh
 	__shared__ float shared_weighted_luminance_histogram[Constants::HISTOGRAM_SIZE];
 	__shared__ float shared_net_weights[Constants::HISTOGRAM_SIZE];
 
-	{
-		int2 local_id = make_int2(threadIdx.x, threadIdx.y);
-		int local_index = local_id.x + (local_id.y * blockDim.x);
+	int2 local_id = make_int2(threadIdx.x, threadIdx.y);//basically unused
+	int local_index = local_id.x + (local_id.y * blockDim.x);
 
-		// Get the count from the histogram buffer
-		float weights_sum_for_this_bin = shader_data.histogram_buffer.data[local_index];
-		const int& bin_luminance_value = local_index;
+	float weights_sum_for_this_bin = shader_data.histogram_buffer.data[local_index];
+	const int log_lum_bin_idx = local_index;//log_lum = ev
 
-		shared_weighted_luminance_histogram[local_index] = weights_sum_for_this_bin * bin_luminance_value;//net metering weighted luminance in the bin
-		shared_net_weights[local_index] = weights_sum_for_this_bin;
+	shared_net_weights[local_index] = weights_sum_for_this_bin;
+	shared_weighted_luminance_histogram[local_index] = weights_sum_for_this_bin * log_lum_bin_idx;//net meter-weighted luminance in the bin
+
+	__syncthreads();
+
+	// reset the count in the buffer in anticipation of the next pass
+	shader_data.histogram_buffer.data[local_index] = 0.0f;
+
+	// this loop will perform a weighted sum of the luminance range(histogram)
+#pragma unroll
+	for (uint cutoff = (Constants::HISTOGRAM_SIZE / 2); cutoff > 0; cutoff >>= 1) {
+		if (uint(local_index) < cutoff) {
+			shared_weighted_luminance_histogram[local_index] += shared_weighted_luminance_histogram[local_index + cutoff];
+			shared_net_weights[local_index] += shared_net_weights[local_index + cutoff];
+		}
 
 		__syncthreads();
+	}
 
-		// Reset the count stored in the buffer in anticipation of the next pass
-		shader_data.histogram_buffer.data[local_index] = 0;
+	if (local_index == 0) {
+		// Here we take our weighted sum and divide it by the number of pixels
+		// that had luminance greater than zero (since the index == 0, we can
+		// use count_for_this_bin to find the number of black pixels)
 
-		// This loop will perform a weighted count of the luminance range
-#pragma unroll
-		for (uint cutoff = (Constants::HISTOGRAM_SIZE / 2); cutoff > 0; cutoff >>= 1) {
-			if (uint(local_index) < cutoff) {
-				shared_weighted_luminance_histogram[local_index] += shared_weighted_luminance_histogram[local_index + cutoff];
-				shared_net_weights[local_index] += shared_net_weights[local_index + cutoff];
-			}
+		//weights_sum_for_this_bin is no of black px for thread 0
+		//shared_net_weights[0] is no of black px + valid weights
+		//shared_weighted_luminance_histogram[0] doesnt have black pixels since their luminance is 0
+		float denom = max(shared_net_weights[0] - weights_sum_for_this_bin, 1.0);//weights_sum_for_this_bin actually contains count for black_px
+		float weighted_log_average = (shared_weighted_luminance_histogram[0] / denom) - 1.0;
 
-			__syncthreads();
-		}
+		float dynamic_range_ev = shader_data.scene_camera.film.white_point_ev - shader_data.scene_camera.film.black_point_ev;
+		// Map from our histogram space to actual luminance
+		float weighted_avg_lum = exp2f(((weighted_log_average / 254.0) * dynamic_range_ev) + shader_data.scene_camera.film.black_point_ev);
 
-		if (local_index == 0) {
-			// Here we take our weighted sum and divide it by the number of pixels
-			// that had luminance greater than zero (since the index == 0, we can
-			// use count_for_this_bin to find the number of black pixels)
-
-			//weights_sum_for_this_bin is no of black px for thread 0
-			//shared_net_weights[0] is no of black px + valid weights
-			//shared_weighted_luminance_histogram[0] doesnt have black pixels since their luminance is 0
-			float denom = max(shared_net_weights[0] - weights_sum_for_this_bin, 1.0);//works cuz we dont store weighted-sum for black px
-			float weighted_log_average = (shared_weighted_luminance_histogram[0] / denom) - 1.0;
-
-			float dynamic_range = shader_data.scene_camera.film.white_point - shader_data.scene_camera.film.black_point;
-			// Map from our histogram space to actual luminance
-			float weighted_avg_lum = exp2f(((weighted_log_average / 254.0) * dynamic_range) + shader_data.scene_camera.film.black_point);
-
-			float lum_last_frame = *(shader_data.scene_average_luminance);
-			float speed = 1.0f;
-			float adapted_lum = lerp(lum_last_frame, weighted_avg_lum, 1.0f - expf(-shader_data.frame_delta * speed));
-			*(shader_data.scene_average_luminance) = adapted_lum;
-		}
+		float lum_last_frame = *(shader_data.scene_average_luminance);
+		float speed = 0.5f;
+		float adapted_lum = lerp(lum_last_frame, weighted_avg_lum, 1.0f - expf(-shader_data.frame_delta * speed));
+		*(shader_data.scene_average_luminance) = adapted_lum;
 	}
 }

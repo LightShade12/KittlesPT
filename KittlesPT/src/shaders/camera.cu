@@ -21,11 +21,11 @@ namespace KittlesPT
 		world_position = make_float3(inv_view[3]);
 	}
 
-	__host__ void Camera::setExposure(float luminance_exposure_scalar, float white_point, float black_point)
+	__host__ void Camera::setExposure(float luminance_exposure_scalar, float white_point_ev, float black_point_ev)
 	{
 		film.luminance_exposure_scalar = luminance_exposure_scalar;
-		film.white_point = white_point;
-		film.black_point = black_point;
+		film.white_point_ev = white_point_ev;
+		film.black_point_ev = black_point_ev;
 	}
 
 	//====================================================================================================================
@@ -192,7 +192,7 @@ namespace KittlesPT
 
 	__device__ float3 Film::getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const
 	{
-		float3 display_color = AgXMinimal::AgXFitted(linear_radiance.toFloat3(), white_point, black_point);
+		float3 display_color = AgXMinimal::AgXFitted(linear_radiance.toFloat3(), white_point_ev, black_point_ev);
 		display_color = AgXMinimal::AgXLook(display_color);
 		display_color = AgXMinimal::AgXFittedOETF(display_color);
 		//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF

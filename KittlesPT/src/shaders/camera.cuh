@@ -13,8 +13,8 @@ namespace KittlesPT
 		__device__ float3 getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const;
 
 		float luminance_exposure_scalar = 1.0f;//TODO: fix this retarded shit
-		float black_point = -10.0f;
-		float white_point = 6.5f;
+		float black_point_ev = -10.0f;
+		float white_point_ev = 6.5f;
 	};
 
 	class Camera
@@ -30,7 +30,7 @@ namespace KittlesPT
 		__device__ Ray generateRay(float2 ndc_coords, int2 frame_resolution) const;
 
 		__host__ void setView(Mat4 inv_proj, Mat4 inv_view);
-		__host__ void setExposure(float luminance_exposure_scalar, float white_point, float black_point);
+		__host__ void setExposure(float luminance_exposure_scalar, float white_point_ev, float black_point_ev);
 
 	public:
 		Film film;

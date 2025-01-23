@@ -20,7 +20,7 @@ namespace SampleApp
 			camera_controller_ref = camera;
 			shared_data_ref = app_data;
 		};
-		float getDeltaTS() const { return delta_time_secs.count(); };
+		float getDeltaTS_ms() const { return delta_time_secs.count(); };
 	private:
 
 		void renderUI() override;

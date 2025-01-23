@@ -23,6 +23,7 @@ namespace KittlesPT
 		bool use_karis_average = false;
 		float bloom_blend = 0.3f;
 		float bloom_internal_blend = 0.75f;
+		bool enable_auto_exposure = false;
 	};
 
 	//Adheres to GLTF 2.0 specifications

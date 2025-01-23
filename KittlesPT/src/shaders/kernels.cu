@@ -144,6 +144,11 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
 
 	float4 frag_color = make_float4(sensor_radiance.toFloat3(), 1.0f);
+
+	//float scale = centerMeteringWeight(frame_res, shading_job.pixel_coord, 1.0f);
+	//scale = ceilf(scale);
+	//if (!scale) frag_color += make_float4(1.0f) * length(make_float3(frag_color));
+
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
@@ -166,7 +171,6 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 
 	float3 Yxy = sensor_radiance.toYxy();
 	Yxy.x *= shader_data.scene_camera.film.luminance_exposure_scalar;//scale scene luminance
-	Yxy.x *= (1.0f / (*shader_data.scene_average_luminance) * 9.6);
 	sensor_radiance = RGBSpectrum::fromYxy(Yxy);
 
 	float3 frag_color = shader_data.scene_camera.film.getDisplayNonLinearSRGB(sensor_radiance);
