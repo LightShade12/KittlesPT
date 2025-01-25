@@ -163,7 +163,7 @@ namespace KittlesPT
 		{
 			RGBSpectrum light(0.0f);//L
 			RGBSpectrum throughput(1.0f);//beta
-			const int max_ray_depth = shader_data.pathtracer_settings.max_bounce_depth;
+			const int max_ray_depth = shader_data.renderer_settings.max_bounce_depth;
 			float eta_scale = 1.0;
 			float p_b = 1.0f;
 			LightSampleContext prev_ctx{};
@@ -245,6 +245,7 @@ namespace KittlesPT
 				if (!fcos) {
 					break;
 				}
+
 				throughput *= (fcos / pdf);
 				p_b = bsdf.pdf(wo, wi);
 				prev_ctx = LightSampleContext(surfintr);

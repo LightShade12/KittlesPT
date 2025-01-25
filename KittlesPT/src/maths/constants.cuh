@@ -22,5 +22,6 @@ namespace KittlesPT
 		__constant__ constexpr int ASVGF_STRATUM_SIZE = 3;
 		__constant__ constexpr float HISTOGRAM_LUMINANCE_EPSILON = 0.005f;
 		__constant__ constexpr int HISTOGRAM_SIZE = 256;
+		__constant__ constexpr float PRIMARY_RAY_TMAX = 1.0e4f;
 	}
 }

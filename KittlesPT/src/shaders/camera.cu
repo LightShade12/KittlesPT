@@ -3,19 +3,18 @@
 
 namespace KittlesPT
 {
-	__device__ Ray Camera::generateRay(float2 ndc_coords, int2 frame_resolution) const
+	__device__ Ray Camera::generateRay(float2 ndc_coords) const
 	{
 		float4 target_cs = inv_projection_matrix * make_float4(ndc_coords.x, ndc_coords.y, 1.0f, 1.0f);
 		float4 target_ws = inv_view_matrix * make_float4(normalize(make_float3(target_cs) / target_cs.w), 0.0f);
 		float3 raydir_ws = normalize(make_float3(target_ws));
-		float3 rayorig_ws = make_float3(inv_view_matrix * make_float4(0.0f, 0.0f, 0.0f, 1.0f));
+		float3 rayorig_ws = world_position;
 
-		//-1 => forward depth
+		//Z = -1 => forward depth
 		return Ray(rayorig_ws, raydir_ws);
 	}
 	__host__ void Camera::setView(Mat4 inv_proj, Mat4 inv_view)
 	{
-		//Mat4::print_matrix(inv_view);
 		inv_projection_matrix = inv_proj;
 		inv_view_matrix = inv_view;
 		world_position = make_float3(inv_view[3]);
@@ -195,7 +194,7 @@ namespace KittlesPT
 		float3 display_color = AgXMinimal::AgXFitted(linear_radiance.toFloat3(), white_point_ev, black_point_ev);
 		display_color = AgXMinimal::AgXLook(display_color);
 		display_color = AgXMinimal::AgXFittedOETF(display_color);
-		//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF
+		//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF however
 		return display_color;
 	}
 }/*KittlesPT*/

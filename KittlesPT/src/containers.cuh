@@ -37,7 +37,7 @@ namespace KittlesPT
 		Camera scene_camera;
 
 		ProceduralEnvironmentData procedural_environment_data;
-		PathtracerSettings pathtracer_settings;
+		RendererSettings renderer_settings;
 
 		DeviceTextureBuffer main_texture;
 		DeviceTextureBuffer accumulation_texture;

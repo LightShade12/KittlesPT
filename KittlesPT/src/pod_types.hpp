@@ -16,7 +16,7 @@ namespace KittlesPT
 		float sun_emission_nits = 6.0e5f;//def: 50.0f
 	};
 
-	struct PathtracerSettings
+	struct RendererSettings
 	{
 		int max_bounce_depth = 3;
 		bool generate_bloom = false;
@@ -29,6 +29,8 @@ namespace KittlesPT
 	//Adheres to GLTF 2.0 specifications
 	struct MaterialSceneEntity
 	{
+		MaterialSceneEntity() = default;
+
 		MaterialSceneEntity(
 			int albedo_texture_id,
 			const glm::vec3& albedo,

@@ -50,43 +50,43 @@ namespace SampleApp
 	void DeveloperWindow::updateUI()
 	{
 		std::chrono::time_point<std::chrono::steady_clock> current_frame_time_point = std::chrono::high_resolution_clock::now();
-		delta_time_secs = current_frame_time_point - last_frame_time_point;
+		m_delta_time_secs = current_frame_time_point - m_last_frame_time_point;
 
-		last_frame_time_point = current_frame_time_point;
+		m_last_frame_time_point = current_frame_time_point;
 	}
 
 	void DeveloperWindow::renderUI()
 	{
-		ImGui::Text("Delta ms(last frame): %.3f ms", delta_time_secs.count() * 1000.0f);
-		float fps = 1000.0f / (delta_time_secs.count() * 1000.0f);
+		ImGui::Text("Delta ms(last frame): %.3f ms", m_delta_time_secs.count() * 1000.0f);
+		float fps = 1000.0f / (m_delta_time_secs.count() * 1000.0f);
 		ImGui::Text("FPS(last frame): %.3f", fps);
 
 		//TODO: weird; idk
-		float avg = glm::mix(average_fps, fps, 0.01f);
+		float avg = glm::mix(m_average_fps, fps, 0.01f);
 		if (!isnan(avg) && !isinf(avg))
 		{
-			average_fps = avg;
+			m_average_fps = avg;
 		}
 
-		ImGui::Text("EMA FPS: %.3f", average_fps);
+		ImGui::Text("EMA FPS: %.3f", m_average_fps);
 		ImGui::Text("Runtime secs: %.3f s",
-			std::chrono::duration_cast<std::chrono::duration<float>>(last_frame_time_point.time_since_epoch()).count() - start_time_secs);
+			std::chrono::duration_cast<std::chrono::duration<float>>(m_last_frame_time_point.time_since_epoch()).count() - m_start_time_secs);
 
 		//ImGui::ShowDemoWindow();
 
 		//camera edit
 		ImGui::Separator();
-		if (ImGui::CollapsingHeader("Camera Settings") && camera_controller_ref != nullptr) {
-			float fov_y_radians = camera_controller_ref->getVerticalFOV_Radians();
+		if (ImGui::CollapsingHeader("Camera Settings") && m_camera_handle != nullptr) {
+			float fov_y_radians = m_camera_handle->getVerticalFOV_Radians();
 
-			float aperture_f_num = camera_controller_ref->getAperture();
-			float exp_comp = camera_controller_ref->getExposureCompensationEV();
-			int ISO = camera_controller_ref->getISO();
-			float shutter_secs = camera_controller_ref->getShutterSecs();
+			float aperture_f_num = m_camera_handle->getAperture();
+			float exp_comp = m_camera_handle->getExposureCompensationEV();
+			int ISO = m_camera_handle->getISO();
+			float shutter_secs = m_camera_handle->getShutterSecs();
 
 			//TODO: make this into CameraSettings struct?
 			std::vector<float>camera_values = { aperture_f_num,exp_comp,static_cast<float>(ISO),shutter_secs,
-				camera_controller_ref->getWhitePointEV(),camera_controller_ref->getBlackPointEV() };
+				m_camera_handle->getWhitePointEV(),m_camera_handle->getBlackPointEV() };
 
 			bool exposure_updated = false;
 
@@ -101,7 +101,7 @@ namespace SampleApp
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				if (ImGui::SliderAngle("###fov_control", &fov_y_radians, 0.0, 120.0)) {
-					event_dispatcher_ref->emitSignal(Event("fov_changed"), fov_y_radians);
+					m_event_dispatcher_handle->emitSignal(Event("fov_changed"), fov_y_radians);
 				};
 
 				ImGui::TableNextRow();
@@ -185,14 +185,14 @@ namespace SampleApp
 
 			if (exposure_updated)
 			{
-				event_dispatcher_ref->emitSignal(Event("exposure_changed"), camera_values);
+				m_event_dispatcher_handle->emitSignal(Event("exposure_changed"), camera_values);
 			};
 		};
 
 		//integrator edit
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Integrator Edit")) {
-			KittlesPT::PathtracerSettings pt_settings = shared_data_ref->pathtracer_settings;
+			KittlesPT::RendererSettings pt_settings = m_shared_data_handle->renderer_settings;
 			bool pt_settings_updated = false;
 
 			if (ImGui::BeginTable("integratoredittable", 2)) {
@@ -236,7 +236,7 @@ namespace SampleApp
 			}
 
 			if (pt_settings_updated) {
-				event_dispatcher_ref->emitSignal(Event("pathtracer_settings_changed"), pt_settings);
+				m_event_dispatcher_handle->emitSignal(Event("pathtracer_settings_changed"), pt_settings);
 			}
 		}
 
@@ -244,7 +244,7 @@ namespace SampleApp
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Environment Edit"))
 		{
-			KittlesPT::ProceduralEnvironmentData env_data = shared_data_ref->environment_data;
+			KittlesPT::ProceduralEnvironmentData env_data = m_shared_data_handle->environment_data;
 			bool env_updated = false;
 
 			if (ImGui::BeginTable("envedittable", 2))
@@ -286,7 +286,7 @@ namespace SampleApp
 			}
 
 			if (env_updated) {
-				event_dispatcher_ref->emitSignal(Event("environment_settings_changed"), env_data);
+				m_event_dispatcher_handle->emitSignal(Event("environment_settings_changed"), env_data);
 			}
 		}
 
@@ -295,7 +295,7 @@ namespace SampleApp
 		if (ImGui::CollapsingHeader("Material Edit"))
 		{
 			bool material_updated = false;
-			Material material;
+			KittlesPT::MaterialSceneEntity material;
 
 			if (ImGui::BeginTable("materialedittable", 2))
 			{
@@ -307,45 +307,45 @@ namespace SampleApp
 				ImGui::Text("Material ID:");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				if (ImGui::SliderInt("###material_selection", &shared_data_ref->editable_material_idx,
-					0, shared_data_ref->materials_count - 1))
+				if (ImGui::SliderInt("###material_selection", &m_shared_data_handle->editable_material_idx,
+					0, int(m_shared_data_handle->materials_count - 1)))
 				{
-					event_dispatcher_ref->emitSignal(Event("material_changed"), true);
+					m_event_dispatcher_handle->emitSignal(Event("material_changed"), true);
 				};
 
-				material = shared_data_ref->editable_material;
+				material = m_shared_data_handle->editable_material;
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Albedo Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::ColorEdit3("###albedo", &material.albedo.r);
+				material_updated |= ImGui::ColorEdit3("###albedo", &material.albedo_factor.r);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Metallness Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::SliderFloat("###metallicity", &material.metallicity, 0.0f, 1.0f);
+				material_updated |= ImGui::SliderFloat("###metallicity", &material.metallic_factor, 0.0f, 1.0f);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Roughness Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::SliderFloat("###roughness", &material.roughness, 0.0f, 1.0f);
+				material_updated |= ImGui::SliderFloat("###roughness", &material.roughness_factor, 0.0f, 1.0f);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Transmission Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::SliderFloat("###transmission", &material.transmission, 0, 1);
+				material_updated |= ImGui::SliderFloat("###transmission", &material.transmission_factor, 0, 1);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("IOR Factor");
+				ImGui::Text("IOR");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				material_updated |= ImGui::SliderFloat("###ior", &material.ior, 1, 3);
@@ -355,7 +355,7 @@ namespace SampleApp
 
 			if (material_updated)
 			{
-				event_dispatcher_ref->emitSignal(Event("material_updated"), material);
+				m_event_dispatcher_handle->emitSignal(Event("material_updated"), material);
 			}
 		}
 	}

@@ -85,7 +85,8 @@ namespace SampleApp
 
 	glm::mat4 CameraController::getViewMatrix() const
 	{
-		glm::mat4 view
+		//Y-up, Z- = forward
+		glm::mat4 inv_view
 		(
 			glm::vec4(right, 0),
 			glm::vec4(up, 0),
@@ -93,6 +94,6 @@ namespace SampleApp
 			glm::vec4(position, 1)
 		);
 
-		return view;
+		return glm::inverse(inv_view);
 	}
 }

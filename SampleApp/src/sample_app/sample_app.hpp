@@ -22,6 +22,9 @@ namespace SampleApp
 
 		void updateUI() override;
 
+	private:
+		void loadSceneFile(const char* path);
+		void registerListeners();
 	public:
 		ApplicationData m_application_data;
 		EventDispatcher m_event_dispatcher;

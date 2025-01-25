@@ -45,31 +45,17 @@ namespace KittlesPT
 
 		void getDebugRenderTargetTexture(GLuint r_texture);
 
-		//TODO: work with MaterialSceneEntity
-		bool setMaterial(int idx,
-			glm::vec3 albedo_factor,
-			float metallicity,
-			float roughness,
-			float transmission,
-			float ior
-		);
+		bool setMaterial(int idx, MaterialSceneEntity material);
 
-		//TODO: return MaterialSceneEntity
-		bool getMaterial(int idx,
-			glm::vec3* albedo_factor,
-			float* metallicity,
-			float* roughness,
-			float* transmission,
-			float* ior
-		);
+		MaterialSceneEntity getMaterial(int idx);
 
-		int getMaterialsCount();
+		size_t getMaterialsCount();
 
 		void setProceduralEnvironmentData(ProceduralEnvironmentData data);
 		ProceduralEnvironmentData getProceduralEnvironmentData();
 
-		void setPathTracerSettings(PathtracerSettings cfg);
-		PathtracerSettings getPathTracerSettings();
+		void setRendererSettings(const RendererSettings& cfg);
+		RendererSettings getRendererSettings();
 
 		void setExposure(ExposureValues camera_values, float ev_comp, float white_point_ev, float black_point_ev);
 		ExposureValues getExposure();

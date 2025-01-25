@@ -117,7 +117,7 @@ namespace KittlesPT
 	{
 		int cuda_driver_version, cuda_runtime_version;
 		cudaDriverGetVersion(&cuda_driver_version); cudaRuntimeGetVersion(&cuda_runtime_version);
-		printf("[RENDERER] CUDA driver version: %d.%d\n[RENDERER] CUDA toolkit runtime version: %d.%d\n",
+		std::printf("[RENDERER] CUDA driver version: %d.%d\n[RENDERER] CUDA toolkit runtime version: %d.%d\n",
 			cuda_driver_version / 1000, cuda_driver_version % 100, cuda_runtime_version / 1000, cuda_runtime_version % 100);
 		m_renderer_rsrc = new RendererResource();
 		m_renderer_rsrc->m_frame_textures["main_texture"] = TextureBuffer();
@@ -167,7 +167,7 @@ namespace KittlesPT
 				tex.second.resize(m_width, m_height);
 				continue;
 			}
-			printf("Initializing texture:%s\n", tex.first.c_str());
+			std::printf("[RENDERER] Initializing renderer texture:%s\n", tex.first.c_str());
 			tex.second.init(m_width, m_height);
 		}
 
@@ -231,14 +231,14 @@ namespace KittlesPT
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_global_data);
 
 		//generate bloom buffer
-		if (m_renderer_rsrc->shader_global_data.pathtracer_settings.generate_bloom)
+		if (m_renderer_rsrc->shader_global_data.renderer_settings.generate_bloom)
 		{
 			executeBloomGeneration();
 			m_renderer_rsrc->shader_global_data.bloom_texture = m_renderer_rsrc->bloom_mipchain.mip_textures[0].enableCudaAccess();
 		}
 
 		//auto exposure pipeline
-		if (m_renderer_rsrc->shader_global_data.pathtracer_settings.enable_auto_exposure)
+		if (m_renderer_rsrc->shader_global_data.renderer_settings.enable_auto_exposure)
 		{
 			launchHistogramComputeKernel(m_renderer_rsrc->shader_global_data);
 			launchHistogramAverageComputeKernel(m_renderer_rsrc->shader_global_data);
@@ -254,7 +254,7 @@ namespace KittlesPT
 
 		launchPostProcessComputeKernel(m_renderer_rsrc->shader_global_data);
 
-		if (m_renderer_rsrc->shader_global_data.pathtracer_settings.generate_bloom) {
+		if (m_renderer_rsrc->shader_global_data.renderer_settings.generate_bloom) {
 			m_renderer_rsrc->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_rsrc->shader_global_data.bloom_texture);
 		}
 
@@ -275,56 +275,59 @@ namespace KittlesPT
 		m_renderer_rsrc->bloom_mipchain.mip_textures[0].copyTo(r_texture);
 	}
 
-	bool Renderer::setMaterial(int idx, glm::vec3 albedo_factor, float metallicity, float roughness,
-		float transmission, float ior)
+	bool Renderer::setMaterial(int idx, MaterialSceneEntity material)
 	{
 		if (idx >= m_renderer_rsrc->scene_materials.size())
 		{
 			return false;
 		}
 
-		Material old_mat = m_renderer_rsrc->scene_materials[idx];
-		Material material(
-			old_mat.albedo_texture_id,
-			make_float3(albedo_factor.r, albedo_factor.g, albedo_factor.b),
-			old_mat.ORM_texture_id,
-			metallicity,
-			roughness,
-			old_mat.transmission_texture_id,
-			transmission,
-			ior,
-			old_mat.emission_texture_id,
-			old_mat.emissive_factor,
-			old_mat.emission_scale_nits,
-			old_mat.normal_texture_id,
-			old_mat.normal_scale
+		Material old_material = m_renderer_rsrc->scene_materials[idx];
+		Material new_material(
+			material.albedo_texture_id,
+			make_float3(material.albedo_factor.r, material.albedo_factor.g, material.albedo_factor.b),
+			material.ORM_texture_id,
+			material.metallic_factor,
+			material.roughness_factor,
+			material.transmission_texture_id,
+			material.transmission_factor,
+			material.ior,
+			material.emission_texture_id,
+			make_float3(material.emission_factor.r, material.emission_factor.g, material.emission_factor.b),
+			material.emission_scale_nits,
+			material.normal_texture_id,
+			material.normal_scale
 		);
-		m_renderer_rsrc->scene_materials[idx] = material;
+		m_renderer_rsrc->scene_materials[idx] = new_material;
 
 		resetAccumulation();
 
 		return true;
 	}
 
-	bool Renderer::getMaterial(int idx, glm::vec3* albedo_factor, float* metallicity, float* roughness, float* transmission, float* ior)
+	MaterialSceneEntity Renderer::getMaterial(int idx)
 	{
 		if (idx >= m_renderer_rsrc->scene_materials.size())
 		{
-			return false;
+			assert(false, "OUT OF BOUNDS MATERIAL ACCESS");
 		}
-		Material mat = m_renderer_rsrc->scene_materials[idx];
-		*albedo_factor = glm::vec3(mat.albedo.x, mat.albedo.y, mat.albedo.z);
-		*metallicity = mat.metallic_factor;
-		*roughness = mat.roughness_factor;
-		*transmission = mat.transmission_factor;
-		*ior = mat.ior;
 
-		return true;
+		Material mat = m_renderer_rsrc->scene_materials[idx];
+
+		MaterialSceneEntity ret_mat(
+			mat.albedo_texture_id, glm::vec3(mat.albedo.x, mat.albedo.y, mat.albedo.z),
+			mat.ORM_texture_id, mat.metallic_factor, mat.roughness_factor,
+			mat.transmission_texture_id, mat.transmission_factor,
+			mat.ior,
+			mat.emission_texture_id, glm::vec3(mat.emissive_factor.x, mat.emissive_factor.y, mat.emissive_factor.z), mat.emission_scale_nits,
+			mat.normal_texture_id, mat.normal_scale
+		);
+		return ret_mat;
 	}
 
-	int Renderer::getMaterialsCount()
+	size_t Renderer::getMaterialsCount()
 	{
-		return (int)m_renderer_rsrc->scene_materials.size();
+		return m_renderer_rsrc->scene_materials.size();
 	}
 
 	void Renderer::setProceduralEnvironmentData(ProceduralEnvironmentData data)
@@ -338,15 +341,15 @@ namespace KittlesPT
 		return m_renderer_rsrc->shader_global_data.procedural_environment_data;
 	}
 
-	void Renderer::setPathTracerSettings(PathtracerSettings cfg)
+	void Renderer::setRendererSettings(const RendererSettings& cfg)
 	{
-		m_renderer_rsrc->shader_global_data.pathtracer_settings = cfg;
+		m_renderer_rsrc->shader_global_data.renderer_settings = cfg;
 		resetAccumulation();
 	}
 
-	PathtracerSettings Renderer::getPathTracerSettings()
+	RendererSettings Renderer::getRendererSettings()
 	{
-		return m_renderer_rsrc->shader_global_data.pathtracer_settings;
+		return m_renderer_rsrc->shader_global_data.renderer_settings;
 	}
 
 	float getSaturationBasedExposure(float aperture, float shutter_time, float iso)
@@ -400,7 +403,6 @@ namespace KittlesPT
 
 	void Renderer::setView(glm::mat4 projection_mat, glm::mat4 view_mat)
 	{
-		//TODO: skip inversion
 		Mat4 proj = Mat4(projection_mat);
 		Mat4 view = Mat4(view_mat);
 		m_renderer_rsrc->shader_global_data.scene_camera.setView(proj.inverse(), view.inverse());
@@ -473,7 +475,7 @@ namespace KittlesPT
 					light_id)
 			);
 		}
-		printf("loaded %zu shapes : %zu lights\n",
+		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
 			m_renderer_rsrc->scene_spheres.size(),
 			m_renderer_rsrc->scene_lights.size());
 
@@ -526,7 +528,7 @@ namespace KittlesPT
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
 			launchBloomDownSampleComputeKernel(m_renderer_rsrc->shader_global_data, dsrc, ddst,
-				(m_renderer_rsrc->shader_global_data.pathtracer_settings.use_karis_average && miplevel == 0));
+				(m_renderer_rsrc->shader_global_data.renderer_settings.use_karis_average && miplevel == 0));
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);

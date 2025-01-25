@@ -54,7 +54,7 @@ namespace SampleApp
 		bool m_moved = false;
 
 		glm::vec3 position = glm::vec3(0.0f);
-		glm::vec3 forward = { 0,0,-1 };
+		glm::vec3 forward = { 0,0,-1 };//-Z forward
 		glm::vec3 up = { 0,1,0 };
 		glm::vec3 right = { 1,0,0 };
 	};

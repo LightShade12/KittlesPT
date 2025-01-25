@@ -138,7 +138,7 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, K
 
 	//combine prev mip
 	float4 dst_prev_color = t_dst.textureReadNearest(make_float2(shading_job.pixel_coord));
-	mag_filtered_color = lerp(dst_prev_color, mag_filtered_color, shader_data.pathtracer_settings.bloom_internal_blend);
+	mag_filtered_color = lerp(dst_prev_color, mag_filtered_color, shader_data.renderer_settings.bloom_internal_blend);
 	mag_filtered_color = make_float4(clampOutput(make_float3(mag_filtered_color)), 1.0f);
 
 	t_dst.textureWrite(mag_filtered_color, shading_job.pixel_coord);

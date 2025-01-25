@@ -130,7 +130,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
 	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
 
-	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc, frame_res);
+	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc);
 
 	GBuffer visible_surface;
 	float camera_weight = 1.0f;
@@ -165,9 +165,9 @@ __global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data
 
 	RGBSpectrum sensor_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
 
-	if (shader_data.pathtracer_settings.generate_bloom) {
+	if (shader_data.renderer_settings.generate_bloom) {
 		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));
-		sensor_radiance = lerp(sensor_radiance, bloom_radiance, shader_data.pathtracer_settings.bloom_blend);
+		sensor_radiance = lerp(sensor_radiance, bloom_radiance, shader_data.renderer_settings.bloom_blend);
 	}
 
 	float3 Yxy = sensor_radiance.toYxy();

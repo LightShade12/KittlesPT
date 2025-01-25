@@ -15,25 +15,37 @@ namespace KittlesPT
 	__device__ BSDF Material::getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx) const
 	{
 		RGBSpectrum eval_albedo = RGBSpectrum(albedo);
+		float eval_roughness = roughness_factor;
+		float eval_metalness = metallic_factor;
+
 		if (albedo_texture_id >= 0)
 		{
-			/*if (albedo_texture_id == 2) {
-				ctx.uv *= 1.5f;
-			}
-			else if (albedo_texture_id == 3)
-			{
-				ctx.uv *= 100.0f;
-			}*/
 			RGBSpectrum sampled = shader_data.texture_buffer.data[albedo_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			sampled = powf(sampled, 2.2f);//srgb to linear approx
+			sampled = powf(sampled, 2.2f);//sRGB to linear approx
 			eval_albedo *= sampled;
+		}
+		if (ORM_texture_id >= 0) {
+			RGBSpectrum sampled = shader_data.texture_buffer.data[ORM_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
+			sampled = powf(sampled, 2.2f);//sRGB to linear approx
+			//ORM: r=Occlusion, g=Roughness, b=Metalness
+			eval_roughness *= sampled.g;
+		}
+		if (normal_texture_id >= 0) {
+			RGBSpectrum sampled = shader_data.texture_buffer.data[normal_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
+			float3 normal_encoded = powf(sampled, 2.2f).toFloat3();
+			float3 mapped_normal = (normal_encoded * 2.0f) - 1.0f;
+			mapped_normal.x *= normal_scale;
+			mapped_normal.y *= normal_scale;
+			mapped_normal.y = -mapped_normal.y;//DX12 => GL convention
+			Mat3 frame = generateONBFrisvad(ctx.wgnorm);
+			ctx.wgnorm = frame * normalize(mapped_normal);
 		}
 
 		//TODO: consider moving basis generation to BSDF constructor
 		BSDF bsdf = BSDF(generateONBFrisvad(ctx.wgnorm),
 			eval_albedo,
-			metallic_factor,
-			roughness_factor,
+			eval_metalness,
+			eval_roughness,
 			transmission_factor,
 			ior,
 			ctx.backface);
