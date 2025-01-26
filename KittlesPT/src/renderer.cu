@@ -309,7 +309,7 @@ namespace KittlesPT
 	{
 		if (idx >= m_renderer_rsrc->scene_materials.size())
 		{
-			assert(false, "OUT OF BOUNDS MATERIAL ACCESS");
+			assert("OUT OF BOUNDS MATERIAL ACCESS");
 		}
 
 		Material mat = m_renderer_rsrc->scene_materials[idx];

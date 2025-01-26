@@ -188,8 +188,8 @@ namespace SampleApp
 
 		//60-watt lightbulb emission; 800 lm; 120,000 nits
 		scene.addMaterial(KittlesPT::MaterialSceneEntity(
-			-1, glm::vec3(0.0f, 1.0f, 0.0f),
-			-1, 0.0f, 0.85f,
+			-1, glm::vec3(0.0f, 0.0f, 0.0f),
+			-1, 0.0f, 0.02f,
 			-1, 0.0f,
 			1.45f,
 			//-1, glm::vec3(0.2f, 0.7f, 1.0f), 12.0e4f,

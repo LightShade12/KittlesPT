@@ -350,6 +350,28 @@ namespace SampleApp
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				material_updated |= ImGui::SliderFloat("###ior", &material.ior, 1, 3);
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Emission color factor");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				material_updated |= ImGui::ColorEdit3("###emcol", &material.emission_factor.r);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Emission scalar");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				material_updated |= ImGui::SliderFloat("###emscale", &material.emission_scale_nits, 0.0f, 1.0e6f,
+					"%.3f nits", ImGuiSliderFlags_Logarithmic);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Normal map scalar");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				material_updated |= ImGui::SliderFloat("###nrmscale", &material.normal_scale, 0.0f, 1.0f);
+
 				ImGui::EndTable();
 			}
 
