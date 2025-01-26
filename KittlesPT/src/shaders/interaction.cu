@@ -16,6 +16,7 @@ namespace KittlesPT
 		surfintr.material_id = tri.material_id;
 
 		surfintr.world_position = ray.getPointAt(distance);
+		//surfintr.world_position = (bary_coords.x * tri.vertex0.position) + (bary_coords.y * tri.vertex1.position) + (bary_coords.z * tri.vertex2.position);
 
 		surfintr.world_geometric_normal = tri.geometric_normal;
 
@@ -29,7 +30,7 @@ namespace KittlesPT
 			surfintr.arealight = &(shader_data.lights_buffer.data[tri.light_id]);
 		}
 
-		surfintr.uv = bary_coords.x * tri.vertex0.tex_coords + bary_coords.y * tri.vertex1.tex_coords + bary_coords.z + tri.vertex2.tex_coords;
+		surfintr.uv = (bary_coords.x * tri.vertex0.tex_coords) + (bary_coords.y * tri.vertex1.tex_coords) + (bary_coords.z * tri.vertex2.tex_coords);
 
 		/*
 		float3 p = (surfintr.world_position - tri.world_position) / tri.radius;

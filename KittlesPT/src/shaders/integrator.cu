@@ -24,7 +24,7 @@ namespace KittlesPT
 			for (int primitive_id = 0; primitive_id < shader_data.triangles_buffer.num; primitive_id++)
 			{
 				const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
-				tri.intersect(ray, tmax, &intr);//currently only returns a float; triangle will return struct
+				tri.intersect(ray, tmax, &intr);
 				if (intr.distance < closest.distance && intr.distance >= 0 && intr.distance < tmax)
 				{
 					closest = intr;
@@ -75,20 +75,17 @@ namespace KittlesPT
 			RGBSpectrum fcos = bsdf.f(wo, sun_direction) *
 				fmaxf(0, dot(sun_direction, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));
 
-			if (!fcos)
-			{
+			if (!fcos) {
 				return Ld;
 			}
 
 			RGBSpectrum sun_color = atmosphere.sampleLe(atmosphere_observer_position, sun_direction, 0, INFINITY);
 
-			if (!sun_color)
-			{
+			if (!sun_color) {
 				return Ld;
 			}
 
-			if (!Unoccluded(shader_data, surface, target))
-			{
+			if (!Unoccluded(shader_data, surface, target)) {
 				return Ld;
 			};
 
@@ -199,7 +196,6 @@ namespace KittlesPT
 					light += sky_radiance * throughput;
 					break;
 				}
-				//return RGBSpectrum(intr.distance) * 10000.0f;
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
@@ -215,6 +211,8 @@ namespace KittlesPT
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
+
+				//return RGBSpectrum(surfintr.world_position) * 10000.0f;
 
 				//skip over medium boundaries
 				if (!bsdf) {

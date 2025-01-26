@@ -17,6 +17,13 @@
 
 namespace KittlesPT
 {
+	float3 glm3_2f3(glm::vec3 v) {
+		return make_float3(v.x, v.y, v.z);
+	}
+
+	float2 glm2_2f2(glm::vec2 v) {
+		return make_float2(v.x, v.y);
+	}
 	//TODO:Add proper logging
 
 	class MipChain
@@ -277,15 +284,14 @@ namespace KittlesPT
 
 	bool Renderer::setMaterial(int idx, MaterialSceneEntity material)
 	{
-		if (idx >= m_renderer_rsrc->scene_materials.size())
-		{
+		if (idx >= m_renderer_rsrc->scene_materials.size()) {
 			return false;
 		}
 
 		Material old_material = m_renderer_rsrc->scene_materials[idx];
 		Material new_material(
 			material.albedo_texture_id,
-			make_float3(material.albedo_factor.r, material.albedo_factor.g, material.albedo_factor.b),
+			glm3_2f3(material.albedo_factor),
 			material.ORM_texture_id,
 			material.metallic_factor,
 			material.roughness_factor,
@@ -293,7 +299,7 @@ namespace KittlesPT
 			material.transmission_factor,
 			material.ior,
 			material.emission_texture_id,
-			make_float3(material.emission_factor.r, material.emission_factor.g, material.emission_factor.b),
+			glm3_2f3(material.emission_factor),
 			material.emission_scale_nits,
 			material.normal_texture_id,
 			material.normal_scale
@@ -371,14 +377,6 @@ namespace KittlesPT
 		return middleGrey / l_avg;
 	}
 
-	float3 f3_2glm(glm::vec3 v) {
-		return make_float3(v.x, v.y, v.z);
-	}
-
-	float2 f2_2glm(glm::vec2 v) {
-		return make_float2(v.x, v.y);
-	}
-
 	void Renderer::setExposure(ExposureValues camera_values, float ev_comp, float white_point_ev, float black_point_ev)
 	{
 		/*
@@ -422,26 +420,24 @@ namespace KittlesPT
 	{
 		printf("starting textures\n");
 
+		int bit_depth = 8;
 		for (const TextureSceneEntity& tex : parsed_scene.texture_entities)
 		{
 			printf("tex: %d x %d | ch:%d\n", tex.width, tex.height, tex.channels_count);
-			int bit_depth = 8;
 			m_renderer_rsrc->scene_textures.push_back(
 				Texture(tex.width, tex.height, tex.channels_count, bit_depth,
 					(int)m_renderer_rsrc->pixel_buffer.size()));
-
 			m_renderer_rsrc->pixel_buffer.insert(m_renderer_rsrc->pixel_buffer.end(),
 				tex.pixels_data.begin(), tex.pixels_data.end());
 		}
 
 		printf("loaded %zu textures\nstarting materials\n", m_renderer_rsrc->scene_textures.size());
 
-		//TODO: add utility to convert glm to float3
 		for (const MaterialSceneEntity& mat : parsed_scene.material_entities)
 		{
 			m_renderer_rsrc->scene_materials.push_back(Material(
 				mat.albedo_texture_id,
-				f3_2glm(mat.albedo_factor),
+				glm3_2f3(mat.albedo_factor),
 				mat.ORM_texture_id,
 				mat.metallic_factor,
 				mat.roughness_factor,
@@ -449,7 +445,7 @@ namespace KittlesPT
 				mat.transmission_factor,
 				mat.ior,
 				mat.emission_texture_id,
-				f3_2glm(mat.emission_factor),
+				glm3_2f3(mat.emission_factor),
 				mat.emission_scale_nits,
 				mat.normal_texture_id,
 				mat.normal_scale
@@ -460,34 +456,27 @@ namespace KittlesPT
 
 		for (const TriangleSceneEntity& tri : parsed_scene.shape_entities)
 		{
-			const MaterialSceneEntity& sphere_mat = parsed_scene.material_entities[tri.material_id];
-			bool is_light = sphere_mat.isEmissive();
+			const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
 			int light_id = -1;
 
-			if (is_light)
+			if (mat.isEmissive())
 			{
 				int prim_id = (int)(m_renderer_rsrc->scene_triangles.size());
-				m_renderer_rsrc->scene_lights.push_back(
-					Light(tri.getArea(),
-						prim_id,
-						f3_2glm(sphere_mat.emission_factor),
-						sphere_mat.emission_scale_nits)
-				);
+				m_renderer_rsrc->scene_lights.push_back(Light(tri.getArea(), prim_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits));
 				light_id = (int)(m_renderer_rsrc->scene_lights.size() - 1);
 			}
 
 			m_renderer_rsrc->scene_triangles.push_back(
 				Triangle(
-					Vertex(f3_2glm(tri.p0), f3_2glm(tri.n0), f2_2glm(tri.t0)),
-					Vertex(f3_2glm(tri.p1), f3_2glm(tri.n1), f2_2glm(tri.t1)),
-					Vertex(f3_2glm(tri.p2), f3_2glm(tri.n2), f2_2glm(tri.t2)),
+					Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
+					Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
+					Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
 					tri.material_id,
 					light_id)
 			);
 		}
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
-			m_renderer_rsrc->scene_triangles.size(),
-			m_renderer_rsrc->scene_lights.size());
+			m_renderer_rsrc->scene_triangles.size(), m_renderer_rsrc->scene_lights.size());
 
 		submitScene();
 	}

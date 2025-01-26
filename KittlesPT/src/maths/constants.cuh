@@ -16,7 +16,7 @@ namespace KittlesPT
 		__constant__ constexpr float INV_UINT32MAX = 1.0f / float(UINT32_MAX);
 		__constant__ constexpr float INV_255 = 0.00392156862f;
 
-		__constant__ constexpr float TRIANGLE_INTERSECTION_EPSILON = 0.000001f;
+		__constant__ constexpr float TRIANGLE_INTERSECTION_EPSILON = 1.0e-5f;
 		__constant__ constexpr float HIT_EPSILON = 0.001f;
 		__constant__ constexpr float GGX_ROUGHNESS_EPSILON = 0.045f;//TODO:should these be here?
 		__constant__ constexpr int ASVGF_STRATUM_SIZE = 3;

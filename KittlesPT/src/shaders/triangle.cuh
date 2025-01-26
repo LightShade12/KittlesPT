@@ -70,8 +70,9 @@ namespace KittlesPT
 			geometric_normal = (shn_gn_dot < 0.0f) ? -geo_norm : geo_norm;
 		};
 
-		__device__ void intersect(const Ray& ray, float tmax, Intersection* payload) const {
-			payload->distance = -1.0f;
+		__device__ void intersect(const Ray& ray, float tmax, Intersection* intr) const
+		{
+			intr->distance = -1.0f;
 
 			float3 v0v1 = vertex1.position - vertex0.position;
 			float3 v0v2 = vertex2.position - vertex0.position;
@@ -99,8 +100,8 @@ namespace KittlesPT
 			float t = invDet * dot(v0v2, qvec);
 			// ray intersection
 			if (t > Constants::TRIANGLE_INTERSECTION_EPSILON && t < tmax) {
-				payload->distance = t;
-				payload->bary_coords = make_float3(1.0f - u - v, u, v);
+				intr->distance = t;
+				intr->bary_coords = make_float3(1.0f - u - v, u, v);
 
 				return;
 			}
