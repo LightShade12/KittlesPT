@@ -61,7 +61,7 @@ namespace KittlesPT
 		__device__ static GBuffer unpackGBuffer(float4 data);
 		/*
 		* float3 wpos;
-		* int instance_id = -1;
+		* int primitive_id = -1;
 		* float3 viewdir;
 		* PBRT:
 		* dzdx, dzdy

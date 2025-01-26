@@ -21,14 +21,14 @@ namespace KittlesPT
 			closest.distance = INFINITY;
 			Intersection intr;
 
-			for (int instance_id = 0; instance_id < shader_data.geometry_buffer.num; instance_id++)
+			for (int primitive_id = 0; primitive_id < shader_data.triangles_buffer.num; primitive_id++)
 			{
-				const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
-				intr = sphere.intersect(ray, tmax);//currently only returns a float; triangle will return struct
+				const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
+				tri.intersect(ray, tmax, &intr);//currently only returns a float; triangle will return struct
 				if (intr.distance < closest.distance && intr.distance >= 0 && intr.distance < tmax)
 				{
-					closest.distance = intr.distance;
-					closest.instance_id = instance_id;
+					closest = intr;
+					closest.primitive_id = primitive_id;
 				}
 			}
 			return closest;
@@ -37,10 +37,10 @@ namespace KittlesPT
 		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax)
 		{
 			Intersection intr;
-			for (int instance_id = 0; instance_id < shader_data.geometry_buffer.num; instance_id++)
+			for (int primitive_id = 0; primitive_id < shader_data.triangles_buffer.num; primitive_id++)
 			{
-				const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
-				intr = sphere.intersect(ray, tmax);
+				const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
+				tri.intersect(ray, tmax, &intr);
 				if (intr.distance >= 0 && intr.distance < tmax)
 				{
 					return true;
@@ -124,7 +124,7 @@ namespace KittlesPT
 			float3 wi = ls.wi;
 			float3 wo = -ray.getDirection();
 			RGBSpectrum fcos = bsdf.f(wo, wi) *
-				fmaxf(0, dot(wi, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));;
+				fmaxf(0, dot(wi, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));
 
 			if (!fcos)
 			{
@@ -199,6 +199,7 @@ namespace KittlesPT
 					light += sky_radiance * throughput;
 					break;
 				}
+				//return RGBSpectrum(intr.distance) * 10000.0f;
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
 
@@ -228,10 +229,10 @@ namespace KittlesPT
 
 				//add regularize() here---
 
-				RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
-				light += Ld * throughput;
-				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
-				light += Ld_sun * throughput;
+				//RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
+				//light += Ld * throughput;
+				//RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
+				//light += Ld_sun * throughput;
 
 				float3 wo = -ray.getDirection();
 				BSDFSample bs = bsdf.sampleF(wo, sampler.get2D(), sampler.get2D());

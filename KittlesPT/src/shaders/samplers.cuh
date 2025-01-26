@@ -46,7 +46,7 @@ namespace KittlesPT
 		RNG m_rng;
 	};
 
-	__device__ float3 sampleUniformTriangle(float2 u)
+	__device__ inline float3 sampleUniformTriangle(float2 u)
 	{
 		float2 bary;
 		if (u.x < u.y) {
@@ -57,7 +57,7 @@ namespace KittlesPT
 			bary.y = u.y / 2.0f;
 			bary.x = u.x - bary.y;
 		}
-		return { bary.x, bary.y, 1 - bary.x - bary.y };
+		return { bary.x, bary.y, 1.0f - bary.x - bary.y };
 	}
 
 	//TODO: learn more about these

@@ -1,6 +1,7 @@
 #pragma once
 #include "shaders/device_texture_buffer.cuh"
-#include "shaders/sphere.cuh"
+//#include "shaders/sphere.cuh"
+#include "shaders/triangle.cuh"
 #include "shaders/camera.cuh"
 #include "shaders/material.cuh"
 #include "shaders/light.cuh"
@@ -27,7 +28,7 @@ namespace KittlesPT
 		float frame_delta = 0.0f;
 
 		float* scene_average_luminance = nullptr;
-		Buffer<Sphere> geometry_buffer;
+		Buffer<Triangle> triangles_buffer;
 		Buffer<float> histogram_buffer;
 		Buffer<Material> materials_buffer;
 		Buffer<Light> lights_buffer;

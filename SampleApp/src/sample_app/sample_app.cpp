@@ -111,8 +111,41 @@ namespace SampleApp
 			-1, glm::vec3(0.0f), 1.0f,
 			-1, 1.0f
 		));
+		{
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
-		scene.addShape(KittlesPT::SphereSceneEntity(1.0f, glm::vec3(0, 0, -3), 0));
+			// Define the square's dimensions
+			float side_length = 2.0f;  // Length of one side of the square
+
+			// Define vertices for the square
+			glm::vec3 p0(-side_length / 2.0f, side_length / 2.0f, 0.0f);  // Top-left
+			glm::vec3 p1(-side_length / 2.0f, -side_length / 2.0f, 0.0f); // Bottom-left
+			glm::vec3 p2(side_length / 2.0f, -side_length / 2.0f, 0.0f);  // Bottom-right
+			glm::vec3 p3(side_length / 2.0f, side_length / 2.0f, 0.0f);   // Top-right
+
+			// Define normals (facing along +Z axis)
+			glm::vec3 n0(0.0f, 0.0f, 1.0f);
+			glm::vec3 n1(0.0f, 0.0f, 1.0f);
+			glm::vec3 n2(0.0f, 0.0f, 1.0f);
+			glm::vec3 n3(0.0f, 0.0f, 1.0f);
+
+			// Define texture coordinates
+			glm::vec2 t0(0.0f, 1.0f);  // Top-left
+			glm::vec2 t1(0.0f, 0.0f);  // Bottom-left
+			glm::vec2 t2(1.0f, 0.0f);  // Bottom-right
+			glm::vec2 t3(1.0f, 1.0f);  // Top-right
+
+			// Define material ID
+			int material_id = 0;
+
+			// Create two triangle instances for the square
+			KittlesPT::TriangleSceneEntity triangle1(p0, p1, p2, n0, n1, n2, t0, t1, t2, material_id);  // First triangle
+			KittlesPT::TriangleSceneEntity triangle2(p0, p2, p3, n0, n2, n3, t0, t2, t3, material_id);  // Second triangle
+
+			scene.addShape(triangle1);
+			scene.addShape(triangle2);
+		}
 
 		m_renderer.loadScene(scene);
 	}

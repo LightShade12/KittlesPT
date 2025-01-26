@@ -154,7 +154,7 @@ namespace KittlesPT
 	__device__ GBuffer::GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surf)
 		:
 		albedo(albedo.toFloat3()), wgnorm(surf.world_geometric_normal),
-		depth(surf.distance)
+		depth((surf.distance < 0.0f) ? INFINITY : surf.distance)
 	{}
 
 	__device__ float4 GBuffer::packGBuffer()

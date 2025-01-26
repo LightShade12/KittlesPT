@@ -13,7 +13,7 @@ namespace KittlesPT
 		float sun_phi_rad = 4.18879f;
 		//float sun_theta_rad = 0.785f;
 		float sun_theta_rad = 0.0872665f;
-		float sun_emission_nits = 6.0e5f;//def: 50.0f
+		float sun_emission_nits = 6.0e5f;
 	};
 
 	struct RendererSettings
@@ -88,23 +88,27 @@ namespace KittlesPT
 		};
 	};
 
-	struct SphereSceneEntity
+	struct TriangleSceneEntity
 	{
-		SphereSceneEntity(float radius,
-			const glm::vec3& position,
+		TriangleSceneEntity(
+			glm::vec3 p0, glm::vec3 p1, glm::vec3 p2,
+			glm::vec3 n0, glm::vec3 n1, glm::vec3 n2,
+			glm::vec2 t0, glm::vec2 t1, glm::vec2 t2,
 			int material_id) :
-			radius(radius),
-			position(position),
+			p0(p0), p1(p1), p2(p2),
+			n0(n0), n1(n1), n2(n2),
+			t0(t0), t1(t1), t2(t2),
 			material_id(material_id)
 		{}
 
-		float radius;
-		glm::vec3 position = glm::vec3(0);
-		int material_id = 0;
+		glm::vec3 p0 = glm::vec3(0), p1 = glm::vec3(0), p2 = glm::vec3(0);
+		glm::vec3 n0 = glm::vec3(0), n1 = glm::vec3(0), n2 = glm::vec3(0);
+		glm::vec2 t0 = glm::vec2(0), t1 = glm::vec2(0), t2 = glm::vec2(0);
+		int material_id = -1;
 
 		float getArea() const
 		{
-			return 4.0f * glm::pi<float>() * (radius * radius);
+			return 0.5f * length(cross(p1 - p0, p2 - p0));
 		}
 	};
 
@@ -137,14 +141,14 @@ namespace KittlesPT
 		{
 			material_entities.push_back(material);
 		};
-		void addShape(SphereSceneEntity shape)
+		void addShape(TriangleSceneEntity shape)
 		{
 			shape_entities.push_back(shape);
 		};
 
 		//------------------
 		std::vector<MaterialSceneEntity> material_entities;
-		std::vector<SphereSceneEntity> shape_entities;
+		std::vector<TriangleSceneEntity> shape_entities;
 		std::vector<TextureSceneEntity> texture_entities;
 	};
 }/*KittlesPT*/

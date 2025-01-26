@@ -9,14 +9,15 @@ namespace KittlesPT
 	__device__ SurfaceInteraction Intersection::getSurfaceInteraction(const GlobalShaderData& shader_data, const Ray& ray)
 	{
 		SurfaceInteraction surfintr;
-		const Sphere& sphere = shader_data.geometry_buffer.data[instance_id];
+		const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
 		float3 wo = -ray.getDirection();
 
 		surfintr.distance = distance;
-		surfintr.material_id = sphere.material_id;
+		surfintr.material_id = tri.material_id;
 
 		surfintr.world_position = ray.getPointAt(distance);
-		surfintr.world_geometric_normal = normalize(surfintr.world_position - sphere.world_position);
+
+		surfintr.world_geometric_normal = tri.geometric_normal;
 
 		if (dot(surfintr.world_geometric_normal, wo) < 0)
 		{
@@ -24,17 +25,20 @@ namespace KittlesPT
 			surfintr.backface = true;
 		}
 
-		if (sphere.light_id >= 0) {
-			surfintr.arealight = &(shader_data.lights_buffer.data[sphere.light_id]);
+		if (tri.light_id >= 0) {
+			surfintr.arealight = &(shader_data.lights_buffer.data[tri.light_id]);
 		}
 
-		float3 p = (surfintr.world_position - sphere.world_position) / sphere.radius;
+		surfintr.uv = bary_coords.x * tri.vertex0.tex_coords + bary_coords.y * tri.vertex1.tex_coords + bary_coords.z + tri.vertex2.tex_coords;
+
+		/*
+		float3 p = (surfintr.world_position - tri.world_position) / tri.radius;
 		p = surfintr.world_geometric_normal;
 		float theta = acosf(-p.y);
 		float phi = atan2(-p.z, p.x) + Constants::PI;
-
 		surfintr.uv.x = phi / (2.0f * Constants::PI);
 		surfintr.uv.y = theta / Constants::PI;
+		*/
 
 		return surfintr;
 	}
@@ -68,12 +72,10 @@ namespace KittlesPT
 	__device__ Ray SurfaceInteraction::spawnRay(float3 wi, int scatter_flags) const
 	{
 		float3 ray_orig;
-		if (scatter_flags & BSDFSample::Transmitted)
-		{
+		if (scatter_flags & BSDFSample::Transmitted) {
 			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
 		}
-		else
-		{
+		else {
 			ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
 		}
 		return Ray(ray_orig, wi);
@@ -82,12 +84,10 @@ namespace KittlesPT
 	__device__ Ray SurfaceInteraction::spawnRayTo(float3 target) const
 	{
 		float3 ray_orig;
-		if (backface)
-		{
+		if (backface) {
 			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
 		}
-		else
-		{
+		else {
 			ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
 		}
 		return Ray(ray_orig, normalize(target - ray_orig));

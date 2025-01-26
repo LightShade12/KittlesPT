@@ -77,7 +77,7 @@ namespace KittlesPT
 	//TODO: add API for direct content management
 	struct RendererResource
 	{
-		thrust::universal_vector<Sphere> scene_spheres;
+		thrust::universal_vector<Triangle> scene_triangles;
 		thrust::universal_vector<Light> scene_lights;
 		thrust::universal_vector<Material> scene_materials;
 		thrust::universal_vector<Texture> scene_textures;
@@ -98,7 +98,7 @@ namespace KittlesPT
 				tex.second.destroy();
 			}
 
-			scene_spheres.clear();
+			scene_triangles.clear();
 			scene_lights.clear();
 			scene_materials.clear();
 			scene_textures.clear();
@@ -371,6 +371,14 @@ namespace KittlesPT
 		return middleGrey / l_avg;
 	}
 
+	float3 f3_2glm(glm::vec3 v) {
+		return make_float3(v.x, v.y, v.z);
+	}
+
+	float2 f2_2glm(glm::vec2 v) {
+		return make_float2(v.x, v.y);
+	}
+
 	void Renderer::setExposure(ExposureValues camera_values, float ev_comp, float white_point_ev, float black_point_ev)
 	{
 		/*
@@ -433,7 +441,7 @@ namespace KittlesPT
 		{
 			m_renderer_rsrc->scene_materials.push_back(Material(
 				mat.albedo_texture_id,
-				make_float3(mat.albedo_factor.r, mat.albedo_factor.g, mat.albedo_factor.b),
+				f3_2glm(mat.albedo_factor),
 				mat.ORM_texture_id,
 				mat.metallic_factor,
 				mat.roughness_factor,
@@ -441,7 +449,7 @@ namespace KittlesPT
 				mat.transmission_factor,
 				mat.ior,
 				mat.emission_texture_id,
-				make_float3(mat.emission_factor.r, mat.emission_factor.g, mat.emission_factor.b),
+				f3_2glm(mat.emission_factor),
 				mat.emission_scale_nits,
 				mat.normal_texture_id,
 				mat.normal_scale
@@ -450,33 +458,35 @@ namespace KittlesPT
 
 		printf("loaded %zu materials\nstarting geometry\n", m_renderer_rsrc->scene_materials.size());
 
-		for (const SphereSceneEntity& sphere : parsed_scene.shape_entities)
+		for (const TriangleSceneEntity& tri : parsed_scene.shape_entities)
 		{
-			const MaterialSceneEntity& sphere_mat = parsed_scene.material_entities[sphere.material_id];
+			const MaterialSceneEntity& sphere_mat = parsed_scene.material_entities[tri.material_id];
 			bool is_light = sphere_mat.isEmissive();
 			int light_id = -1;
 
 			if (is_light)
 			{
-				int prim_id = (int)(m_renderer_rsrc->scene_spheres.size());
+				int prim_id = (int)(m_renderer_rsrc->scene_triangles.size());
 				m_renderer_rsrc->scene_lights.push_back(
-					Light(sphere.getArea(),
+					Light(tri.getArea(),
 						prim_id,
-						make_float3(sphere_mat.emission_factor.r, sphere_mat.emission_factor.g, sphere_mat.emission_factor.b),
+						f3_2glm(sphere_mat.emission_factor),
 						sphere_mat.emission_scale_nits)
 				);
 				light_id = (int)(m_renderer_rsrc->scene_lights.size() - 1);
 			}
 
-			m_renderer_rsrc->scene_spheres.push_back(
-				Sphere(sphere.radius,
-					make_float3(sphere.position.x, sphere.position.y, sphere.position.z),
-					sphere.material_id,
+			m_renderer_rsrc->scene_triangles.push_back(
+				Triangle(
+					Vertex(f3_2glm(tri.p0), f3_2glm(tri.n0), f2_2glm(tri.t0)),
+					Vertex(f3_2glm(tri.p1), f3_2glm(tri.n1), f2_2glm(tri.t1)),
+					Vertex(f3_2glm(tri.p2), f3_2glm(tri.n2), f2_2glm(tri.t2)),
+					tri.material_id,
 					light_id)
 			);
 		}
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
-			m_renderer_rsrc->scene_spheres.size(),
+			m_renderer_rsrc->scene_triangles.size(),
 			m_renderer_rsrc->scene_lights.size());
 
 		submitScene();
@@ -484,10 +494,10 @@ namespace KittlesPT
 
 	void Renderer::submitScene()
 	{
-		m_renderer_rsrc->shader_global_data.geometry_buffer =
-			Buffer<Sphere>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->scene_spheres.data()),
-				m_renderer_rsrc->scene_spheres.size());
+		m_renderer_rsrc->shader_global_data.triangles_buffer =
+			Buffer<Triangle>(
+				thrust::raw_pointer_cast(m_renderer_rsrc->scene_triangles.data()),
+				m_renderer_rsrc->scene_triangles.size());
 
 		m_renderer_rsrc->shader_global_data.materials_buffer =
 			Buffer<Material>(

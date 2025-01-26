@@ -19,7 +19,7 @@ namespace KittlesPT
 
 	__device__ RGBSpectrum Light::L(const GlobalShaderData& shader_data, float2 uv) const
 	{
-		Material mat = shader_data.materials_buffer.data[shader_data.geometry_buffer.data[prim_id].material_id];
+		Material mat = shader_data.materials_buffer.data[shader_data.triangles_buffer.data[prim_id].material_id];
 		RGBSpectrum emission = RGBSpectrum(mat.emissive_factor * mat.emission_scale_nits);
 		if (mat.emission_texture_id >= 0) {
 			TextureEvalContext ctx({}, uv);
@@ -32,7 +32,7 @@ namespace KittlesPT
 
 	__device__ LightLiSample Light::sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const
 	{
-		ShapeSample ss = shader_data.geometry_buffer.data[prim_id].sample(u2);
+		ShapeSample ss = shader_data.triangles_buffer.data[prim_id].sample(u2, ctx);
 
 		float3 p = ss.wgnorm;
 		float theta = acosf(-p.y); float phi = atan2(-p.z, p.x) + Constants::PI;
@@ -40,7 +40,7 @@ namespace KittlesPT
 
 		float3 wi = normalize(ss.wpos - ctx.w_pos);
 		//only for full sphere sampling
-		ss.pdf /= (AbsDot(-wi, ss.wgnorm) / Sqr(length(ss.wpos - ctx.w_pos)));//conversion to solid angle
+		//ss.pdf /= (AbsDot(-wi, ss.wgnorm) / Sqr(length(ss.wpos - ctx.w_pos)));//conversion to solid angle
 
 		RGBSpectrum Le = L(shader_data, uv);
 
