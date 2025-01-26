@@ -6,8 +6,8 @@
 
 namespace KittlesPT
 {
-	__device__ MaterialEvalContext::MaterialEvalContext(const SurfaceInteraction& surf) :
-		wgnorm(surf.world_geometric_normal), backface(surf.backface), uv(surf.uv), wpos(surf.world_position)
+	__device__ MaterialEvalContext::MaterialEvalContext(const SurfaceInteraction& surface) :
+		wgnorm(surface.world_geometric_normal), backface(surface.backface), uv(surface.uv), wpos(surface.world_position)
 	{}
 
 	//========================================================================================================
