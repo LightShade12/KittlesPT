@@ -95,5 +95,8 @@
     <ClInclude Include="src\gui_application.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\sample_app\importer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
