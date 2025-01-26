@@ -23,7 +23,7 @@ namespace SampleApp
 		void updateUI() override;
 
 	private:
-		void loadSceneFile(const char* path);
+		void loadSceneFile(const char * file_path);
 		void registerListeners();
 	public:
 		ApplicationData m_application_data;

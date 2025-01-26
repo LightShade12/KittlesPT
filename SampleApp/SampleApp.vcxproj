@@ -151,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\gui_application.cpp" />
+    <ClCompile Include="thirdparty\tinygltf\tiny_gltf.cc" />
     <ClInclude Include="src\gui_application.hpp" />
     <ClCompile Include="src\gui_widgets.cpp" />
     <ClCompile Include="src\imgui_themes.cpp" />

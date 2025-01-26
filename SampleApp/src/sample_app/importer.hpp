@@ -156,7 +156,7 @@ namespace SampleApp
 		std::vector<glm::vec2>loadedMeshUVs;
 		std::vector<int>loadedMeshPrimitiveMatIdx;
 
-		printf("\nprocessing mesh:%s\n", mesh_node.name.c_str());
+		printf("> processing mesh:%s\n", mesh_node.name.c_str());
 
 		//HostMesh mesh;
 		//mesh.name = mesh_node.name;
@@ -387,7 +387,7 @@ namespace SampleApp
 				normal_tex_id, gltf_material.normalTexture.scale
 			));
 		}
-		printf("loaded materials count: %zu \n\n", m_scene->material_entities.size());
+		printf("[Importer] loaded materials count: %zu \n\n", m_scene->material_entities.size());
 
 		return true;
 	}
@@ -433,7 +433,7 @@ namespace SampleApp
 		for (size_t nodeIdx = 0; nodeIdx < node.children.size(); nodeIdx++)
 		{
 			tinygltf::Node gltf_node = m_scene_model.nodes[nodeIdx];
-			printf("Processing node: %s\n", gltf_node.name.c_str());
+			printf("[Importer] processing node: %s\n", gltf_node.name.c_str());
 
 			if (gltf_node.children.size() > 0) {
 				parseNode(gltf_node);

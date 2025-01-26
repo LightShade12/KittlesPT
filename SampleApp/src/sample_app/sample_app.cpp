@@ -2,8 +2,8 @@
 #include "imgui_themes.hpp"
 #include "importer.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+//#define STB_IMAGE_IMPLEMENTATION
+//#include "stb/stb_image.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -26,7 +26,7 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		ImGui::StyleColorsDark();
 
-		loadSceneFile("dummy_file.glb");
+		loadSceneFile("test.glb");
 
 		m_application_data.editable_material = m_renderer.getMaterial(m_application_data.editable_material_idx);
 
@@ -92,53 +92,56 @@ namespace SampleApp
 	}
 
 	//scene parsing
-	void SampleAppWindow::loadSceneFile(const char* path)
+	void SampleAppWindow::loadSceneFile(const char* file_path)
 	{
 		KittlesPT::BasicScene scene;
 
-		//Image load
-		int width = 0, height = 0, channels = 0;
-		unsigned char* img_data = stbi_load("grid.png", &width, &height, &channels, 3);
-		KittlesPT::TextureSceneEntity texture0(img_data, width, height, 3);
-		stbi_image_free(img_data);
-		img_data = nullptr;
-		scene.addTexture(texture0);
+		ModelImporter importer;
+		importer.loadGLTFfromFile(file_path, &scene);
 
-		scene.addMaterial(KittlesPT::MaterialSceneEntity(
-			0, glm::vec3(1.0, 1.0, 1.0),
-			-1, 0.0f, 0.8f,
-			-1, 0.0f,
-			1.45f,
-			-1, glm::vec3(0.0f), 1.0f,
-			-1, 1.0f
-		));
-		{
-			float side_length = 2.0f;  // Length of one side of the square
+		////Image load
+		//int width = 0, height = 0, channels = 0;
+		//unsigned char* img_data = stbi_load("grid.png", &width, &height, &channels, 3);
+		//KittlesPT::TextureSceneEntity texture0(img_data, width, height, 3);
+		//stbi_image_free(img_data);
+		//img_data = nullptr;
+		//scene.addTexture(texture0);
 
-			glm::vec3 p0(-side_length / 2.0f, side_length / 2.0f, 0.0f);  // Top-left
-			glm::vec3 p1(-side_length / 2.0f, -side_length / 2.0f, 0.0f); // Bottom-left
-			glm::vec3 p2(side_length / 2.0f, -side_length / 2.0f, 0.0f);  // Bottom-right
-			glm::vec3 p3(side_length / 2.0f, side_length / 2.0f, 0.0f);   // Top-right
+		//scene.addMaterial(KittlesPT::MaterialSceneEntity(
+		//	0, glm::vec3(1.0, 1.0, 1.0),
+		//	-1, 0.0f, 0.8f,
+		//	-1, 0.0f,
+		//	1.45f,
+		//	-1, glm::vec3(0.0f), 1.0f,
+		//	-1, 1.0f
+		//));
+		//{
+		//	float side_length = 2.0f;  // Length of one side of the square
 
-			glm::vec3 n0(0.0f, 0.0f, 1.0f);
-			glm::vec3 n1(0.0f, 0.0f, 1.0f);
-			glm::vec3 n2(0.0f, 0.0f, 1.0f);
-			glm::vec3 n3(0.0f, 0.0f, 1.0f);
+		//	glm::vec3 p0(-side_length / 2.0f, side_length / 2.0f, 0.0f);  // Top-left
+		//	glm::vec3 p1(-side_length / 2.0f, -side_length / 2.0f, 0.0f); // Bottom-left
+		//	glm::vec3 p2(side_length / 2.0f, -side_length / 2.0f, 0.0f);  // Bottom-right
+		//	glm::vec3 p3(side_length / 2.0f, side_length / 2.0f, 0.0f);   // Top-right
 
-			glm::vec2 t0(0.0f, 1.0f);  // Top-left
-			glm::vec2 t1(0.0f, 0.0f);  // Bottom-left
-			glm::vec2 t2(1.0f, 0.0f);  // Bottom-right
-			glm::vec2 t3(1.0f, 1.0f);  // Top-right
+		//	glm::vec3 n0(0.0f, 0.0f, 1.0f);
+		//	glm::vec3 n1(0.0f, 0.0f, 1.0f);
+		//	glm::vec3 n2(0.0f, 0.0f, 1.0f);
+		//	glm::vec3 n3(0.0f, 0.0f, 1.0f);
 
-			int material_id = 0;
+		//	glm::vec2 t0(0.0f, 1.0f);  // Top-left
+		//	glm::vec2 t1(0.0f, 0.0f);  // Bottom-left
+		//	glm::vec2 t2(1.0f, 0.0f);  // Bottom-right
+		//	glm::vec2 t3(1.0f, 1.0f);  // Top-right
 
-			// Create two triangle instances for the square
-			KittlesPT::TriangleSceneEntity triangle1(p0, p1, p2, n0, n1, n2, t0, t1, t2, material_id);  // First triangle (lower)
-			KittlesPT::TriangleSceneEntity triangle2(p0, p2, p3, n0, n2, n3, t0, t2, t3, material_id);  // Second triangle (upper)
+		//	int material_id = 0;
 
-			scene.addShape(triangle1);
-			scene.addShape(triangle2);
-		}
+		//	// Create two triangle instances for the square
+		//	KittlesPT::TriangleSceneEntity triangle1(p0, p1, p2, n0, n1, n2, t0, t1, t2, material_id);  // First triangle (lower)
+		//	KittlesPT::TriangleSceneEntity triangle2(p0, p2, p3, n0, n2, n3, t0, t2, t3, material_id);  // Second triangle (upper)
+
+		//	scene.addShape(triangle1);
+		//	scene.addShape(triangle2);
+		//}
 
 		m_renderer.loadScene(scene);
 	}
