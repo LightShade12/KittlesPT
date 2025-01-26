@@ -29,6 +29,7 @@ namespace KittlesPT
 		}
 
 		float3 p = (surfintr.world_position - sphere.world_position) / sphere.radius;
+		p = surfintr.world_geometric_normal;
 		float theta = acosf(-p.y);
 		float phi = atan2(-p.z, p.x) + Constants::PI;
 
@@ -42,15 +43,7 @@ namespace KittlesPT
 
 	__device__ RGBSpectrum SurfaceInteraction::Le(const GlobalShaderData& shader_data, const Ray& ray) const
 	{
-		RGBSpectrum emission(0);
-		if (!arealight)
-		{
-			return emission;
-		}
-
-		const Material& mat = shader_data.materials_buffer.data[material_id];
-		emission = RGBSpectrum(mat.emissive_factor * mat.emission_scale_nits);
-		return emission;
+		return(arealight) ? arealight->L(shader_data, uv) : RGBSpectrum(0.0f);
 	}
 
 	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data) const

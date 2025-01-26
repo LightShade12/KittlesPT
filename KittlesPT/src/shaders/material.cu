@@ -17,6 +17,7 @@ namespace KittlesPT
 		RGBSpectrum eval_albedo = RGBSpectrum(albedo);
 		float eval_roughness = roughness_factor;
 		float eval_metalness = metallic_factor;
+		float eval_transmission = transmission_factor;
 
 		if (albedo_texture_id >= 0)
 		{
@@ -29,6 +30,13 @@ namespace KittlesPT
 			sampled = powf(sampled, 2.2f);//sRGB to linear approx
 			//ORM: r=Occlusion, g=Roughness, b=Metalness
 			eval_roughness *= sampled.g;
+			//eval_metalness *= sampled.b;
+		}
+		if (transmission_texture_id >= 0)
+		{
+			RGBSpectrum sampled = shader_data.texture_buffer.data[transmission_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
+			sampled = powf(sampled, 2.2f);//sRGB to linear approx
+			eval_transmission *= sampled.Average();
 		}
 		if (normal_texture_id >= 0) {
 			RGBSpectrum sampled = shader_data.texture_buffer.data[normal_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
@@ -46,7 +54,7 @@ namespace KittlesPT
 			eval_albedo,
 			eval_metalness,
 			eval_roughness,
-			transmission_factor,
+			eval_transmission,
 			ior,
 			ctx.backface);
 

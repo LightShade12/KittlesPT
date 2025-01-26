@@ -2,6 +2,8 @@
 #include "color.cuh"
 #include "interaction.cuh"
 #include "maths/constants.cuh"
+#include "material.cuh"
+#include "texture.cuh"
 
 #include <vector_types.h>
 #include <cuda_runtime.h>
@@ -10,7 +12,6 @@ namespace KittlesPT
 {
 	class Sphere;
 	struct GlobalShaderData;
-
 	//Surface data type; passed to sampler
 	struct LightSampleContext
 	{
@@ -73,10 +74,7 @@ namespace KittlesPT
 
 		//----------------------------------------------------------------------------
 
-		__device__ RGBSpectrum L(float3 p, float3 n, float3 wi) const
-		{
-			return emission_spectrum_rgb * emission_nits;
-		};
+		__device__ RGBSpectrum L(const GlobalShaderData& shader_data, float2 uv) const;
 
 		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
 

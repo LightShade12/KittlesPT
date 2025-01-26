@@ -103,47 +103,53 @@ namespace SampleApp
 		stbi_image_free(img_data);
 		img_data = nullptr;
 		scene.addTexture(texture0);
-
-		img_data = stbi_load("grid.png", &width, &height, &channels, 3);
-		KittlesPT::TextureSceneEntity texture1(img_data, width, height, 3);
-		stbi_image_free(img_data);
-		img_data = nullptr;
-		scene.addTexture(texture1);
-
-		img_data = stbi_load("colors2.jpg", &width, &height, &channels, 3);
-		KittlesPT::TextureSceneEntity texture2(img_data, width, height, 3);
-		stbi_image_free(img_data);
-		img_data = nullptr;
-		scene.addTexture(texture2);
-
-		img_data = stbi_load("uvgrid.jpeg", &width, &height, &channels, 3);
-		KittlesPT::TextureSceneEntity texture3(img_data, width, height, 3);
-		stbi_image_free(img_data);
-		img_data = nullptr;
-		scene.addTexture(texture3);
-
-		img_data = stbi_load("worn-metal-studs_roughness.png", &width, &height, &channels, 3);
-		KittlesPT::TextureSceneEntity texture4(img_data, width, height, 3);
-		stbi_image_free(img_data);
-		img_data = nullptr;
-		scene.addTexture(texture4);
-
-		img_data = stbi_load("worn-metal-studs_normal-ogl.png", &width, &height, &channels, 3);
-		KittlesPT::TextureSceneEntity texture5(img_data, width, height, 3);
-		stbi_image_free(img_data);
-		img_data = nullptr;
-		scene.addTexture(texture5);
-
-		img_data = stbi_load("display.png", &width, &height, &channels, 3);
-		KittlesPT::TextureSceneEntity texture6(img_data, width, height, 3);
-		stbi_image_free(img_data);
-		img_data = nullptr;
-		scene.addTexture(texture6);
+		{
+			img_data = stbi_load("grid.png", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture1(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+			scene.addTexture(texture1);
+		}
+		{
+			img_data = stbi_load("colors2.jpg", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture2(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+			scene.addTexture(texture2);
+		}
+		{
+			img_data = stbi_load("uvgrid.jpeg", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture3(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+			scene.addTexture(texture3);
+		}
+		{
+			img_data = stbi_load("rusted-steel_roughness.png", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture4(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+			scene.addTexture(texture4);
+		}
+		{
+			img_data = stbi_load("worn-metal-studs_normal-ogl.png", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture5(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+			scene.addTexture(texture5);
+		}
+		{
+			img_data = stbi_load("display1.png", &width, &height, &channels, 3);
+			KittlesPT::TextureSceneEntity texture6(img_data, width, height, 3);
+			stbi_image_free(img_data);
+			img_data = nullptr;
+			scene.addTexture(texture6);
+		}
 
 		//smooth
 		scene.addMaterial(KittlesPT::MaterialSceneEntity(
 			0, glm::vec3(1.0, 1.0, 1.0),
-			-1, 0.0f, 0.1f,
+			4, 0.0f, 0.1f,
 			-1, 0.0f,
 			1.45f,
 			-1, glm::vec3(0.0f), 1.0f,
@@ -174,7 +180,7 @@ namespace SampleApp
 		scene.addMaterial(KittlesPT::MaterialSceneEntity(
 			1, glm::vec3(1.0f, 1.0f, 1.0f),
 			-1, 0.0f, 0.0f,
-			-1, 1.0f,
+			4, 1.0f,
 			1.45f,
 			-1, glm::vec3(0.0f), 1.0f,
 			-1, 1.0f
@@ -186,7 +192,8 @@ namespace SampleApp
 			-1, 0.0f, 0.85f,
 			-1, 0.0f,
 			1.45f,
-			6, glm::vec3(0.2f, 0.7f, 1.0f), 12.0e4f,
+			//-1, glm::vec3(0.2f, 0.7f, 1.0f), 12.0e4f,
+			6, glm::vec3(1.0f), 12.0e4f,
 			-1, 1.0f
 		));
 

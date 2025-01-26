@@ -12,6 +12,7 @@ namespace KittlesPT
 	{
 		__device__ TextureEvalContext(const SurfaceInteraction& surf);
 		__device__ explicit TextureEvalContext(const MaterialEvalContext& ctx);
+		__device__ TextureEvalContext(float3 wpos, float2 uv) :wpos(wpos), uv(uv) {};
 		float3 wpos;
 		float2 uv;
 	};
