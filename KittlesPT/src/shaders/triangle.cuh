@@ -68,6 +68,7 @@ namespace KittlesPT
 
 			float shn_gn_dot = dot(geo_norm, avg_vertex_normal);
 			geometric_normal = (shn_gn_dot < 0.0f) ? -geo_norm : geo_norm;
+			geometric_normal = normalize(geometric_normal);
 		};
 
 		__device__ void intersect(const Ray& ray, float tmax, Intersection* intr) const

@@ -183,12 +183,9 @@ namespace KittlesPT
 				//Handle interaction with a medium; else surface scatter--
 
 				if (!intr) {
-					//MISS
-					/*
-					* Sampling only one InfiniteLight with bsdf sampling here
-					* without any explicit sky sampling elsewhere, so no MIS used here
-					*/
-					//sample Le from sun and sky
+					/* MISS
+					* Sampling only one InfiniteLight with bsdf sampling here,
+					* without any explicit sky sampling elsewhere, so no MIS used here */
 					RGBSpectrum sky_radiance = sampleSunDiskLe(shader_data, ray, atmosphere);
 					if (!sky_radiance) {
 						sky_radiance = atmosphere.sampleLe(atmosphere_observer_position, ray.getDirection(), 0, INFINITY);
@@ -198,6 +195,7 @@ namespace KittlesPT
 				}
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
+				//return RGBSpectrum(surfintr.material_id) * 1.0e4f;
 
 				//Sample Le from surface
 				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le) {
@@ -227,10 +225,10 @@ namespace KittlesPT
 
 				//add regularize() here---
 
-				//RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
-				//light += Ld * throughput;
-				//RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
-				//light += Ld_sun * throughput;
+				RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
+				light += Ld * throughput;
+				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
+				light += Ld_sun * throughput;
 
 				float3 wo = -ray.getDirection();
 				BSDFSample bs = bsdf.sampleF(wo, sampler.get2D(), sampler.get2D());

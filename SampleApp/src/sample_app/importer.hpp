@@ -377,7 +377,7 @@ namespace SampleApp
 				emission_scale_nits = gltf_material.extensions["KHR_materials_emissive_strength"].Get("emissiveStrength").GetNumberAsDouble();
 			};
 
-			printf("albedo texture idx: %d\n", albedo_tex_id);
+			//printf("albedo texture idx: %d\n", albedo_tex_id);
 
 			m_scene->addMaterial(KittlesPT::MaterialSceneEntity(
 				albedo_tex_id, albedo_factor,
