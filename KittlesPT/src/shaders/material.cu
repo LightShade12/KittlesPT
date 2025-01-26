@@ -44,7 +44,7 @@ namespace KittlesPT
 			float3 mapped_normal = (normal_encoded * 2.0f) - 1.0f;
 			mapped_normal.x *= normal_scale;
 			mapped_normal.y *= normal_scale;
-			mapped_normal.y = -mapped_normal.y;//DX12 => GL convention
+			//mapped_normal.y = -mapped_normal.y;//DX12 => GL convention
 			Mat3 frame = generateONBFrisvad(ctx.wgnorm);
 			ctx.wgnorm = frame * normalize(mapped_normal);
 		}
