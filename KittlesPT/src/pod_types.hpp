@@ -2,6 +2,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/constants.hpp"
 #include <vector>
+#include <string>
 
 namespace KittlesPT
 {
@@ -112,10 +113,22 @@ namespace KittlesPT
 		}
 	};
 
-	class TextureSceneEntity
+	struct MeshSceneEntity
 	{
-	public:
+		MeshSceneEntity(std::string_view name, const glm::mat4& model_transform) :
+			name(name), model_matrix(model_transform) {}
+		void addShape(const TriangleSceneEntity& shape)
+		{
+			shape_entities.push_back(shape);
+		};
 
+		glm::mat4 model_matrix;
+		std::string name;
+		std::vector<TriangleSceneEntity> shape_entities;
+	};
+
+	struct TextureSceneEntity
+	{
 		TextureSceneEntity(unsigned char* data, int width, int height, int chl_count)
 			: pixels_data(data, data + width * height * chl_count),
 			width(width), height(height), channels_count(chl_count)
@@ -123,6 +136,15 @@ namespace KittlesPT
 		std::vector<unsigned char>pixels_data;
 		int channels_count = 0;
 		int width = 0, height = 0;
+	};
+
+	struct CameraSceneEntity
+	{
+		CameraSceneEntity(std::string_view name, glm::mat4 view_transform, float yfov_rads) :
+			name(name), view_matrix(view_transform), y_fov_radians(yfov_rads) {}
+		float y_fov_radians = 0.0f;
+		glm::mat4 view_matrix;
+		std::string name;
 	};
 
 	/// <summary>
@@ -137,18 +159,25 @@ namespace KittlesPT
 			texture_entities.push_back(texture);
 		}
 
-		void addMaterial(MaterialSceneEntity material)
+		void addMaterial(const MaterialSceneEntity& material)
 		{
 			material_entities.push_back(material);
 		};
-		void addShape(TriangleSceneEntity shape)
+
+		void addMesh(const MeshSceneEntity& msh)
 		{
-			shape_entities.push_back(shape);
+			mesh_entities.push_back(msh);
+		};
+
+		void addCamera(const CameraSceneEntity& cam)
+		{
+			camera_entities.push_back(cam);
 		};
 
 		//------------------
 		std::vector<MaterialSceneEntity> material_entities;
-		std::vector<TriangleSceneEntity> shape_entities;
+		std::vector<MeshSceneEntity> mesh_entities;
+		std::vector<CameraSceneEntity> camera_entities;
 		std::vector<TextureSceneEntity> texture_entities;
 	};
 }/*KittlesPT*/

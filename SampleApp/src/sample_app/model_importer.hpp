@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "kittlesPT/kittlesPT.hpp"
 #include "tinygltf/tiny_gltf.h"
 #include "glm/glm.hpp"
@@ -32,7 +32,7 @@ namespace SampleApp
 		bool parseCamera(const tinygltf::Node& camera_node);
 		bool parseNode(const tinygltf::Node& node);
 
-		bool extractVertices(
+		bool extractVerticeAttributes(
 			const tinygltf::Mesh& mesh,
 			std::vector<glm::vec3>* positions,
 			std::vector<glm::vec3>* normals,
@@ -102,21 +102,6 @@ namespace SampleApp
 		std::chrono::duration<float> delay_secs = (end - start);
 		std::cerr << "[Importer] Load finished [took " << delay_secs.count() << " secs]\n";
 
-		////default fallback camera
-		//if (scene_object->getCamerasCount() < 1) {
-		//	HostCamera hcam;
-		//	hcam.fov_y_radians = glm::radians(60.f);
-		//	hcam.setTransform(
-		//		glm::mat4(
-		//			glm::vec4(1, 0, 0, 0),
-		//			glm::vec4(0, 1, 0, 0),
-		//			glm::vec4(0, 0, -1, 0),
-		//			glm::vec4(0, 0, 0, 0)
-		//		)
-		//	);
-		//	scene_object->addCamera(hcam);
-		//}
-
 		return true;
 	}
 
@@ -158,22 +143,18 @@ namespace SampleApp
 	bool ModelImporter::parseMesh(const tinygltf::Node& mesh_node)
 	{
 		tinygltf::Mesh gltf_mesh = m_scene_model.meshes[mesh_node.mesh];
+		printf("> processing mesh:%s\n", gltf_mesh.name.c_str());
 
-		std::vector<glm::vec3> loadedMeshPositions;
-		std::vector<glm::vec3>loadedMeshNormals;
-		std::vector<glm::vec2>loadedMeshUVs;
-		std::vector<int>loadedMeshPrimitiveMatIdx;
+		std::vector<glm::vec3> loaded_mesh_positions;
+		std::vector<glm::vec3>loaded_mesh_normals;
+		std::vector<glm::vec2>loaded_mesh_tex_coods;
+		std::vector<int>loaded_mesh_primitive_mat_id;
 
-		printf("> processing mesh:%s\n", mesh_node.name.c_str());
+		extractVerticeAttributes(gltf_mesh,
+			&loaded_mesh_positions, &loaded_mesh_normals,
+			&loaded_mesh_tex_coods, &loaded_mesh_primitive_mat_id);
 
-		//HostMesh mesh;
-		//mesh.name = mesh_node.name;
-		//mesh.triangle_offset_idx = m_scene->getTrianglesCount();
-		extractVertices(gltf_mesh, &loadedMeshPositions,
-			&loadedMeshNormals, &loadedMeshUVs, &loadedMeshPrimitiveMatIdx);
-		//mesh.tri_count = loadedMeshPositions.size() / 3;
-
-		/*glm::mat4 model_matrix(1);
+		glm::mat4 model_matrix = glm::identity<glm::mat4>();
 		if (mesh_node.matrix.size() > 0) {
 			model_matrix = glm::mat4(
 				mesh_node.matrix[0], mesh_node.matrix[1], mesh_node.matrix[2], mesh_node.matrix[3],
@@ -183,67 +164,55 @@ namespace SampleApp
 			);
 		}
 		else {
+			glm::mat4 scale_mat = glm::identity<glm::mat4>();
+			glm::mat4 rot_mat = glm::identity<glm::mat4>();
+			glm::mat4 translation_mat = glm::identity<glm::mat4>();
+
 			if (mesh_node.scale.size() > 0) {
-				glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(mesh_node.scale[0], mesh_node.scale[1], mesh_node.scale[2]));
-				model_matrix = scaleMat * model_matrix;
+				scale_mat = glm::scale(glm::mat4(1.0f), glm::vec3(mesh_node.scale[0], mesh_node.scale[1], mesh_node.scale[2]));
 			}
 
 			if (mesh_node.rotation.size() > 0) {
-				glm::quat quaternion = glm::quat(mesh_node.rotation[3], mesh_node.rotation[0], mesh_node.rotation[1], mesh_node.rotation[2]);
-				glm::mat4 rotMat = glm::toMat4(quaternion);
-				model_matrix = rotMat * model_matrix;
+				glm::quat quaternion = glm::quat(
+					mesh_node.rotation[3],
+					mesh_node.rotation[0],
+					mesh_node.rotation[1],
+					mesh_node.rotation[2]);
+				rot_mat = glm::toMat4(quaternion);
 			}
 
 			if (mesh_node.translation.size() > 0) {
-				glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(mesh_node.translation[0], mesh_node.translation[1], mesh_node.translation[2]));
-				model_matrix = translationMat * model_matrix;
+				translation_mat = glm::translate(glm::mat4(1.0f), glm::vec3(mesh_node.translation[0], mesh_node.translation[1], mesh_node.translation[2]));
 			}
-		}*/
-		//mesh.setTransform(model_matrix);
-
-		//m_scene->addMesh(mesh);
-
-		//TODO: error handling
-		//Positions.size() and vertex_normals.size() must be equal!
-		if (loadedMeshPositions.size() != loadedMeshNormals.size()) {
-			printf("\n>> [POSITIONS-NORMALS COUNT MISMATCH] !\n");
+			//TRS
+			model_matrix = translation_mat * rot_mat * scale_mat;
 		}
 
-		//Contruct and push Triangles
-		for (size_t i = 0; i < loadedMeshPositions.size(); i += 3)
+		KittlesPT::MeshSceneEntity mesh(gltf_mesh.name, model_matrix);
+
+		//Positions.size() and vertex_normals.size() must be equal!
+		if (loaded_mesh_positions.size() != loaded_mesh_normals.size()) {
+			printf("\n>> [POSITIONS-NORMALS COUNT MISMATCH] !\n");
+			return false;
+		}
+		//contruct and push tris
+		for (size_t i = 0; i < loaded_mesh_positions.size(); i += 3)
 		{
-			////geometric normal construction
-			//glm::vec3 edge0 = loadedMeshPositions[i + 1] - loadedMeshPositions[i];
-			//glm::vec3 edge1 = loadedMeshPositions[i + 2] - loadedMeshPositions[i];
-			//glm::vec3 geo_norm = cross(edge0, edge1);
+			int mtidx = loaded_mesh_primitive_mat_id[i / 3];
 
-			//glm::vec3 avgVertexNormal = (loadedMeshNormals[i] + loadedMeshNormals[i + 1] + loadedMeshNormals[i + 2]) / 3.f;
-
-			//float shn_gn_dot = dot(geo_norm, avgVertexNormal);
-			//glm::vec3 geometric_normal = (shn_gn_dot < 0.0f) ? -geo_norm : geo_norm;
-
-			int mtidx = loadedMeshPrimitiveMatIdx[i / 3];
-
-			m_scene->addShape(KittlesPT::TriangleSceneEntity(
-				loadedMeshPositions[i], loadedMeshPositions[i + 1], loadedMeshPositions[i + 2],
-				loadedMeshNormals[i], loadedMeshNormals[i + 1], loadedMeshNormals[i + 2],
-				loadedMeshUVs[i], loadedMeshUVs[i + 1], loadedMeshUVs[i + 2],
+			mesh.addShape(KittlesPT::TriangleSceneEntity(
+				loaded_mesh_positions[i], loaded_mesh_positions[i + 1], loaded_mesh_positions[i + 2],
+				loaded_mesh_normals[i], loaded_mesh_normals[i + 1], loaded_mesh_normals[i + 2],
+				loaded_mesh_tex_coods[i], loaded_mesh_tex_coods[i + 1], loaded_mesh_tex_coods[i + 2],
 				mtidx)
 			);
-
-			//HostMaterial mat = m_scene->getMaterial(mtidx);
-
-			//if (!(mat.emission_color_factor.x == 0 && mat.emission_color_factor.y == 0 && mat.emission_color_factor.z == 0)) {
-			//	//m_scene->addLight(m_scene->getTrianglesCount() - 1,
-			//	//	m_scene->getMeshesCount() - 1,
-			//	//	mat.emission_color_factor, mat.emission_scale_nits * 100);
-			//}
 		}
+		m_scene->addMesh(mesh);
 
 		return false;
 	}
 
-	bool ModelImporter::extractVertices(
+	bool ModelImporter::extractVerticeAttributes(
 		const tinygltf::Mesh& mesh,
 		std::vector<glm::vec3>* positions,
 		std::vector<glm::vec3>* normals,
@@ -400,36 +369,30 @@ namespace SampleApp
 
 	bool ModelImporter::parseCamera(const tinygltf::Node& camera_node)
 	{
+		tinygltf::Camera gltf_camera = m_scene_model.cameras[camera_node.camera];
+		printf("\n> found a camera: %s\n", gltf_camera.name.c_str());
+
+		glm::mat4 translation_mat = glm::identity<glm::mat4>();
+		glm::mat4 rot_mat = glm::identity<glm::mat4>();
+
+		if (camera_node.rotation.size() > 0) {
+			glm::quat quaternion = glm::quat(camera_node.rotation[3], camera_node.rotation[0], camera_node.rotation[1], camera_node.rotation[2]);
+			rot_mat = glm::toMat4(glm::normalize(quaternion));
+		}
+
+		if (camera_node.translation.size() > 0) {
+			translation_mat = glm::translate(glm::mat4(1.0f),
+				glm::vec3(camera_node.translation[0], camera_node.translation[1], camera_node.translation[2]));
+		}
+
+		glm::mat4 model_mat = translation_mat * rot_mat;
+
+		glm::mat4 view_matrix = glm::inverse(model_mat);
+
+		KittlesPT::CameraSceneEntity camera(gltf_camera.name, view_matrix, gltf_camera.perspective.yfov);
+		m_scene->addCamera(camera);
+
 		return true;
-		//tinygltf::Camera gltf_camera = m_scene_model.cameras[camera_node.camera];
-		//printf("\nfound a camera: %s\n", gltf_camera.name.c_str());
-
-		//HostCamera hcam;
-
-		//hcam.fov_y_radians = gltf_camera.perspective.yfov;
-
-		//glm::mat4 viewMatrix(
-		//	1, 0, 0, 0,
-		//	0, 1, 0, 0,
-		//	0, 0, -1, 0,
-		//	0, 0, 0, 1
-		//);
-
-		//if (camera_node.rotation.size() > 0) {
-		//	glm::quat quaternion = glm::quat(camera_node.rotation[3], camera_node.rotation[0], camera_node.rotation[1], camera_node.rotation[2]);
-		//	glm::mat4 rotmat = glm::toMat4(quaternion);
-		//	viewMatrix = rotmat * viewMatrix;  // Apply rotation first
-		//}
-
-		//if (camera_node.translation.size() > 0) {
-		//	glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(camera_node.translation[0], camera_node.translation[1], camera_node.translation[2]));
-		//	viewMatrix = translationMat * viewMatrix;
-		//}
-
-		//hcam.setTransform(viewMatrix);
-
-		//m_scene->addCamera(hcam);
-		//return false;
 	}
 
 	bool ModelImporter::parseNode(const tinygltf::Node& node)

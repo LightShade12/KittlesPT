@@ -454,26 +454,33 @@ namespace KittlesPT
 
 		printf("loaded %zu materials\nstarting geometry\n", m_renderer_rsrc->scene_materials.size());
 
-		for (const TriangleSceneEntity& tri : parsed_scene.shape_entities)
+		for (const MeshSceneEntity& mesh : parsed_scene.mesh_entities)
 		{
-			const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
-			int light_id = -1;
-
-			if (mat.isEmissive())
+			size_t mesh_prim_start_id = m_renderer_rsrc->scene_triangles.size() - 1;
+			for (const TriangleSceneEntity& tri : mesh.shape_entities)
 			{
-				int prim_id = (int)(m_renderer_rsrc->scene_triangles.size());
-				m_renderer_rsrc->scene_lights.push_back(Light(tri.getArea(), prim_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits));
-				light_id = (int)(m_renderer_rsrc->scene_lights.size() - 1);
-			}
+				const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
+				int light_id = -1;
 
-			m_renderer_rsrc->scene_triangles.push_back(
-				Triangle(
-					Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
-					Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
-					Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
-					tri.material_id,
-					light_id)
-			);
+				if (mat.isEmissive())
+				{
+					int prim_id = (int)(m_renderer_rsrc->scene_triangles.size());
+					m_renderer_rsrc->scene_lights.push_back(Light(tri.getArea(), prim_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits));
+					light_id = (int)(m_renderer_rsrc->scene_lights.size() - 1);
+				}
+
+				m_renderer_rsrc->scene_triangles.push_back(
+					Triangle(
+						Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
+						Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
+						Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
+						tri.material_id,
+						light_id)
+				);
+			}
+			size_t mesh_prim_end_id = m_renderer_rsrc->scene_triangles.size() - 1;
+
+			//push a new mesh
 		}
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
 			m_renderer_rsrc->scene_triangles.size(), m_renderer_rsrc->scene_lights.size());

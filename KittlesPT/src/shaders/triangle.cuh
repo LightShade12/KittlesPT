@@ -71,8 +71,7 @@ namespace KittlesPT
 			geometric_normal = normalize(geometric_normal);
 		};
 
-		__device__ void intersect(const Ray& ray, float tmax, Intersection* intr) const
-		{
+		__device__ void intersect(const Ray& ray, float tmax, Intersection* intr) const {
 			intr->distance = -1.0f;
 
 			float3 v0v1 = vertex1.position - vertex0.position;
