@@ -8,6 +8,7 @@
 #include "stb/stb_image.h"
 
 #include <iostream>
+#include <chrono>
 
 namespace SampleApp
 {
@@ -48,20 +49,23 @@ namespace SampleApp
 	//TODO:more coordinated loading
 	bool ModelImporter::loadGLTFfromFile(const char* file_path, KittlesPT::BasicScene* scene)
 	{
+		std::cerr << "[Importer] -----------------Starting load------------------\n";
+		std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::high_resolution_clock::now();
+
 		m_scene = scene;
 		if (!loadModel(file_path)) {
-			std::cerr << "[Importer] Error while loading GLTF model\n";
+			std::cerr << "[Importer] Error occured while loading GLTF model\n";
 			return false;
 		}
 
-		std::cerr << "Extensions report:\n";
+		std::cerr << "[Importer] Extensions report:\n";
 		for (std::string extensionname : m_scene_model.extensionsUsed) {
-			printf("using: %s\n", extensionname.c_str());
+			printf("> using: %s\n", extensionname.c_str());
 		}
 		for (std::string extensionname : m_scene_model.extensionsRequired) {
-			printf("required: %s\n", extensionname.c_str());
+			printf("> required: %s\n", extensionname.c_str());
 		}
-		std::cerr << "End of extensions report\n";
+		std::cerr << "[Importer] End of extensions report\n";
 
 		if (!loadTextures()) {
 			std::cerr << "[Importer] Image loading stage failure\n";
@@ -70,16 +74,16 @@ namespace SampleApp
 			std::cerr << "[Importer] Material loading stage failure\n";
 		};
 
-		printf("[Importer] Detected nodes in file:%zu\n", m_scene_model.nodes.size());
+		printf("\n[Importer] Detected nodes in file:%zu\n", m_scene_model.nodes.size());
 		printf("[Importer] Detected meshes in file:%zu\n", m_scene_model.meshes.size());
-		printf("[Importer] Detected cameras in file:%zu\n", m_scene_model.cameras.size());
+		printf("[Importer] Detected cameras in file:%zu\n\n", m_scene_model.cameras.size());
 
 		int scene_index = 0;
 		//node looping
 		for (size_t node_idx = 0; node_idx < m_scene_model.scenes[scene_index].nodes.size(); node_idx++)
 		{
 			const tinygltf::Node& gltf_node = m_scene_model.nodes[m_scene_model.scenes[scene_index].nodes[node_idx]];
-			printf("Processing node: %s\n", gltf_node.name.c_str());
+			printf("[Importer] processing node: %s\n", gltf_node.name.c_str());
 
 			if (gltf_node.children.size() > 0) {
 				parseNode(gltf_node);
@@ -93,6 +97,10 @@ namespace SampleApp
 				parseMesh(gltf_node);
 			}
 		}
+
+		std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<float> delay_secs = (end - start);
+		std::cerr << "[Importer] Load finished [took " << delay_secs.count() << " secs]\n";
 
 		////default fallback camera
 		//if (scene_object->getCamerasCount() < 1) {
@@ -197,7 +205,9 @@ namespace SampleApp
 
 		//TODO: error handling
 		//Positions.size() and vertex_normals.size() must be equal!
-		if (loadedMeshPositions.size() != loadedMeshNormals.size())printf("\n>> [POSITIONS-NORMALS COUNT MISMATCH] !\n");
+		if (loadedMeshPositions.size() != loadedMeshNormals.size()) {
+			printf("\n>> [POSITIONS-NORMALS COUNT MISMATCH] !\n");
+		}
 
 		//Contruct and push Triangles
 		for (size_t i = 0; i < loadedMeshPositions.size(); i += 3)
@@ -240,20 +250,19 @@ namespace SampleApp
 		std::vector<glm::vec2>* tex_coords,
 		std::vector<int>* primitive_mat_idx)
 	{
-		for (size_t primIdx = 0; primIdx < mesh.primitives.size(); primIdx++)
+		for (size_t prim_idx = 0; prim_idx < mesh.primitives.size(); prim_idx++)
 		{
-			tinygltf::Primitive primitive = mesh.primitives[primIdx];
+			tinygltf::Primitive primitive = mesh.primitives[prim_idx];
 
-			int pos_attrib_accesorIdx = primitive.attributes["POSITION"];
-			int nrm_attrib_accesorIdx = primitive.attributes["NORMAL"];
-			int uv_attrib_accesorIdx = primitive.attributes["TEXCOORD_0"];
+			int pos_attrib_accesor_idx = primitive.attributes["POSITION"];
+			int nrm_attrib_accesor_idx = primitive.attributes["NORMAL"];
+			int uv_attrib_accesor_idx = primitive.attributes["TEXCOORD_0"];
+			int indices_accessor_idx = primitive.indices;
 
-			int indices_accesorIdx = primitive.indices;
-
-			tinygltf::Accessor pos_accesor = m_scene_model.accessors[pos_attrib_accesorIdx];
-			tinygltf::Accessor nrm_accesor = m_scene_model.accessors[nrm_attrib_accesorIdx];
-			tinygltf::Accessor uv_accesor = m_scene_model.accessors[uv_attrib_accesorIdx];
-			tinygltf::Accessor indices_accesor = m_scene_model.accessors[indices_accesorIdx];
+			tinygltf::Accessor pos_accesor = m_scene_model.accessors[pos_attrib_accesor_idx];
+			tinygltf::Accessor nrm_accesor = m_scene_model.accessors[nrm_attrib_accesor_idx];
+			tinygltf::Accessor uv_accesor = m_scene_model.accessors[uv_attrib_accesor_idx];
+			tinygltf::Accessor indices_accesor = m_scene_model.accessors[indices_accessor_idx];
 
 			tinygltf::BufferView pos_bufferview = m_scene_model.bufferViews[pos_accesor.bufferView];
 			tinygltf::BufferView nrm_bufferview = m_scene_model.bufferViews[nrm_accesor.bufferView];
@@ -317,7 +326,7 @@ namespace SampleApp
 				return false;
 			}
 
-			printf("%s dims: %d x %d | channels: %d\n------\n", gltf_image.name.c_str(), width, height, numcolch);
+			printf("> name: %s | dims: %d x %d | channels: %d------\n", gltf_image.name.c_str(), width, height, numcolch);
 			//TODO: avoid casting away constness
 			m_scene->addTexture(KittlesPT::TextureSceneEntity((unsigned char*)finalimgdata, width, height, 3));
 
@@ -377,8 +386,6 @@ namespace SampleApp
 				emission_scale_nits = gltf_material.extensions["KHR_materials_emissive_strength"].Get("emissiveStrength").GetNumberAsDouble();
 			};
 
-			//printf("albedo texture idx: %d\n", albedo_tex_id);
-
 			m_scene->addMaterial(KittlesPT::MaterialSceneEntity(
 				albedo_tex_id, albedo_factor,
 				ORM_tex_id, PBR_data.metallicFactor, PBR_data.roughnessFactor,
@@ -387,7 +394,6 @@ namespace SampleApp
 				normal_tex_id, gltf_material.normalTexture.scale
 			));
 		}
-		printf("[Importer] loaded materials count: %zu \n\n", m_scene->material_entities.size());
 
 		return true;
 	}

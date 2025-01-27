@@ -20,6 +20,7 @@ namespace SampleApp
 			m_camera_handle = camera;
 			m_shared_data_handle = app_data;
 		};
+		//TODO: actually return secs
 		float getDeltaTS_ms() const { return m_delta_time_secs.count(); };
 	private:
 

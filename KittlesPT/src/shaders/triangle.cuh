@@ -102,7 +102,7 @@ namespace KittlesPT
 			// ray intersection
 			if (t > Constants::TRIANGLE_INTERSECTION_EPSILON && t < tmax) {
 				intr->distance = t;
-				intr->bary_coords = make_float3(1.0f - u - v, u, v);
+				intr->bary_coords = { 1.0f - u - v, u, v };
 
 				return;
 			}
