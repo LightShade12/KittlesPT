@@ -12,6 +12,10 @@ namespace KittlesPT
 			m_inv_direction(1.0f / dir) {};
 		__device__ float3 getOrigin() const { return m_origin; }
 		__device__ float3 getDirection() const { return m_direction; }
+		__device__ void setDirection(float3 direction) {
+			m_direction = direction;
+			m_inv_direction = 1.0f / m_direction;
+		}
 		__device__ float3 getInvDirection() const { return m_inv_direction; }
 		__device__ float3 getPointAt(float dist) const { return m_origin + (dist * m_direction); };
 	private:

@@ -84,6 +84,7 @@ namespace KittlesPT
 	//TODO: add API for direct content management
 	struct RendererResource
 	{
+		thrust::universal_vector<TriangleMesh> scene_meshes;
 		thrust::universal_vector<Triangle> scene_triangles;
 		thrust::universal_vector<Light> scene_lights;
 		thrust::universal_vector<Material> scene_materials;
@@ -469,18 +470,17 @@ namespace KittlesPT
 					light_id = (int)(m_renderer_rsrc->scene_lights.size() - 1);
 				}
 
-				m_renderer_rsrc->scene_triangles.push_back(
-					Triangle(
-						Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
-						Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
-						Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
-						tri.material_id,
-						light_id)
-				);
+				m_renderer_rsrc->scene_triangles.push_back(Triangle(
+					Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
+					Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
+					Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
+					tri.material_id, light_id));
 			}
 			size_t mesh_prim_end_id = m_renderer_rsrc->scene_triangles.size() - 1;
 
-			//push a new mesh
+			TriangleMesh tri_mesh(mesh_prim_start_id,
+				mesh.shape_entities.size(), Mat4(glm::inverse(mesh.model_matrix)));
+			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
 			m_renderer_rsrc->scene_triangles.size(), m_renderer_rsrc->scene_lights.size());
@@ -490,6 +490,11 @@ namespace KittlesPT
 
 	void Renderer::submitScene()
 	{
+		m_renderer_rsrc->shader_global_data.meshes_buffer =
+			Buffer<TriangleMesh>(
+				thrust::raw_pointer_cast(m_renderer_rsrc->scene_meshes.data()),
+				m_renderer_rsrc->scene_meshes.size());
+
 		m_renderer_rsrc->shader_global_data.triangles_buffer =
 			Buffer<Triangle>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->scene_triangles.data()),

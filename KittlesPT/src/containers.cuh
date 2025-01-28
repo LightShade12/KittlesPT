@@ -29,6 +29,7 @@ namespace KittlesPT
 
 		float* scene_average_luminance = nullptr;
 		Buffer<Triangle> triangles_buffer;
+		Buffer<TriangleMesh> meshes_buffer;
 		Buffer<float> histogram_buffer;
 		Buffer<Material> materials_buffer;
 		Buffer<Light> lights_buffer;

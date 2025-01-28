@@ -130,4 +130,16 @@ namespace KittlesPT
 		int light_id = -1;
 		int primitive_id = -1;
 	};
+
+	class TriangleMesh
+	{
+	public:
+		TriangleMesh(int prim_offset, int prim_count, Mat4 inv_model) :
+			prim_offset(prim_offset), prim_count(prim_count), inv_model_matrix(inv_model)
+		{};
+
+		Mat4 inv_model_matrix;
+		int prim_count = 0;
+		int prim_offset = -1;
+	};
 }/*KittlesPT*/
