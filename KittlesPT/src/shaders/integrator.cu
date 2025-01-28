@@ -24,16 +24,19 @@ namespace KittlesPT
 			for (int instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
-				//Ray transformed_ray = ray;
-				//transformed_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getDirection(), 0)));
+				Ray transformed_ray = ray;
+				transformed_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getOrigin(), 1)));
+				transformed_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getDirection(), 0)));
+
 				for (int primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
-					tri.intersect(ray, tmax, &intr);
+					tri.intersect(transformed_ray, tmax, &intr);
 					if (intr.distance < closest.distance && intr.distance >= 0 && intr.distance < tmax)
 					{
 						closest = intr;
 						closest.primitive_id = primitive_id;
+						closest.instance_id = instance_id;
 					}
 				}
 			}
@@ -43,13 +46,21 @@ namespace KittlesPT
 		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax)
 		{
 			Intersection intr;
-			for (int primitive_id = 0; primitive_id < shader_data.triangles_buffer.num; primitive_id++)
+			for (int instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
-				const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
-				tri.intersect(ray, tmax, &intr);
-				if (intr.distance >= 0 && intr.distance < tmax)
+				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
+				Ray transformed_ray = ray;
+				transformed_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getDirection(), 0)));
+				transformed_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getOrigin(), 1)));
+
+				for (int primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
-					return true;
+					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
+					tri.intersect(transformed_ray, tmax, &intr);
+					if (intr.distance >= 0 && intr.distance < tmax)
+					{
+						return true;
+					}
 				}
 			}
 			return false;
@@ -201,7 +212,6 @@ namespace KittlesPT
 				}
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
-				//return RGBSpectrum(surfintr.material_id) * 1.0e4f;
 
 				//Sample Le from surface
 				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le) {
@@ -215,8 +225,6 @@ namespace KittlesPT
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
-
-				//return RGBSpectrum(surfintr.world_position) * 10000.0f;
 
 				//skip over medium boundaries
 				if (!bsdf) {

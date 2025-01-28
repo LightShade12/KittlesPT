@@ -10,17 +10,18 @@ namespace KittlesPT
 	{
 		SurfaceInteraction surfintr;
 		const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
+		Mat4 model_mat = shader_data.meshes_buffer.data[instance_id].inv_model_matrix.inverse();
 		float3 wo = -ray.getDirection();
 
 		surfintr.distance = distance;
 		surfintr.material_id = tri.material_id;
 
 		surfintr.world_position = ray.getPointAt(distance);
-		//surfintr.world_position = (bary_coords.x * tri.vertex0.position) + (bary_coords.y * tri.vertex1.position) + (bary_coords.z * tri.vertex2.position);
+		//surfintr.world_position = make_float3(model_mat * make_float4(surfintr.world_position, 1));
 
-		surfintr.world_geometric_normal = tri.geometric_normal;
+		surfintr.world_geometric_normal = normalize(make_float3(model_mat * make_float4(tri.geometric_normal, 0)));
 
-		if (dot(surfintr.world_geometric_normal, wo) < 0)
+		if (dot(surfintr.world_geometric_normal, wo) < 0.0f)
 		{
 			surfintr.world_geometric_normal *= -1.0f;
 			surfintr.backface = true;

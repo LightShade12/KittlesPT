@@ -44,6 +44,8 @@ namespace KittlesPT
 		//--------------------------------------------------------
 		float distance = -1;
 		int primitive_id = -1;
+		int instance_id = -1;
+
 		float3 bary_coords{ 0.0f,0.0f,0.0f };
 	};
 }/*KittlesPT*/
