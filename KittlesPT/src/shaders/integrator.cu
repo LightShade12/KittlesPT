@@ -11,6 +11,8 @@
 #include "color.cuh"
 #include "packing.cuh"
 
+//TODO:use *_t types
+
 namespace KittlesPT
 {
 	namespace Integrator
@@ -18,21 +20,21 @@ namespace KittlesPT
 		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmax)
 		{
 			Intersection closest;
-			closest.distance = INFINITY;
 			Intersection intr;
 
-			for (int instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
+			for (int32_t instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
 				Ray transformed_ray = ray;
-				transformed_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getOrigin(), 1)));
-				transformed_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getDirection(), 0)));
+				transformed_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getOrigin(), 1.0f)));
+				transformed_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getDirection(), 0.0f)));
 
-				for (int primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
+				for (int32_t primitive_id = mesh.prim_offset; primitive_id <= mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
 					tri.intersect(transformed_ray, tmax, &intr);
-					if (intr.distance < closest.distance && intr.distance >= 0 && intr.distance < tmax)
+					//TODO: can just store and use min of tmax,INF
+					if (intr.distance < INFINITY && intr.distance < tmax && intr.distance < closest.distance)
 					{
 						closest = intr;
 						closest.primitive_id = primitive_id;
@@ -46,18 +48,19 @@ namespace KittlesPT
 		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax)
 		{
 			Intersection intr;
-			for (int instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
+			for (int32_t instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
-				Ray transformed_ray = ray;
-				transformed_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getDirection(), 0)));
-				transformed_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getOrigin(), 1)));
+				Ray object_ray = ray;
+				//TODO: ensure normality
+				object_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(object_ray.getDirection(), 0)));
+				object_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(object_ray.getOrigin(), 1)));
 
-				for (int primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
+				for (int32_t primitive_id = mesh.prim_offset; primitive_id <= mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
-					tri.intersect(transformed_ray, tmax, &intr);
-					if (intr.distance >= 0 && intr.distance < tmax)
+					tri.intersect(object_ray, tmax, &intr);
+					if (intr.distance < INFINITY && intr.distance < tmax)
 					{
 						return true;
 					}
@@ -65,7 +68,6 @@ namespace KittlesPT
 			}
 			return false;
 		}
-
 		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target)
 		{
 			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
@@ -80,14 +82,14 @@ namespace KittlesPT
 			RGBSpectrum Ld(0);
 			const float3 sun_direction = atmosphere.getSunDirection();
 			float3 sun_position = sun_direction * SUN_VISIBILITY_DISTANCE_METERS;
-			float sun_radius = angularDiameterToPhysicalDiameter(
+			float sun_radius_meters = angularDiameterToPhysicalDiameter(
 				shader_data.procedural_environment_data.sun_angular_diameter_rad,
 				SUN_VISIBILITY_DISTANCE_METERS) / 2.0f;
 			float3 sample_offset = make_float3(sampler.get2D() * 2 - 1, sampler.get1D() * 2 - 1);
-			float3 target = sun_position + (sample_offset * sun_radius);
+			float3 target = sun_position + (sample_offset * sun_radius_meters);
 
 			float3 wo = -ray.getDirection();
-			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
+			float3 atmosphere_observer_position = make_float3(0.0f, atmosphere.getEarthRadiusMeters() + 1.0f, 0.0f);
 
 			RGBSpectrum fcos = bsdf.f(wo, sun_direction) *
 				fmaxf(0, dot(sun_direction, ((surface.backface) ? -1.0f : 1.0f) * surface.world_geometric_normal));
@@ -106,7 +108,7 @@ namespace KittlesPT
 				return Ld;
 			};
 
-			float sun_area = Constants::PI * Sqr(sun_radius);
+			float sun_area = Constants::PI * Sqr(sun_radius_meters);
 			float3 sun_n = normalize(target - sun_position), wi = normalize(target - surface.world_position);
 			float cos_sun = AbsDot(sun_n, -wi);
 			float pdf = (1.0f / sun_area) / (cos_sun / Sqr(SUN_VISIBILITY_DISTANCE_METERS));
@@ -161,14 +163,14 @@ namespace KittlesPT
 
 		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
 		{
-			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
+			float3 atmosphere_observer_position = make_float3(0.0f, atmosphere.getEarthRadiusMeters() + 1.0f, 0.0f);
 
 			float min_similarity_threshold = cosf(shader_data.procedural_environment_data.sun_angular_diameter_rad / 2.0f);
 			float similarity = dot(ray.getDirection(), atmosphere.getSunDirection());
-			float shape_mask_factor = (similarity > min_similarity_threshold) ? 1 : 0;//step
+			float shape_mask_factor = (similarity > min_similarity_threshold) ? 1.0f : 0.0f;//step
 
 			RGBSpectrum sampled_sun_col = atmosphere.sampleLe(atmosphere_observer_position,
-				atmosphere.getSunDirection(), 0, INFINITY);
+				atmosphere.getSunDirection(), 0.0f, INFINITY);
 
 			return sampled_sun_col * shader_data.procedural_environment_data.sun_emission_nits * shape_mask_factor;
 		}
@@ -177,7 +179,7 @@ namespace KittlesPT
 		{
 			RGBSpectrum light(0.0f);//L
 			RGBSpectrum throughput(1.0f);//beta
-			const int max_ray_depth = shader_data.renderer_settings.max_bounce_depth;
+			const int32_t max_ray_depth = shader_data.renderer_settings.max_bounce_depth;
 			float eta_scale = 1.0;
 			float p_b = 1.0f;
 			LightSampleContext prev_ctx{};
@@ -185,11 +187,13 @@ namespace KittlesPT
 			//TODO:store in heap
 			float3 sun_direction = sphericalToSunDirection(shader_data.procedural_environment_data.sun_theta_rad, shader_data.procedural_environment_data.sun_phi_rad);
 			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_emission_nits);
-			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadius() + 1, 0);
+			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadiusMeters() + 1, 0);
 			UniformLightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
 			Ray ray = ray_in;
-			for (int bounce_depth = 0; bounce_depth <= max_ray_depth; bounce_depth++)
+
+			//iterate through path vertices
+			for (int32_t bounce_depth = 0; bounce_depth <= max_ray_depth; bounce_depth++)
 			{
 				sampler.setSeed(sampler.getSeed() + bounce_depth); bool first_surface = (bounce_depth == 0);
 

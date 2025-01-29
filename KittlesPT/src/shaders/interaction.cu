@@ -17,9 +17,8 @@ namespace KittlesPT
 		surfintr.material_id = tri.material_id;
 
 		surfintr.world_position = ray.getPointAt(distance);
-		//surfintr.world_position = make_float3(model_mat * make_float4(surfintr.world_position, 1));
 
-		surfintr.world_geometric_normal = normalize(make_float3(model_mat * make_float4(tri.geometric_normal, 0)));
+		surfintr.world_geometric_normal = normalize(make_float3(model_mat * make_float4(tri.local_geometric_normal, 0)));
 
 		if (dot(surfintr.world_geometric_normal, wo) < 0.0f)
 		{
@@ -32,15 +31,6 @@ namespace KittlesPT
 		}
 
 		surfintr.uv = (bary_coords.x * tri.vertex0.tex_coords) + (bary_coords.y * tri.vertex1.tex_coords) + (bary_coords.z * tri.vertex2.tex_coords);
-
-		/*
-		float3 p = (surfintr.world_position - tri.world_position) / tri.radius;
-		p = surfintr.world_geometric_normal;
-		float theta = acosf(-p.y);
-		float phi = atan2(-p.z, p.x) + Constants::PI;
-		surfintr.uv.x = phi / (2.0f * Constants::PI);
-		surfintr.uv.y = theta / Constants::PI;
-		*/
 
 		return surfintr;
 	}

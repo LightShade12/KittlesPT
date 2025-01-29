@@ -4,6 +4,7 @@
 
 namespace KittlesPT
 {
+	//TODO: add units
 	class Ray;
 
 	__constant__ constexpr float SUN_VISIBILITY_DISTANCE_METERS = 100.0f;
@@ -22,7 +23,7 @@ namespace KittlesPT
 
 		__device__ RGBSpectrum sampleLe(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const;
 
-		__device__ float getEarthRadius() const {
+		__device__ float getEarthRadiusMeters() const {
 			return m_earth_radius;
 		}
 
@@ -31,7 +32,7 @@ namespace KittlesPT
 		}
 
 	private:
-
+		//Units: meters
 		uint32_t m_num_samples = 16u;
 		uint32_t m_num_samples_light = 8u;
 

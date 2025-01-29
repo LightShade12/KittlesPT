@@ -149,7 +149,7 @@ namespace KittlesPT
 		m_renderer_rsrc = nullptr;
 	}
 
-	void Renderer::resizeFrame(int width, int height)
+	void Renderer::resizeResolution(int width, int height)
 	{
 		if (m_width == width && m_height == height)
 		{
@@ -273,12 +273,12 @@ namespace KittlesPT
 		m_renderer_rsrc->shader_global_data.frame_index++;//TODO:expose to host as readonly?
 	}
 
-	void Renderer::getRenderTargetTexture(GLuint r_texture)
+	void Renderer::getRenderTargetTexture(GLuint r_texture) const
 	{
 		m_renderer_rsrc->m_frame_textures["main_texture"].copyTo(r_texture);
 	}
 
-	void Renderer::getDebugRenderTargetTexture(GLuint r_texture)
+	void Renderer::getDebugRenderTargetTexture(GLuint r_texture) const
 	{
 		m_renderer_rsrc->bloom_mipchain.mip_textures[0].copyTo(r_texture);
 	}
@@ -312,7 +312,7 @@ namespace KittlesPT
 		return true;
 	}
 
-	MaterialSceneEntity Renderer::getMaterial(int idx)
+	MaterialSceneEntity Renderer::getMaterial(int idx) const
 	{
 		if (idx >= m_renderer_rsrc->scene_materials.size())
 		{
@@ -332,9 +332,36 @@ namespace KittlesPT
 		return ret_mat;
 	}
 
-	size_t Renderer::getMaterialsCount()
+	bool Renderer::setMeshTransform(int idx, const glm::mat4& model)
+	{
+		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
+			return false;
+		}
+
+		m_renderer_rsrc->scene_meshes[idx].inv_model_matrix = Mat4(glm::inverse(model));
+
+		resetAccumulation();
+
+		return true;
+	}
+
+	glm::mat4 Renderer::getMeshTransform(int idx) const
+	{
+		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
+			assert("OUT OF BOUNDES ACCES[MESHES]");
+		}
+		glm::mat4 inv = m_renderer_rsrc->scene_meshes[idx].inv_model_matrix.toGLM();
+		return glm::inverse(inv);
+	}
+
+	size_t Renderer::getMaterialsCount() const
 	{
 		return m_renderer_rsrc->scene_materials.size();
+	}
+
+	size_t Renderer::getMeshCount() const
+	{
+		return m_renderer_rsrc->scene_meshes.size();
 	}
 
 	void Renderer::setProceduralEnvironmentData(ProceduralEnvironmentData data)
@@ -343,7 +370,7 @@ namespace KittlesPT
 		resetAccumulation();
 	}
 
-	ProceduralEnvironmentData Renderer::getProceduralEnvironmentData()
+	ProceduralEnvironmentData Renderer::getProceduralEnvironmentData() const
 	{
 		return m_renderer_rsrc->shader_global_data.procedural_environment_data;
 	}
@@ -354,7 +381,7 @@ namespace KittlesPT
 		resetAccumulation();
 	}
 
-	RendererSettings Renderer::getRendererSettings()
+	RendererSettings Renderer::getRendererSettings() const
 	{
 		return m_renderer_rsrc->shader_global_data.renderer_settings;
 	}
@@ -397,7 +424,7 @@ namespace KittlesPT
 			white_point_ev, black_point_ev);
 	}
 
-	Renderer::ExposureValues Renderer::getExposure()
+	Renderer::ExposureValues Renderer::getExposure() const
 	{
 		return g_exposure_values;
 	}
@@ -408,10 +435,10 @@ namespace KittlesPT
 		m_renderer_rsrc->shader_global_data.frame_index = 0;
 	}
 
-	void Renderer::setView(glm::mat4 projection_mat, glm::mat4 view_mat)
+	void Renderer::setView(const glm::mat4& projection_matrix, const glm::mat4& view_matrix)
 	{
-		Mat4 proj = Mat4(projection_mat);
-		Mat4 view = Mat4(view_mat);
+		Mat4 proj(projection_matrix);
+		Mat4 view(view_matrix);
 		m_renderer_rsrc->shader_global_data.scene_camera.setView(proj.inverse(), view.inverse());
 
 		resetAccumulation();
@@ -421,13 +448,12 @@ namespace KittlesPT
 	{
 		printf("starting textures\n");
 
-		int bit_depth = 8;
+		int32_t bit_depth = 8;
 		for (const TextureSceneEntity& tex : parsed_scene.texture_entities)
 		{
 			printf("tex: %d x %d | ch:%d\n", tex.width, tex.height, tex.channels_count);
-			m_renderer_rsrc->scene_textures.push_back(
-				Texture(tex.width, tex.height, tex.channels_count, bit_depth,
-					(int)m_renderer_rsrc->pixel_buffer.size()));
+			m_renderer_rsrc->scene_textures.push_back(Texture(tex.width, tex.height, tex.channels_count, bit_depth,
+				static_cast<int32_t>(m_renderer_rsrc->pixel_buffer.size())));
 			m_renderer_rsrc->pixel_buffer.insert(m_renderer_rsrc->pixel_buffer.end(),
 				tex.pixels_data.begin(), tex.pixels_data.end());
 		}
@@ -437,19 +463,12 @@ namespace KittlesPT
 		for (const MaterialSceneEntity& mat : parsed_scene.material_entities)
 		{
 			m_renderer_rsrc->scene_materials.push_back(Material(
-				mat.albedo_texture_id,
-				glm3_2f3(mat.albedo_factor),
-				mat.ORM_texture_id,
-				mat.metallic_factor,
-				mat.roughness_factor,
-				mat.transmission_texture_id,
-				mat.transmission_factor,
+				mat.albedo_texture_id, glm3_2f3(mat.albedo_factor),
+				mat.ORM_texture_id, mat.metallic_factor, mat.roughness_factor,
+				mat.transmission_texture_id, mat.transmission_factor,
 				mat.ior,
-				mat.emission_texture_id,
-				glm3_2f3(mat.emission_factor),
-				mat.emission_scale_nits,
-				mat.normal_texture_id,
-				mat.normal_scale
+				mat.emission_texture_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits,
+				mat.normal_texture_id, mat.normal_scale
 			));
 		}
 
@@ -461,13 +480,13 @@ namespace KittlesPT
 			for (const TriangleSceneEntity& tri : mesh.shape_entities)
 			{
 				const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
-				int light_id = -1;
+				int32_t light_id = -1;
 
 				if (mat.isEmissive())
 				{
-					int prim_id = (int)(m_renderer_rsrc->scene_triangles.size());
+					int32_t prim_id = static_cast<int32_t>(m_renderer_rsrc->scene_triangles.size());
 					m_renderer_rsrc->scene_lights.push_back(Light(tri.getArea(), prim_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits));
-					light_id = (int)(m_renderer_rsrc->scene_lights.size() - 1);
+					light_id = static_cast<int32_t>(m_renderer_rsrc->scene_lights.size() - 1);
 				}
 
 				m_renderer_rsrc->scene_triangles.push_back(Triangle(
@@ -477,9 +496,8 @@ namespace KittlesPT
 					tri.material_id, light_id));
 			}
 			size_t mesh_prim_end_id = m_renderer_rsrc->scene_triangles.size() - 1;
-
-			TriangleMesh tri_mesh(mesh_prim_start_id,
-				mesh.shape_entities.size(), Mat4(glm::inverse(mesh.model_matrix)));
+			TriangleMesh tri_mesh(mesh_prim_start_id, static_cast<int32_t>(mesh.shape_entities.size()),
+				Mat4(glm::inverse(mesh.model_matrix)));
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",

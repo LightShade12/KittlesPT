@@ -297,7 +297,7 @@ namespace SampleApp
 
 			printf("> name: %s | dims: %d x %d | channels: %d------\n", gltf_image.name.c_str(), width, height, numcolch);
 			//TODO: avoid casting away constness
-			m_scene->addTexture(KittlesPT::TextureSceneEntity((unsigned char*)finalimgdata, width, height, 3));
+			m_scene->addTexture(KittlesPT::TextureSceneEntity(const_cast<unsigned char*>(finalimgdata), width, height, 3));
 
 			stbi_image_free((void*)finalimgdata);
 		}

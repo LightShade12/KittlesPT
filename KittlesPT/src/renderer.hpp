@@ -5,6 +5,7 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 
+//TODO: a more verbose name for Renderer
 namespace KittlesPT
 {
 	struct RendererResource;
@@ -37,42 +38,43 @@ namespace KittlesPT
 
 		void shutdown();
 
-		void resizeFrame(int width, int height);
+		void resizeResolution(int width, int height);
 
 		void executeRendering(float delta_time_ms);
 
-		void getRenderTargetTexture(GLuint r_texture);
+		void getRenderTargetTexture(GLuint r_texture) const;
 
-		void getDebugRenderTargetTexture(GLuint r_texture);
+		void getDebugRenderTargetTexture(GLuint r_texture) const;
 
 		bool setMaterial(int idx, MaterialSceneEntity material);
+		MaterialSceneEntity getMaterial(int idx) const;
 
-		MaterialSceneEntity getMaterial(int idx);
+		bool setMeshTransform(int idx, const glm::mat4& model);
+		glm::mat4 getMeshTransform(int idx) const;
 
-		size_t getMaterialsCount();
+		size_t getMaterialsCount() const;
+		size_t getMeshCount() const;
 
 		void setProceduralEnvironmentData(ProceduralEnvironmentData data);
-		ProceduralEnvironmentData getProceduralEnvironmentData();
+		ProceduralEnvironmentData getProceduralEnvironmentData() const;
 
 		void setRendererSettings(const RendererSettings& cfg);
-		RendererSettings getRendererSettings();
+		RendererSettings getRendererSettings() const;
 
 		void setExposure(ExposureValues camera_values, float ev_comp, float white_point_ev, float black_point_ev);
-		ExposureValues getExposure();
+		ExposureValues getExposure() const;
 
 		void resetAccumulation();
 
-		//TODO:make const&
-		void setView(glm::mat4 projection_mat, glm::mat4 view_mat);
+		void setView(const glm::mat4& projection_matrix, const glm::mat4& view_matrix);
 
 		void loadScene(const BasicScene& parsed_scene);
-		/*void loadSettings() {};*/
 
 	private:
 		void submitScene();
 		void executeBloomGeneration();
-		int m_width = 0, m_height = 0;
 
+		int m_width = 0, m_height = 0;
 		RendererResource* m_renderer_rsrc = nullptr;
 	};
 }

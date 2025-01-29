@@ -67,12 +67,12 @@ namespace KittlesPT
 			float3 avg_vertex_normal = (vertex0.normal + vertex1.normal + vertex2.normal) / 3.f;
 
 			float shn_gn_dot = dot(geo_norm, avg_vertex_normal);
-			geometric_normal = (shn_gn_dot < 0.0f) ? -geo_norm : geo_norm;
-			geometric_normal = normalize(geometric_normal);
+			local_geometric_normal = (shn_gn_dot < 0.0f) ? -geo_norm : geo_norm;
+			local_geometric_normal = normalize(local_geometric_normal);
 		};
 
 		__device__ void intersect(const Ray& ray, float tmax, Intersection* intr) const {
-			intr->distance = -1.0f;
+			intr->distance = INFINITY;
 
 			float3 v0v1 = vertex1.position - vertex0.position;
 			float3 v0v2 = vertex2.position - vertex0.position;
@@ -115,8 +115,8 @@ namespace KittlesPT
 			float3 p = p0 * bary.x + p1 * bary.y + p2 * bary.z;
 			float pdf = 1.0f / getArea();
 			pdf *= Sqr(length(p - ctx.wpos));
-			pdf /= AbsDot(normalize(p - ctx.wpos), geometric_normal);
-			return ShapeSample(p, geometric_normal, pdf);
+			pdf /= AbsDot(normalize(p - ctx.wpos), local_geometric_normal);
+			return ShapeSample(p, local_geometric_normal, pdf);
 		};
 
 		__device__ float getArea() const {
@@ -125,7 +125,7 @@ namespace KittlesPT
 
 	public:
 		Vertex vertex0, vertex1, vertex2;
-		float3 geometric_normal{ 0.0f,0.0f,0.0f };
+		float3 local_geometric_normal{ 0.0f,0.0f,0.0f };
 		int material_id = -1;
 		int light_id = -1;
 		int primitive_id = -1;

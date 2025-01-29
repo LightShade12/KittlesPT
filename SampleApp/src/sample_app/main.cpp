@@ -3,7 +3,7 @@
 
 int main()
 {
-	fprintf(stdout, "Initializing app\n");
+	fprintf(stdout, "Entry point\n");
 
 	SampleAppGUI::GUIApplication application;
 	application.window_settings.window_title = "KittlesPT";
@@ -34,7 +34,7 @@ int main()
 
 	//===========================================
 
-	fprintf(stdout, "starting mainloop..\n");
+	fprintf(stdout, "starting mainloop...\n");
 
 	application.run();
 

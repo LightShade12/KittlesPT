@@ -1,5 +1,6 @@
 #pragma once
 #include <vector_types.h>
+#include <cstdint>
 
 namespace KittlesPT
 {
@@ -22,13 +23,13 @@ namespace KittlesPT
 		__device__ Ray spawnRayTo(float3 target) const;
 
 		//--------------------------------------------------
+		const Light* arealight = nullptr;
+		int material_id = -1;
 		float distance = -1.0f;
 		float2 uv{ 0.0f,0.0f };
 		float3 world_position{ 0.0f,0.0f,0.0f };
 		float3 world_geometric_normal{ 0.0f,0.0f,0.0f };
-		int material_id = -1;
 		bool backface = false;
-		const Light* arealight = nullptr;
 	};
 
 	struct Intersection
@@ -42,7 +43,7 @@ namespace KittlesPT
 		}
 
 		//--------------------------------------------------------
-		float distance = -1;
+		float distance = INFINITY;
 		int primitive_id = -1;
 		int instance_id = -1;
 

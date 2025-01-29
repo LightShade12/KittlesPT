@@ -5,6 +5,7 @@
 #define GLFW_INCLUDE_NONE //glad loader instead of local gl
 #include "glfw/include/GLFW/glfw3.h"
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace SampleApp
 {
@@ -287,6 +288,46 @@ namespace SampleApp
 
 			if (env_updated) {
 				m_event_dispatcher_handle->emitSignal(Event("environment_settings_changed"), env_data);
+			}
+		}
+
+		//geometry edit
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Geometry Edit")) {
+			bool transform_updated = false;
+			glm::mat4 model_transform(1.0f);
+			if (ImGui::BeginTable("geometryedittable", 2))
+			{
+				ImGui::TableSetupColumn("A0", 0, 0.6f);
+				ImGui::TableSetupColumn("A1", 0);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Mesh Instance ID:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				if (ImGui::SliderInt("###mesh_selection", &m_shared_data_handle->editable_mesh_idx,
+					0, static_cast<int32_t>(m_shared_data_handle->meshes_count - 1)))
+				{
+					m_event_dispatcher_handle->emitSignal(Event("mesh_changed"), true);
+				};
+				model_transform = m_shared_data_handle->mesh_transform;
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Translation");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				glm::vec3 translation(0.0f);//not persistent
+				if (ImGui::DragFloat3("###translate", &translation.x)) {
+					model_transform = glm::translate(model_transform, translation);
+					transform_updated |= true;
+				};
+
+				ImGui::EndTable();
+			}
+			if (transform_updated) {
+				m_event_dispatcher_handle->emitSignal(Event("mesh_updated"), model_transform);
 			}
 		}
 

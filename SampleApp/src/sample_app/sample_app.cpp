@@ -27,10 +27,13 @@ namespace SampleApp
 		ImGui::StyleColorsDark();
 
 		loadSceneFile("test.glb");
-
+		//TODO: not robust to empty scenes
 		m_application_data.editable_material = m_renderer.getMaterial(m_application_data.editable_material_idx);
+		m_application_data.mesh_transform = m_renderer.getMeshTransform(m_application_data.editable_mesh_idx);
 
 		m_application_data.materials_count = m_renderer.getMaterialsCount();
+		m_application_data.meshes_count = m_renderer.getMeshCount();
+
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();
 
@@ -57,8 +60,9 @@ namespace SampleApp
 	void SampleAppWindow::renderUI()
 	{
 		m_viewport_texture.resize(m_window_width, m_window_height);
-		m_renderer.resizeFrame(m_window_width, m_window_height);
+		m_renderer.resizeResolution(m_window_width, m_window_height);
 
+		//sync client camera with renderer;Assuming aperture priority
 		if (m_renderer.getRendererSettings().enable_auto_exposure)
 		{
 			KittlesPT::Renderer::ExposureValues cam_val = m_renderer.getExposure();
@@ -99,50 +103,6 @@ namespace SampleApp
 		ModelImporter importer;
 		importer.loadGLTFfromFile(file_path, &scene);
 
-		////Image load
-		//int width = 0, height = 0, channels = 0;
-		//unsigned char* img_data = stbi_load("grid.png", &width, &height, &channels, 3);
-		//KittlesPT::TextureSceneEntity texture0(img_data, width, height, 3);
-		//stbi_image_free(img_data);
-		//img_data = nullptr;
-		//scene.addTexture(texture0);
-
-		//scene.addMaterial(KittlesPT::MaterialSceneEntity(
-		//	0, glm::vec3(1.0, 1.0, 1.0),
-		//	-1, 0.0f, 0.8f,
-		//	-1, 0.0f,
-		//	1.45f,
-		//	-1, glm::vec3(0.0f), 1.0f,
-		//	-1, 1.0f
-		//));
-		//{
-		//	float side_length = 2.0f;  // Length of one side of the square
-
-		//	glm::vec3 p0(-side_length / 2.0f, side_length / 2.0f, 0.0f);  // Top-left
-		//	glm::vec3 p1(-side_length / 2.0f, -side_length / 2.0f, 0.0f); // Bottom-left
-		//	glm::vec3 p2(side_length / 2.0f, -side_length / 2.0f, 0.0f);  // Bottom-right
-		//	glm::vec3 p3(side_length / 2.0f, side_length / 2.0f, 0.0f);   // Top-right
-
-		//	glm::vec3 n0(0.0f, 0.0f, 1.0f);
-		//	glm::vec3 n1(0.0f, 0.0f, 1.0f);
-		//	glm::vec3 n2(0.0f, 0.0f, 1.0f);
-		//	glm::vec3 n3(0.0f, 0.0f, 1.0f);
-
-		//	glm::vec2 t0(0.0f, 1.0f);  // Top-left
-		//	glm::vec2 t1(0.0f, 0.0f);  // Bottom-left
-		//	glm::vec2 t2(1.0f, 0.0f);  // Bottom-right
-		//	glm::vec2 t3(1.0f, 1.0f);  // Top-right
-
-		//	int material_id = 0;
-
-		//	// Create two triangle instances for the square
-		//	KittlesPT::TriangleSceneEntity triangle1(p0, p1, p2, n0, n1, n2, t0, t1, t2, material_id);  // First triangle (lower)
-		//	KittlesPT::TriangleSceneEntity triangle2(p0, p2, p3, n0, n2, n3, t0, t2, t3, material_id);  // Second triangle (upper)
-
-		//	scene.addShape(triangle1);
-		//	scene.addShape(triangle2);
-		//}
-
 		m_renderer.loadScene(scene);
 	}
 
@@ -182,6 +142,20 @@ namespace SampleApp
 
 					m_renderer.setMaterial(m_application_data.editable_material_idx,
 						m_application_data.editable_material);
+				}));
+
+		m_event_dispatcher.registerListener(Event("mesh_changed"),
+			Listener([this](const std::any& data)
+				{
+					m_application_data.mesh_transform = m_renderer.getMeshTransform(m_application_data.editable_mesh_idx);
+				}));
+
+		m_event_dispatcher.registerListener(Event("mesh_updated"),
+			Listener([this](const std::any& data)
+				{
+					m_application_data.mesh_transform = std::any_cast<glm::mat4>(data);
+					m_renderer.setMeshTransform(m_application_data.editable_mesh_idx,
+						m_application_data.mesh_transform);
 				}));
 
 		m_event_dispatcher.registerListener(Event("fov_changed"),
