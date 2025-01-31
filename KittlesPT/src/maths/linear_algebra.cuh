@@ -4,9 +4,24 @@
 
 namespace KittlesPT
 {
-	__host__ __device__ inline float deg2rad(float degree)
+	__host__ __device__ inline float radians(float degree)
 	{
 		return degree * Constants::RADS_PER_DEG;
+	}
+
+	__host__ __device__ inline float degrees(float radians)
+	{
+		return radians * Constants::DEGS_PER_RAD;
+	}
+
+	__host__ __device__ inline float inversesqrt(float v)
+	{
+		return rsqrtf(v);
+	}
+
+	__host__ __device__ inline float step(float edge, float v)
+	{
+		return (v > edge) ? 1.0f : 0.0f;
 	}
 
 	__host__ __device__ inline float Sqr(float v)

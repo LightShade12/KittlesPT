@@ -5,8 +5,9 @@ namespace KittlesPT
 {
 	namespace Constants
 	{
-		__constant__ constexpr float RADS_PER_DEG = 0.01745329251f;
 		__constant__ constexpr float PI = 3.14159265358979323846f;
+		__constant__ constexpr float RADS_PER_DEG = PI / 180.0f;
+		__constant__ constexpr float DEGS_PER_RAD = 180.0f / PI;
 		__constant__ constexpr float INV_PI = 0.31830988618379067154f;
 		__constant__ constexpr float INV_2PI = 0.15915494309189533577f;
 		__constant__ constexpr float INV_4PI = 0.07957747154594766788f;
