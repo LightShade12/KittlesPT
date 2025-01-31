@@ -43,11 +43,7 @@ namespace KittlesPT
 	{
 		Vertex(float3 p, float3 n, float2 tex_coords) :
 			position(p), normal(n), tex_coords(tex_coords) {}
-		/*Vertex(glm::vec3 p, glm::vec3 n, glm::vec2 tex_coords) :
-			position(make_float3(p.x, p.y, p.z)),
-			normal(make_float3(n.x, n.y, n.z)),
-			tex_coords(make_float2(tex_coords.x, tex_coords.y))
-		{}*/
+
 		float3 position;
 		float3 normal;
 		float2 tex_coords;
@@ -71,7 +67,7 @@ namespace KittlesPT
 			local_geometric_normal = normalize(local_geometric_normal);
 		};
 
-		__device__ void intersect(const Ray& ray, float tmax, Intersection* intr) const {
+		__device__ void intersect(const Ray& ray, float tmin, float tmax, Intersection* intr) const {
 			intr->distance = INFINITY;
 
 			float3 v0v1 = vertex1.position - vertex0.position;
@@ -99,7 +95,7 @@ namespace KittlesPT
 
 			float t = invDet * dot(v0v2, qvec);
 			// ray intersection
-			if (t > Constants::TRIANGLE_INTERSECTION_EPSILON && t < tmax) {
+			if (t > Constants::TRIANGLE_INTERSECTION_EPSILON && t < tmax && t > tmin) {
 				intr->distance = t;
 				intr->bary_coords = { 1.0f - u - v, u, v };
 

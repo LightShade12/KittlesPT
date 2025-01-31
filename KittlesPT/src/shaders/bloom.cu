@@ -87,7 +87,8 @@ namespace KittlesPT
 	};
 }/*KittlesPT*/
 
-__global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg)
+__global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src,
+	KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg)
 {
 	using namespace KittlesPT;
 

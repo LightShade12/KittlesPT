@@ -27,7 +27,7 @@ namespace KittlesPT
 		float3 wo = inv_basis * w_wo;
 		float3 wi = inv_basis * w_wi;
 
-		float w_metallic = m_metallicity;
+		float w_metallic = (m_metallicity);
 		float w_transmissive_dielectric = (1.0f - w_metallic) * m_transmission;
 		float w_opaque_dielectric = (1.0f - w_metallic) * (1.0f - m_transmission);
 

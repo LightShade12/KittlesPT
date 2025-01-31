@@ -49,7 +49,7 @@ namespace SampleApp
 	//TODO:more coordinated loading
 	bool ModelImporter::loadGLTFfromFile(const char* file_path, KittlesPT::BasicScene* scene)
 	{
-		std::cerr << "[Importer] -----------------Starting load------------------\n";
+		std::cerr << "[Importer] -----------------Starting loading-------------------\n";
 		std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::high_resolution_clock::now();
 
 		m_scene = scene;
@@ -100,7 +100,7 @@ namespace SampleApp
 
 		std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> delay_secs = (end - start);
-		std::cerr << "[Importer] Load finished [took " << delay_secs.count() << " secs]\n";
+		std::cerr << "[Importer]-----------------Loading finished [took " << delay_secs.count() << " secs]-----------------\n";
 
 		return true;
 	}
@@ -169,20 +169,28 @@ namespace SampleApp
 			glm::mat4 translation_mat = glm::identity<glm::mat4>();
 
 			if (mesh_node.scale.size() > 0) {
-				scale_mat = glm::scale(glm::mat4(1.0f), glm::vec3(mesh_node.scale[0], mesh_node.scale[1], mesh_node.scale[2]));
+				scale_mat = glm::scale(glm::mat4(1.0f),
+					glm::vec3(
+						(float)mesh_node.scale[0],
+						(float)mesh_node.scale[1],
+						(float)mesh_node.scale[2]));
 			}
 
 			if (mesh_node.rotation.size() > 0) {
 				glm::quat quaternion = glm::quat(
-					mesh_node.rotation[3],
-					mesh_node.rotation[0],
-					mesh_node.rotation[1],
-					mesh_node.rotation[2]);
+					(float)mesh_node.rotation[3],
+					(float)mesh_node.rotation[0],
+					(float)mesh_node.rotation[1],
+					(float)mesh_node.rotation[2]);
 				rot_mat = glm::toMat4(quaternion);
 			}
 
 			if (mesh_node.translation.size() > 0) {
-				translation_mat = glm::translate(glm::mat4(1.0f), glm::vec3(mesh_node.translation[0], mesh_node.translation[1], mesh_node.translation[2]));
+				translation_mat = glm::translate(glm::mat4(1.0f),
+					glm::vec3(
+						(float)mesh_node.translation[0],
+						(float)mesh_node.translation[1],
+						(float)mesh_node.translation[2]));
 			}
 			//TRS
 			model_matrix = translation_mat * rot_mat * scale_mat;
@@ -238,9 +246,9 @@ namespace SampleApp
 			tinygltf::BufferView uv_bufferview = m_scene_model.bufferViews[uv_accesor.bufferView];
 			tinygltf::BufferView indices_bufferview = m_scene_model.bufferViews[indices_accesor.bufferView];
 
-			int pos_buffer_byte_offset = pos_bufferview.byteOffset;
-			int nrm_buffer_byte_offset = nrm_bufferview.byteOffset;
-			int uv_buffer_byte_offset = uv_bufferview.byteOffset;
+			uint64_t pos_buffer_byte_offset = pos_bufferview.byteOffset;
+			uint64_t nrm_buffer_byte_offset = nrm_bufferview.byteOffset;
+			uint64_t uv_buffer_byte_offset = uv_bufferview.byteOffset;
 
 			tinygltf::Buffer indices_buffer = m_scene_model.buffers[indices_bufferview.buffer];//should alawys be zero?
 
@@ -249,7 +257,7 @@ namespace SampleApp
 			glm::vec3* normals_buffer = (glm::vec3*)(indices_buffer.data.data() + nrm_buffer_byte_offset);
 			glm::vec2* UVs_buffer = (glm::vec2*)(indices_buffer.data.data() + uv_buffer_byte_offset);
 
-			for (int i = (indices_bufferview.byteOffset / 2); i < (indices_bufferview.byteLength + indices_bufferview.byteOffset) / 2; i++)
+			for (uint64_t i = (indices_bufferview.byteOffset / 2); i < (indices_bufferview.byteLength + indices_bufferview.byteOffset) / 2; i++)
 			{
 				positions->push_back(positions_buffer[indicesbuffer[i]]);
 				normals->push_back(normals_buffer[indicesbuffer[i]]);
@@ -282,7 +290,7 @@ namespace SampleApp
 				const unsigned char* imgdata = m_scene_model.buffers[imgbufferview.buffer].data.data() + imgbufferview.byteOffset;
 				size_t byte_len = imgbufferview.byteLength;
 
-				finalimgdata = stbi_load_from_memory(imgdata, byte_len,
+				finalimgdata = stbi_load_from_memory(imgdata, (int)byte_len,
 					&width, &height, &numcolch, 3);
 			}
 			else
@@ -342,25 +350,25 @@ namespace SampleApp
 			}
 
 			if (gltf_material.extensions.find("KHR_materials_transmission") != gltf_material.extensions.end()) {
-				transmission = gltf_material.extensions["KHR_materials_transmission"].Get("transmissionFactor").GetNumberAsDouble();
+				transmission = (float)gltf_material.extensions["KHR_materials_transmission"].Get("transmissionFactor").GetNumberAsDouble();
 				int tex_id = gltf_material.extensions["KHR_materials_transmission"].Get("transmissionTexture").Get("index").GetNumberAsInt();
 				if (tex_id >= 0) {
 					transmission_tex_id = m_scene_model.textures[tex_id].source;
 				}
 			};
 			if (gltf_material.extensions.find("KHR_materials_ior") != gltf_material.extensions.end()) {
-				ior = gltf_material.extensions["KHR_materials_ior"].Get("ior").GetNumberAsDouble();
+				ior = (float)gltf_material.extensions["KHR_materials_ior"].Get("ior").GetNumberAsDouble();
 			};
 			if (gltf_material.extensions.find("KHR_materials_emissive_strength") != gltf_material.extensions.end()) {
-				emission_scale_nits = gltf_material.extensions["KHR_materials_emissive_strength"].Get("emissiveStrength").GetNumberAsDouble();
+				emission_scale_nits = (float)gltf_material.extensions["KHR_materials_emissive_strength"].Get("emissiveStrength").GetNumberAsDouble();
 			};
 
 			m_scene->addMaterial(KittlesPT::MaterialSceneEntity(
 				albedo_tex_id, albedo_factor,
-				ORM_tex_id, PBR_data.metallicFactor, PBR_data.roughnessFactor,
+				ORM_tex_id, (float)PBR_data.metallicFactor, (float)PBR_data.roughnessFactor,
 				transmission_tex_id, transmission, ior,
 				emission_tex_id, emission_factor, emission_scale_nits,
-				normal_tex_id, gltf_material.normalTexture.scale
+				normal_tex_id, (float)gltf_material.normalTexture.scale
 			));
 		}
 
@@ -376,20 +384,27 @@ namespace SampleApp
 		glm::mat4 rot_mat = glm::identity<glm::mat4>();
 
 		if (camera_node.rotation.size() > 0) {
-			glm::quat quaternion = glm::quat(camera_node.rotation[3], camera_node.rotation[0], camera_node.rotation[1], camera_node.rotation[2]);
+			glm::quat quaternion = glm::quat(
+				(float)camera_node.rotation[3],
+				(float)camera_node.rotation[0],
+				(float)camera_node.rotation[1],
+				(float)camera_node.rotation[2]);
 			rot_mat = glm::toMat4(glm::normalize(quaternion));
 		}
 
 		if (camera_node.translation.size() > 0) {
 			translation_mat = glm::translate(glm::mat4(1.0f),
-				glm::vec3(camera_node.translation[0], camera_node.translation[1], camera_node.translation[2]));
+				glm::vec3(
+					(float)camera_node.translation[0],
+					(float)camera_node.translation[1],
+					(float)camera_node.translation[2]));
 		}
 
 		glm::mat4 model_mat = translation_mat * rot_mat;
 
 		glm::mat4 view_matrix = glm::inverse(model_mat);
 
-		KittlesPT::CameraSceneEntity camera(gltf_camera.name, view_matrix, gltf_camera.perspective.yfov);
+		KittlesPT::CameraSceneEntity camera(gltf_camera.name, view_matrix, (float)gltf_camera.perspective.yfov);
 		m_scene->addCamera(camera);
 
 		return true;

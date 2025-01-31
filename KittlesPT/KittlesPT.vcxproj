@@ -132,7 +132,6 @@
     <CudaCompile Include="src\shaders\packing.cu" />
     <CudaCompile Include="src\shaders\samplers.cu" />
     <CudaCompile Include="src\shaders\shading_kernel.cu" />
-    <CudaCompile Include="src\shaders\sphere.cu" />
     <CudaCompile Include="src\shaders\texture.cu" />
   </ItemGroup>
   <ItemGroup>

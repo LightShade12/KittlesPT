@@ -69,9 +69,9 @@ namespace KittlesPT
 		}
 
 		//excludes mip0
-		static int getMaxValidMipLevels(int2 t_base_resolution)
+		static int32_t getMaxValidMipLevels(int2 t_base_resolution)
 		{
-			int mipx = static_cast<int>(std::log2(t_base_resolution.x)), mipy = static_cast<int>(std::log2(t_base_resolution.y));
+			int32_t mipx = static_cast<int32_t>(std::log2(t_base_resolution.x)), mipy = static_cast<int32_t>(std::log2(t_base_resolution.y));
 			return std::min(mipx, mipy);
 		}
 
@@ -495,8 +495,8 @@ namespace KittlesPT
 					Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
 					tri.material_id, light_id));
 			}
-			size_t mesh_prim_end_id = m_renderer_rsrc->scene_triangles.size() - 1;
-			TriangleMesh tri_mesh(mesh_prim_start_id, static_cast<int32_t>(mesh.shape_entities.size()),
+
+			TriangleMesh tri_mesh(static_cast<int32_t>(mesh_prim_start_id), static_cast<int32_t>(mesh.shape_entities.size()),
 				Mat4(glm::inverse(mesh.model_matrix)));
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
