@@ -388,7 +388,7 @@ namespace KittlesPT
 
 	float getSaturationBasedExposure(float aperture, float shutter_time, float iso)
 	{
-		//measuring for iso = S max
+		//measuring for iso = S pmax
 		constexpr float q = 0.65f;
 		float l_max = (78.0f / q) * (Sqr(aperture) / (iso * shutter_time));
 		return 1.0f / l_max;//why reciprocal?

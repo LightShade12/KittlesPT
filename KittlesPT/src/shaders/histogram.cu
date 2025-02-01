@@ -25,7 +25,7 @@ namespace KittlesPT
 
 		//TODO: clamping normalization here
 		// Calculate the log_2 luminance(so EV) and express it as a value in [0.0, 1.0]
-		// where 0.0 represents the minimum luminance(EVmin), and 1.0 represents the max(EVmax).
+		// where 0.0 represents the minimum luminance(EVmin), and 1.0 represents the pmax(EVmax).
 		float log_lum_normalized = clamp((log2(luminance) - min_log_lum) * inverse_log_lum_range, 0.0f, 1.0f);//normalization
 
 		// Map [0, 1] to [1, 255]. The zeroth bin is handled by the epsilon check above.

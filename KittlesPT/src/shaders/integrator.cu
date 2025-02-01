@@ -25,15 +25,13 @@ namespace KittlesPT
 			for (int32_t instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
-				Ray transformed_ray = ray;
-				transformed_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getOrigin(), 1.0f)));
-				transformed_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(transformed_ray.getDirection(), 0.0f)));
+				Ray transformed_ray = ray.transform(mesh.inv_model_matrix);
 
 				for (int32_t primitive_id = mesh.prim_offset; primitive_id <= mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
 					tri.intersect(transformed_ray, tmin, tmax, &intr);
-					//TODO: can just store and use min of tmax,INF
+					//TODO: can just store and use pmin of tmax,INF
 					if (intr.distance < INFINITY && intr.distance < tmax && intr.distance > tmin && intr.distance < closest.distance)
 					{
 						closest = intr;
@@ -72,7 +70,7 @@ namespace KittlesPT
 		{
 			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
 			Ray shadow_ray = surface.spawnRayTo(target);
-			float tmax = length(target - shadow_ray.getOrigin()) - SHADOWRAY_EPSILON;
+			float tmax = distance(target, shadow_ray.getOrigin()) - SHADOWRAY_EPSILON;
 			return (!intersectShadow(shader_data, shadow_ray, 0.0f, tmax));
 		}
 

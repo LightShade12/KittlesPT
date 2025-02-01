@@ -51,7 +51,7 @@ namespace KittlesPT
 
 		__device__ ShapeSample sample(float2 u2, ShapeSampleContext ctx) const
 		{
-			float sinThetaMax = radius / length(ctx.wpos - world_position);
+			float sinThetaMax = radius / distance(ctx.wpos, world_position);
 			float sin2ThetaMax = Sqr(sinThetaMax);
 			float cosThetaMax = sqrtf(1 - sin2ThetaMax);
 			float oneMinusCosThetaMax = 1 - cosThetaMax;

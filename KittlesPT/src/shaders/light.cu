@@ -11,7 +11,7 @@ namespace KittlesPT
 	__device__ float Light::pdf_Li(const LightSampleContext& ctx, const LightLiSample& confirmed_ls) const
 	{
 		float area_pdf = 1.0f / area;
-		float dist = length(confirmed_ls.wpos_light - ctx.w_pos);
+		float dist = distance(confirmed_ls.wpos_light, ctx.w_pos);
 		float cos_theta_L = AbsDot(normalize(confirmed_ls.wpos_light - ctx.w_pos), confirmed_ls.wgnorm);
 		float pdf = area_pdf / (cos_theta_L / Sqr(dist));
 		return pdf;

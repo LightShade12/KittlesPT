@@ -1,5 +1,6 @@
 #pragma once
 #include "vector_types_extension.cuh"
+#include <numbers>
 
 namespace KittlesPT
 {

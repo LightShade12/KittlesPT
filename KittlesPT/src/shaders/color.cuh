@@ -174,7 +174,7 @@ namespace KittlesPT
 		//UTILITIES
 		//================================================================================================================
 
-		//max val=1000
+		//pmax val=1000
 		__device__ RGBSpectrum clampOutput()
 		{
 			return RGBSpectrum(KittlesPT::clampOutput(toFloat3()));

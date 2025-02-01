@@ -110,7 +110,7 @@ namespace KittlesPT
 			float3 bary = sampleUniformTriangle(u2);
 			float3 p = p0 * bary.x + p1 * bary.y + p2 * bary.z;
 			float pdf = 1.0f / getArea();
-			pdf *= Sqr(length(p - ctx.wpos));
+			pdf *= Sqr(distance(p, ctx.wpos));
 			pdf /= AbsDot(normalize(p - ctx.wpos), local_geometric_normal);
 			return ShapeSample(p, local_geometric_normal, pdf);
 		};

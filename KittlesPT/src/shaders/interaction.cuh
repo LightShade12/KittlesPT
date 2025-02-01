@@ -41,6 +41,10 @@ namespace KittlesPT
 		{
 			return (primitive_id < 0);
 		}
+		__device__ operator bool()
+		{
+			return (primitive_id >= 0);
+		}
 
 		//--------------------------------------------------------
 		float distance = INFINITY;

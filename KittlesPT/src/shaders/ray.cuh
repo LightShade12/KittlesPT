@@ -1,5 +1,5 @@
 #pragma once
-#include "maths/vector_maths.cuh"
+#include "maths/linear_algebra.cuh"
 
 namespace KittlesPT
 {
@@ -19,6 +19,12 @@ namespace KittlesPT
 		}
 		__device__ float3 getInvDirection() const { return m_inv_direction; }
 		__device__ float3 getPointAt(float dist) const { return m_origin + (dist * m_direction); };
+
+		//TODO: ensure normality
+		__device__ Ray transform(const Mat4& basis) const {
+			return Ray(make_float3(basis * make_float4(m_origin, 1)),
+				make_float3(basis * make_float4(m_direction, 0)));
+		}
 	private:
 		float3 m_origin{ 0.0f,0.0f,0.0f };
 		float3 m_direction{ 0.0f,0.0f,0.0f };

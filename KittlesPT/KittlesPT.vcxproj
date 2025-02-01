@@ -115,7 +115,10 @@
     <CudaCompile Include="src\shaders\camera.cu" />
     <CudaCompile Include="src\shaders\color.cu" />
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
+    <ClInclude Include="src\as_builder.cuh" />
+    <ClInclude Include="src\maths\bounds.cuh" />
     <ClInclude Include="src\pod_types.hpp" />
+    <ClInclude Include="src\shaders\blas.cuh" />
     <ClInclude Include="src\shaders\bloom.cuh" />
     <ClInclude Include="src\shaders\filter.cuh" />
     <ClInclude Include="src\shaders\histogram.cuh" />
