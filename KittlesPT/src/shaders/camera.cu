@@ -58,9 +58,9 @@ namespace KittlesPT
 		*/
 
 		__constant__ constexpr Mat3 LINEAR_SRGB_TO_LINEAR_REC2020 = Mat3(
-			constexpr_float3(0.6274f, 0.0691f, 0.0164f),
-			constexpr_float3(0.3293f, 0.9195f, 0.0880f),
-			constexpr_float3(0.0433f, 0.0113f, 0.8956f));
+			0.6274f, 0.0691f, 0.0164f,
+			0.3293f, 0.9195f, 0.0880f,
+			0.0433f, 0.0113f, 0.8956f);
 
 		__constant__ constexpr Mat3 AgX_INSET_MATRIX = Mat3(
 			0.856627153315983f, 0.137318972929847f, 0.11189821299995f,
@@ -74,8 +74,6 @@ namespace KittlesPT
 
 		__constant__ constexpr float3 LUMINANCE_COEFFICIENTS{ 0.2126f, 0.7152f, 0.0722f };//spectral curve coefficients
 		__constant__ constexpr float MIDDLE_GRAY = 0.18f;
-
-		//original values for reference
 
 		// 0: Default, 1: Golden, 2: Punchy
 #define AGX_LOOK 0
@@ -181,7 +179,7 @@ namespace KittlesPT
 			// sRGB approx OETF
 			non_linear_rec_709 = fmaxf(non_linear_rec_709, make_float3(0.0f));
 			non_linear_rec_709 = powf(non_linear_rec_709,
-				constexpr_float3(0.45454545454545453f, 0.45454545454545453f, 0.45454545454545453f));//sRGB OETF approx (1.0/2.2)
+				constexpr_float3(0.45454545454545453f));//sRGB OETF approx (1.0/2.2)
 
 			return non_linear_rec_709;
 		}

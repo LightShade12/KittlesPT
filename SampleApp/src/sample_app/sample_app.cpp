@@ -26,16 +26,16 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		ImGui::StyleColorsDark();
 
-		loadSceneFile("test.glb");
+		loadSceneFile("single_object.glb");
 		//TODO: not robust to empty scenes
-		m_application_data.editable_material = m_renderer.getMaterial(m_application_data.editable_material_idx);
-		m_application_data.mesh_transform = m_renderer.getMeshTransform(m_application_data.editable_mesh_idx);
-
-		m_application_data.materials_count = m_renderer.getMaterialsCount();
-		m_application_data.meshes_count = m_renderer.getMeshCount();
-
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();
+		//----
+		m_application_data.editable_material = m_renderer.getMaterial(m_application_data.editable_material_idx);
+		m_application_data.materials_count = m_renderer.getMaterialsCount();
+		//----
+		m_application_data.editable_mesh_object = m_meshes[m_application_data.editable_mesh_idx];
+		m_application_data.meshes_count = m_renderer.getMeshCount();
 
 		KittlesPT::Renderer::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
 			CameraController::ISO_MAX, CameraController::ISO_MIN,
@@ -103,6 +103,10 @@ namespace SampleApp
 		ModelImporter importer;
 		importer.loadGLTFfromFile(file_path, &scene);
 
+		for (int32_t i = 0; i < scene.mesh_entities.size(); i++) {
+			m_meshes.push_back(MeshObject(i, scene.mesh_entities[i].model_matrix));
+		}
+
 		m_renderer.loadScene(scene);
 	}
 
@@ -147,15 +151,16 @@ namespace SampleApp
 		m_event_dispatcher.registerListener(Event("mesh_changed"),
 			Listener([this](const std::any& data)
 				{
-					m_application_data.mesh_transform = m_renderer.getMeshTransform(m_application_data.editable_mesh_idx);
+					m_application_data.editable_mesh_object = m_meshes[m_application_data.editable_mesh_idx];
 				}));
 
 		m_event_dispatcher.registerListener(Event("mesh_updated"),
 			Listener([this](const std::any& data)
 				{
-					m_application_data.mesh_transform = std::any_cast<glm::mat4>(data);
-					m_renderer.setMeshTransform(m_application_data.editable_mesh_idx,
-						m_application_data.mesh_transform);
+					m_application_data.editable_mesh_object = std::any_cast<MeshObject>(data);
+
+					m_meshes[m_application_data.editable_mesh_idx] = m_application_data.editable_mesh_object;
+					m_meshes[m_application_data.editable_mesh_idx].updateMeshTransform(m_renderer);
 				}));
 
 		m_event_dispatcher.registerListener(Event("fov_changed"),

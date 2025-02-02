@@ -131,6 +131,7 @@ namespace KittlesPT
 		m_renderer_rsrc->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["debug_texture"] = TextureBuffer();
 		m_renderer_rsrc->bloom_mipchain.init();
 		m_renderer_rsrc->histogram_buffer = thrust::device_vector<float>((size_t)Constants::HISTOGRAM_SIZE, 0.0f);
 		submitScene();
@@ -235,6 +236,7 @@ namespace KittlesPT
 		m_renderer_rsrc->shader_global_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_global_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_global_data);
 
@@ -269,6 +271,7 @@ namespace KittlesPT
 		m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.main_texture);
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.accumulation_texture);
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.gbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.debug_texture);
 
 		m_renderer_rsrc->shader_global_data.frame_index++;//TODO:expose to host as readonly?
 	}
@@ -280,7 +283,7 @@ namespace KittlesPT
 
 	void Renderer::getDebugRenderTargetTexture(GLuint r_texture) const
 	{
-		m_renderer_rsrc->bloom_mipchain.mip_textures[0].copyTo(r_texture);
+		m_renderer_rsrc->m_frame_textures["debug_texture"].copyTo(r_texture);
 	}
 
 	bool Renderer::setMaterial(int idx, MaterialSceneEntity material)

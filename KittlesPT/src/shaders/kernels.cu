@@ -150,6 +150,8 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 	//scale = ceilf(scale);
 	//if (!scale) frag_color += make_float4(1.0f) * length(make_float3(frag_color));
 
+	//shader_data.debug_texture.textureWriteUV(frag_color, shading_job.uv_coord);
+
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 

@@ -1,11 +1,14 @@
 #pragma once
 #include "gui_application.hpp"
 #include "camera_controller.hpp"
+#include "mesh_object.hpp"
 #include "widgets.hpp"
 #include "event_dispatcher.hpp"
 #include "shared_state.hpp"
 
 #include "kittlesPT/kittlesPT.hpp"
+
+#include <vector>
 
 namespace SampleApp
 {
@@ -23,9 +26,10 @@ namespace SampleApp
 		void updateUI() override;
 
 	private:
-		void loadSceneFile(const char * file_path);
+		void loadSceneFile(const char* file_path);
 		void registerListeners();
 	public:
+		std::vector<MeshObject> m_meshes;
 		ApplicationData m_application_data;
 		EventDispatcher m_event_dispatcher;
 		GLTexture m_viewport_texture;

@@ -101,5 +101,8 @@
     <ClInclude Include="src\sample_app\model_importer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\sample_app\mesh_object.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
