@@ -27,7 +27,7 @@ namespace KittlesPT
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
 				Ray transformed_ray = ray.transform(mesh.inv_model_matrix);
 
-				for (int32_t primitive_id = mesh.prim_offset; primitive_id <= mesh.prim_offset + mesh.prim_count; primitive_id++)
+				for (int32_t primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
 					tri.intersect(transformed_ray, tmin, tmax, &intr);
@@ -54,7 +54,7 @@ namespace KittlesPT
 				object_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(object_ray.getDirection(), 0)));
 				object_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(object_ray.getOrigin(), 1)));
 
-				for (int32_t primitive_id = mesh.prim_offset; primitive_id <= mesh.prim_offset + mesh.prim_count; primitive_id++)
+				for (int32_t primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
 					tri.intersect(object_ray, tmin, tmax, &intr);

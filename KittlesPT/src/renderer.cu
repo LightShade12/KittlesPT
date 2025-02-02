@@ -479,7 +479,7 @@ namespace KittlesPT
 
 		for (const MeshSceneEntity& mesh : parsed_scene.mesh_entities)
 		{
-			size_t mesh_prim_start_id = m_renderer_rsrc->scene_triangles.size() - 1;
+			size_t mesh_prim_start_id = m_renderer_rsrc->scene_triangles.size();
 			for (const TriangleSceneEntity& tri : mesh.shape_entities)
 			{
 				const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
