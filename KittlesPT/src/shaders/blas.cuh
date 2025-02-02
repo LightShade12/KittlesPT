@@ -50,7 +50,7 @@ namespace KittlesPT
 		Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
 		{
 			if (bvhnode_root_id < 0) {
-				return;
+				return Intersection();
 			}
 			const BVHNode* bvh_nodes_buffer = nullptr;//put actual buffer here
 			const int32_t* bvh_tri_ids_buffer = nullptr;//put actual buffer here
@@ -58,10 +58,10 @@ namespace KittlesPT
 			Ray object_ray = ray.transform(inv_model_matrix);
 
 			uint32_t node_id_stack[BLAS_TRAVERSAL_MAX_STACK_DEPTH]{};
-			uint8_t stack_ptr = 0;//max val=255
+			uint8_t stack_ptr = 0u;//max val=255
 			node_id_stack[stack_ptr++] = bvhnode_root_id;
 
-			const BVHNode* stack_top_node = &bvh_nodes_buffer[bvhnode_root_id];//load root node
+			const BVHNode* stack_top_node = &bvh_nodes_buffer[bvhnode_root_id];//load root node;unneded
 
 			Intersection intr;
 			Intersection closest;
@@ -86,18 +86,18 @@ namespace KittlesPT
 						tmin, tmax, &child2_hitdist, &c2exit);
 
 					if (child1_hitdist > child2_hitdist) {
-						if (c1hit) {
+						if (c1hit && child1_hitdist < closest.distance) {
 							node_id_stack[stack_ptr++] = stack_top_node->left_child_node_id_or_tris_index_start_id;
 						}
-						if (c2hit) {
+						if (c2hit && child2_hitdist < closest.distance) {
 							node_id_stack[stack_ptr++] = stack_top_node->left_child_node_id_or_tris_index_start_id + 1;
 						}
 					}
 					else {
-						if (c2hit) {
+						if (c2hit && child2_hitdist < closest.distance) {
 							node_id_stack[stack_ptr++] = stack_top_node->left_child_node_id_or_tris_index_start_id + 1;
 						}
-						if (c1hit) {
+						if (c1hit && child1_hitdist < closest.distance) {
 							node_id_stack[stack_ptr++] = stack_top_node->left_child_node_id_or_tris_index_start_id;
 						}
 					}
@@ -164,7 +164,7 @@ namespace KittlesPT
 		}
 	};
 
-	__constant__ constexpr uint32_t TLAS_TRAVERSAL_MAX_STACK_DEPTH = 256;
+	__constant__ constexpr uint8_t TLAS_TRAVERSAL_MAX_STACK_DEPTH = 16;//can handle max 65535 blases
 	class TLAS {
 	public:
 		TLAS() = default;
@@ -174,19 +174,19 @@ namespace KittlesPT
 			return false;
 		};
 
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
+		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax) constS
 		{
-			if (tlas_node_root_id < 0) {
-				return;
+			if (tlasnode_root_id < 0) {
+				return Intersection();
 			}
 			const TLASNode* tlas_nodes_buffer = nullptr;//put actual buffer here
 			const BLAS* blas_buffer = nullptr;
 
-			int node_id_stack[TLAS_TRAVERSAL_MAX_STACK_DEPTH]{};
-			uint8_t stack_ptr = 0u;
+			int32_t node_id_stack[TLAS_TRAVERSAL_MAX_STACK_DEPTH]{};
+			uint16_t stack_ptr = 0u;
 
-			const TLASNode* stack_top_node = &tlas_nodes_buffer[tlas_node_root_id];
-			node_id_stack[stack_ptr++] = tlas_node_root_id;
+			const TLASNode* stack_top_node = &tlas_nodes_buffer[tlasnode_root_id];//load root; unneeded
+			node_id_stack[stack_ptr++] = tlasnode_root_id;
 
 			float child1_hitdist = INFINITY;
 			float child2_hitdist = INFINITY;
@@ -234,6 +234,6 @@ namespace KittlesPT
 
 	public:
 		Bounds3f bounds;
-		int32_t tlas_node_root_id = -1;
+		int32_t tlasnode_root_id = -1;
 	};
 }
