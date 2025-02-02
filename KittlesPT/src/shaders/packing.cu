@@ -3,26 +3,28 @@
 #include "color.cuh"
 #include "maths/linear_algebra.cuh"
 
+//#define __CUDACC__
 #include <cuda.h>
 #include <cuda_fp16.h>
+//#include <device_functions.h>
 
 namespace KittlesPT
 {
-	__device__ unsigned floatToByte(float v)
+	__device__ uint32_t floatToByte(float v)
 	{
-		v = clamp(v, 0.0f, 1.0f);
-		return unsigned(v * 255.0f) & 0xFFu;
+		v = saturate(v);
+		return uint32_t(v * 255.0f) & 0xFFu;
 	}
-	__device__ float byteToFloat(unsigned v)
+	__device__ float byteToFloat(uint32_t v)
 	{
 		return float(v & 0xFFu) / 255.0f;
 	}
-	__device__ unsigned float3ToUint(float3 v)
+	__device__ uint32_t float3ToUint(float3 v)
 	{
-		unsigned o = floatToByte(v.x) | (floatToByte(v.y) << 8) | (floatToByte(v.z) << 16);
+		uint32_t o = floatToByte(v.x) | (floatToByte(v.y) << 8) | (floatToByte(v.z) << 16);
 		return o;
 	}
-	__device__ float3 uintToFloat3(unsigned v)
+	__device__ float3 uintToFloat3(uint32_t v)
 	{
 		float3 o;
 		o.x = byteToFloat(v);
@@ -30,13 +32,13 @@ namespace KittlesPT
 		o.z = byteToFloat(v >> 16);
 		return o;
 	}
-	__device__ unsigned float4ToUint(float4 v)
+	__device__ uint32_t float4ToUint(float4 v)
 	{
-		unsigned o = floatToByte(v.x) | (floatToByte(v.y) << 8) | (floatToByte(v.z) << 16) | (floatToByte(v.w) << 24);
+		uint32_t o = floatToByte(v.x) | (floatToByte(v.y) << 8) | (floatToByte(v.z) << 16) | (floatToByte(v.w) << 24);
 		return o;
 	}
 
-	__device__ float4 uintToFloat4(unsigned v)
+	__device__ float4 uintToFloat4(uint32_t v)
 	{
 		float4 o;
 		o.x = byteToFloat(v);
@@ -46,16 +48,16 @@ namespace KittlesPT
 		return o;
 	};
 
-	//returns unsigned
-	__device__ unsigned packHalf2x16(float2 v)
+	//returns uint32_t
+	__device__ uint32_t packHalf2x16(float2 v)
 	{
-		unsigned short x = __half_as_ushort(__float2half(v.x));
-		unsigned short y = __half_as_ushort(__float2half(v.y));
+		uint16_t x = __half_as_ushort(__float2half(v.x));
+		uint16_t y = __half_as_ushort(__float2half(v.y));
 
-		return (unsigned(y) << 16) | unsigned(x);
+		return (uint32_t(y) << 16) | uint32_t(x);
 	};
 
-	__device__ float2 unpackHalf2x16(unsigned v)
+	__device__ float2 unpackHalf2x16(uint32_t v)
 	{
 		half x = __ushort_as_half(v & 0xFFFFu);
 		half y = __ushort_as_half((v >> 16) & 0xFFFFu);
@@ -63,11 +65,11 @@ namespace KittlesPT
 		return make_float2(__half2float(x), __half2float(y));
 	};
 
-	__device__ unsigned floatBitsToUint(float v)
+	__device__ uint32_t floatBitsToUint(float v)
 	{
-		return (unsigned)__float_as_uint(v);
+		return (uint32_t)__float_as_uint(v);
 	};
-	__device__ float uintBitsToFloat(unsigned v)
+	__device__ float uintBitsToFloat(uint32_t v)
 	{
 		return (float)__uint_as_float(v);
 	};
