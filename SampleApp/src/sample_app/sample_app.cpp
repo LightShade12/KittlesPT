@@ -26,7 +26,7 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		ImGui::StyleColorsDark();
 
-		loadSceneFile("two_objects.glb");
+		loadSceneFile("test.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();
@@ -171,6 +171,12 @@ namespace SampleApp
 					glm::mat4 proj = glm::perspectiveFovLH(m_camera.getVerticalFOV_Radians(),
 						static_cast<float>(m_window_width), static_cast<float>(m_window_height), 1.0f, 100.0f);
 					m_renderer.setView(proj, view);
+				}));
+
+		m_event_dispatcher.registerListener(Event("movement_speed_changed"),
+			Listener([this](const std::any& data)
+				{
+					m_camera.setMovementSpeed(std::any_cast<float>(data));
 				}));
 
 		m_event_dispatcher.registerListener(Event("pathtracer_settings_changed"),

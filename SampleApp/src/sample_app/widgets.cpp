@@ -81,7 +81,7 @@ namespace SampleApp
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Camera Settings") && m_camera_handle != nullptr) {
 			float fov_y_radians = m_camera_handle->getVerticalFOV_Radians();
-
+			float move_speed = m_camera_handle->getMovementSpeed();
 			float aperture_f_num = m_camera_handle->getAperture();
 			float exp_comp = m_camera_handle->getExposureCompensationEV();
 			int ISO = m_camera_handle->getISO();
@@ -97,6 +97,16 @@ namespace SampleApp
 			{
 				ImGui::TableSetupColumn("A0", 0, 0.4f);
 				ImGui::TableSetupColumn("A1", 0);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Movement Speed");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				if (ImGui::SliderFloat("###speed_control", &move_speed,
+					0.001, 10.0f, "%.3f unitless")) {
+					m_event_dispatcher_handle->emitSignal(Event("movement_speed_changed"), move_speed);
+				};
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
