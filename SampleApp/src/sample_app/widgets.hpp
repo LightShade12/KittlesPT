@@ -16,24 +16,25 @@ namespace SampleApp
 		void updateUI() override;
 		void init(EventDispatcher* dispatcher, CameraController* camera, ApplicationData* app_data)
 		{
-			event_dispatcher_ref = dispatcher;
-			camera_controller_ref = camera;
-			shared_data_ref = app_data;
+			m_event_dispatcher_handle = dispatcher;
+			m_camera_handle = camera;
+			m_shared_data_handle = app_data;
 		};
-		float getDeltaTS() const { return delta_time_secs.count(); };
+		//TODO: actually return secs
+		float getDeltaTS_ms() const { return m_delta_time_secs.count(); };
 	private:
 
 		void renderUI() override;
 
 	private:
-		ApplicationData* shared_data_ref = nullptr;
-		EventDispatcher* event_dispatcher_ref = nullptr;
-		CameraController* camera_controller_ref = nullptr;
-		float start_time_secs = std::chrono::duration_cast<std::chrono::duration<float>>(
+		ApplicationData* m_shared_data_handle = nullptr;
+		EventDispatcher* m_event_dispatcher_handle = nullptr;
+		CameraController* m_camera_handle = nullptr;
+		float m_start_time_secs = std::chrono::duration_cast<std::chrono::duration<float>>(
 			std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-		std::chrono::time_point<std::chrono::steady_clock> last_frame_time_point;
-		std::chrono::duration<float> delta_time_secs;
-		float average_fps = 0;
+		std::chrono::time_point<std::chrono::steady_clock> m_last_frame_time_point;
+		std::chrono::duration<float> m_delta_time_secs;
+		float m_average_fps = 0;
 	};
 
 	class BackgroundTexture

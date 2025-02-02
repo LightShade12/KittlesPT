@@ -1,6 +1,7 @@
 #pragma once
 #include "shaders/device_texture_buffer.cuh"
-#include "shaders/sphere.cuh"
+//#include "shaders/sphere.cuh"
+#include "shaders/triangle.cuh"
 #include "shaders/camera.cuh"
 #include "shaders/material.cuh"
 #include "shaders/light.cuh"
@@ -26,7 +27,10 @@ namespace KittlesPT
 		int frame_index = 0;
 		float frame_delta = 0.0f;
 
-		Buffer<Sphere> geometry_buffer;
+		float* scene_average_luminance = nullptr;
+		Buffer<Triangle> triangles_buffer;
+		Buffer<TriangleMesh> meshes_buffer;
+		Buffer<float> histogram_buffer;
 		Buffer<Material> materials_buffer;
 		Buffer<Light> lights_buffer;
 		Buffer<Texture> texture_buffer;
@@ -35,11 +39,12 @@ namespace KittlesPT
 		Camera scene_camera;
 
 		ProceduralEnvironmentData procedural_environment_data;
-		PathtracerSettings pathtracer_settings;
+		RendererSettings renderer_settings;
 
 		DeviceTextureBuffer main_texture;
 		DeviceTextureBuffer accumulation_texture;
 		DeviceTextureBuffer gbuffer_texture;
+		DeviceTextureBuffer debug_texture;
 		DeviceTextureBuffer bloom_texture;
 	};
 };

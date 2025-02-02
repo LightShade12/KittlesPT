@@ -13,7 +13,7 @@ namespace KittlesPT
 		float ior,
 		bool is_backface) :
 		m_tangent_basis(tangent_basis),
-		m_albedo_factor(albedo),
+		m_albedo(albedo),
 		m_metallicity(metallicity),
 		m_roughness(roughness),
 		m_transmission(transmission),
@@ -27,7 +27,7 @@ namespace KittlesPT
 		float3 wo = inv_basis * w_wo;
 		float3 wi = inv_basis * w_wi;
 
-		float w_metallic = m_metallicity;
+		float w_metallic = (m_metallicity);
 		float w_transmissive_dielectric = (1.0f - w_metallic) * m_transmission;
 		float w_opaque_dielectric = (1.0f - w_metallic) * (1.0f - m_transmission);
 
@@ -263,7 +263,7 @@ namespace KittlesPT
 
 		float3 wi = sampleDiffuseBRDF(u2);
 
-		RGBSpectrum f = m_albedo_factor * fDiffuseBRDF(wo, wi);
+		RGBSpectrum f = m_albedo * fDiffuseBRDF(wo, wi);
 		f *= (1.0f / (1.0f - glossy_prob));
 
 		float pdf = pdfDiffuseBRDF(wo, wi);
@@ -278,7 +278,7 @@ namespace KittlesPT
 		RGBSpectrum glossy = fGlossyMicrofacetBRDF(wo, wi, wm);
 		RGBSpectrum w_diffuse = RGBSpectrum(1.0f - glossy);
 
-		RGBSpectrum diffuse = w_diffuse * (m_albedo_factor * fDiffuseBRDF(wo, wi));
+		RGBSpectrum diffuse = w_diffuse * (m_albedo * fDiffuseBRDF(wo, wi));
 
 		return diffuse + glossy;
 	}
@@ -335,7 +335,7 @@ namespace KittlesPT
 		RGBSpectrum M{ 0.0f,0.0f,0.0f };
 		if (NoL > 0.0f && VoH > 0.0f)
 		{
-			RGBSpectrum F = RGBSpectrum(fresnelSchlick(VoH, m_albedo_factor));
+			RGBSpectrum F = RGBSpectrum(fresnelSchlick(VoH, m_albedo));
 			M = F * microFacetBRDF(wo, wi, wm, m_roughness);
 		}
 		return M;
@@ -375,7 +375,7 @@ namespace KittlesPT
 			D_GGX(NoH, m_roughness) * G2_Smith(wo, wi, m_roughness) *
 			fabs(dot(wi, ht) * dot(wo, ht) / (wi.z * wo.z * temp * temp));
 
-		return m_albedo_factor * (1.0f - Fss) * Tss;
+		return m_albedo * (1.0f - Fss) * Tss;
 	}
 
 	//===========================================================================================================
@@ -480,7 +480,7 @@ namespace KittlesPT
 		const float Tss = D_GGX(wm.z, m_roughness) * G2_Smith(wo, wi, m_roughness) * dwm_dwi /
 			(fabs(cos_theta_i * cos_theta_o));
 
-		return RGBSpectrum(T * m_albedo_factor * Tss);
+		return RGBSpectrum(T * m_albedo * Tss);
 	}
 
 	__device__ float BSDF::pdfTransparentDielectric(float3 wo, float3 wi) const

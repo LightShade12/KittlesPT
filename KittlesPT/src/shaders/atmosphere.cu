@@ -51,16 +51,28 @@ namespace KittlesPT
 		return true;
 	}
 
-	__device__ RGBSpectrum Atmosphere::sampleLe(float3 t_orig, float3 t_dir, float t_tmin, float t_tmax) const
+	__device__ float Atmosphere::phaseR(float mu) const
+	{
+		const float phaseR = 3.0f / (16.0f * Constants::PI) * (1.0f + mu * mu);
+		return phaseR;
+	}
+
+	__device__ float Atmosphere::phaseM(float mu) const
+	{
+		constexpr float g = 0.76f; // anisotropy
+		const float phaseM = 3.0f / (8.0f * Constants::PI) * ((1.0f - g * g) * (1.0f + mu * mu)) / ((2.0f + g * g) * pow(1.0f + g * g - 2.0f * g * mu, 1.5f));
+		return phaseM;
+	}
+
+	__device__ RGBSpectrum Atmosphere::sampleLe(Ray ray, float t_tmin, float t_tmax) const
 	{
 		float t0, t1;
 		// miss atmosphere
-		if (!intersectSphere(Ray(t_orig, t_dir), make_float3(0), m_atmosphere_radius, t0, t1) || t1 < 0)
-		{
-			return RGBSpectrum(0);
+		if (!intersectSphere(ray, make_float3(0.0f), m_atmosphere_radius_meters, t0, t1) || t1 < 0.0f) {
+			return RGBSpectrum(0.0f);
 		}
 		// hit atmosphere
-		if (t0 > t_tmin && t0 > 0) {
+		if (t0 > t_tmin && t0 > 0.0f) {
 			t_tmin = t0; // increase tmin
 		}
 		if (t1 < t_tmax) {
@@ -69,21 +81,16 @@ namespace KittlesPT
 
 		const float step_length = (t_tmax - t_tmin) / m_num_samples;
 		float current_t = t_tmin;
-		RGBSpectrum sum_R_transmission = RGBSpectrum(0);
-		RGBSpectrum sum_M_transmission = RGBSpectrum(0);        // integrated mie and rayleigh contribution
-		float sum_R_optical_depth = 0, sum_M_optical_depth = 0; // discrete integration for transmittance
-
-		const float mu = dot(t_dir, m_sun_direction); // cosine of the angle between the sun direction and the ray direction
-		const float phaseR = 3.f / (16.f * Constants::PI) * (1 + mu * mu);
-		const float g = 0.76f; // anisotropy
-		const float phaseM = 3.f / (8.f * Constants::PI) * ((1.f - g * g) * (1.f + mu * mu)) / ((2.f + g * g) * pow(1.f + g * g - 2.f * g * mu, 1.5f));
+		RGBSpectrum sum_R_transmission = RGBSpectrum(0.0f);
+		RGBSpectrum sum_M_transmission = RGBSpectrum(0.0f);     // integrated mie and rayleigh contribution
+		float sum_R_optical_depth = 0.0f, sum_M_optical_depth = 0.0f; // discrete integration for transmittance
 
 		// sample contrib points along ray;
 		// integrate from t0 to t1 for transmittance and Lsun
 		for (uint32_t i = 0; i < m_num_samples; ++i)
 		{
-			const float3 sample_position = t_orig + (current_t + step_length * 0.5f) * t_dir;
-			const float height = length(sample_position) - m_earth_radius;
+			const float3 sample_position = ray.getPointAt(current_t + (step_length * 0.5f));
+			const float height = length(sample_position) - m_earth_radius_meters;
 
 			// compute optical depth for this step
 			const float hr = exp(-height / Hr) * step_length;
@@ -91,22 +98,22 @@ namespace KittlesPT
 			sum_R_optical_depth += hr;
 			sum_M_optical_depth += hm;
 
-			// optical depth sum for light for this step
+			// optical depth sum for light for current step
 			float t0_light, t1_light;
-			intersectSphere(Ray(sample_position, m_sun_direction), make_float3(0),
-				m_atmosphere_radius, t0_light, t1_light);
+			intersectSphere(Ray(sample_position, m_sun_direction), make_float3(0.0f),
+				m_atmosphere_radius_meters, t0_light, t1_light);
 			const float step_length_light = t1_light / m_num_samples_light;
 
-			float current_t_light = 0;
-			float sum_R_optical_depth_light = 0,
-				sum_M_optical_depth_light = 0;
+			float current_t_light = 0.0f;
+			float sum_R_optical_depth_light = 0.0f,
+				sum_M_optical_depth_light = 0.0f;
 
-			uint32_t j;
+			uint8_t j;
 			for (j = 0; j < m_num_samples_light; ++j)
 			{
 				const float3 sample_position_light = sample_position + (current_t_light + step_length_light * 0.5f) * m_sun_direction;
-				const float height_light = length(sample_position_light) - m_earth_radius;
-				if (height_light < 0) // if sun dir points/sample_pos is below horizon/earth
+				const float height_light = length(sample_position_light) - m_earth_radius_meters;
+				if (height_light < 0.0f) // if sun dir points/sample_pos is below horizon/earth
 				{
 					break;
 				}
@@ -123,7 +130,7 @@ namespace KittlesPT
 				RGBSpectrum tau = beta_R_extinction * (sum_R_optical_depth + sum_R_optical_depth_light) + beta_M_extinction * (sum_M_optical_depth + sum_M_optical_depth_light);
 				RGBSpectrum transmittance = RGBSpectrum(exp(-tau.r), exp(-tau.g), exp(-tau.b));
 
-				const float& optical_depthR = hr, optical_depthM = hm;
+				const float optical_depthR = hr, optical_depthM = hm;
 				// transmittance * optical_depth sum; later multiplied with beta to compute beta(h)=beta(0)*optical_depth(h)
 				sum_R_transmission += transmittance * optical_depthR;
 				sum_M_transmission += transmittance * optical_depthM;
@@ -131,9 +138,11 @@ namespace KittlesPT
 			current_t += step_length;
 		}
 
-		RGBSpectrum atmosphere_radiance = (sum_R_transmission * betaR_scattering_coeff * phaseR + sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity;
-		//float3 atmosphere_radiance = (sum_R_transmission * betaR_scattering_coeff * phaseR) * m_sun_intensity;//rayleigh only
-		//float3 atmosphere_radiance = (sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_intensity; //mie only
+		const float mu = dot(ray.getDirection(), m_sun_direction);
+		RGBSpectrum atmosphere_radiance = (sum_R_transmission * betaR_scattering_coeff * phaseR(mu)
+			+ sum_M_transmission * betaM_scattering_coeff * phaseM(mu)) * m_sun_emission_scale_nits;
+		//float3 atmosphere_radiance = (sum_R_transmission * betaR_scattering_coeff * phaseR) * m_sun_emission_scale_nits;//rayleigh only
+		//float3 atmosphere_radiance = (sum_M_transmission * betaM_scattering_coeff * phaseM) * m_sun_emission_scale_nits; //mie only
 		return atmosphere_radiance;
 	}
 }/*KittlesPT*/

@@ -43,6 +43,7 @@ namespace SampleAppGUI
 		void destroy();
 
 		bool isValid() { return m_window_ctx_handle != nullptr; }
+		//TODO:add setters& gettersfor private variables
 	public:
 		int m_window_width = 0, m_window_height = 0;
 		ImGuiContext* m_imgui_ctx_handle = nullptr;

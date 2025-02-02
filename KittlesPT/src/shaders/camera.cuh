@@ -6,12 +6,15 @@ namespace KittlesPT
 {
 	class Ray;
 
+	//Not needed but added for parity with PBRTv4 implementation
 	class Film
 	{
 	public:
-		__device__ float3 getDisplayRGB(RGBSpectrum HDR_linear_radiance) const;
+		__device__ float3 getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const;
 
-		float exposure = 1.0f;
+		float luminance_exposure_scalar = 1.0f;//TODO: fix this retarded shit
+		float black_point_ev = -10.0f;
+		float white_point_ev = 6.5f;
 	};
 
 	class Camera
@@ -20,13 +23,14 @@ namespace KittlesPT
 
 		Camera() = default;
 
-		__host__ __device__ Camera(float3 pos) :
+		__host__ Camera(float3 pos) :
 			world_position(pos) {};
 
 		//generate camera rays; -1 => forawrd depth
-		__device__ Ray generateRay(float2 ndc_coords, int2 frame_resolution) const;
+		__device__ Ray generateRay(float2 ndc_coords) const;
 
 		__host__ void setView(Mat4 inv_proj, Mat4 inv_view);
+		__host__ void setExposure(float luminance_exposure_scalar, float white_point_ev, float black_point_ev);
 
 	public:
 		Film film;

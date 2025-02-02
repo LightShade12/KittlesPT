@@ -87,7 +87,8 @@ namespace KittlesPT
 	};
 }/*KittlesPT*/
 
-__global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg)
+__global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src,
+	KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg)
 {
 	using namespace KittlesPT;
 
@@ -97,6 +98,7 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 		return;
 	}
 
+	//TODO: use shading_job.uv_coord?
 	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
 	float2 src_pixel_coord = dst_uv * t_src.dimensions;
 
@@ -107,7 +109,8 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	t_dst.textureWrite(min_filtered_color, shading_job.pixel_coord);
 }
 
-__global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst)
+__global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src,
+	KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;
 
@@ -136,7 +139,7 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, K
 
 	//combine prev mip
 	float4 dst_prev_color = t_dst.textureReadNearest(make_float2(shading_job.pixel_coord));
-	mag_filtered_color = lerp(dst_prev_color, mag_filtered_color, shader_data.pathtracer_settings.bloom_internal_blend);
+	mag_filtered_color = lerp(dst_prev_color, mag_filtered_color, shader_data.renderer_settings.bloom_internal_blend);
 	mag_filtered_color = make_float4(clampOutput(make_float3(mag_filtered_color)), 1.0f);
 
 	t_dst.textureWrite(mag_filtered_color, shading_job.pixel_coord);

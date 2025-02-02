@@ -9,7 +9,7 @@ namespace KittlesPT
 		*	-BVH (Aggregate primitive)
 		*	-Triangles
 		*
-		*	-Utility code
+		*	-Utility code(From GLSL,HLSL .etc)
 		*
 		*	-Wavefront rendering
 		*
@@ -36,22 +36,26 @@ namespace KittlesPT
 
 	namespace Integrator
 	{
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmax);
+		//will implicitly use GAS in GlobalShaderData
+		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax);
 
-		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmax);
+		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax);
 
 		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target);
 
+		//----------------------------------------------------------------
+
+		__device__ RGBSpectrum LeSun(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere);
+
 		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler);
-
-		__device__ RGBSpectrum sampleSunDiskLe(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere);
 
 		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const UniformLightSampler& light_sampler, IndependentSampler& sampler);
 
 		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
 
+		//----------------------------------------------------------------
 		//Monte-Carlo estimation; static accumulation
 		__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample);
 	}

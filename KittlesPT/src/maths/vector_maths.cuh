@@ -1,5 +1,6 @@
 #pragma once
 #include "vector_types_extension.cuh"
+#include <numbers>
 
 namespace KittlesPT
 {
@@ -29,7 +30,7 @@ namespace KittlesPT
 		{
 			return make_float3(0);
 		}
-		return clamp(v, 0, 1000);
+		return clamp(v, 0, 1.0e8f);
 	}
 
 	inline __device__ float3 log2f(const float3 a)
@@ -52,7 +53,30 @@ namespace KittlesPT
 		return wm;
 	}
 
-	__device__ bool refract(const float3& wi, float3 normal, float ior, float3& wt);
+	inline __device__ bool refract(const float3& wi, float3 normal, float ior, float3& wt)
+	{
+		float cosTheta = dot(wi, normal);
+
+		if (cosTheta < 0.0f) {
+			ior = 1.0f / ior;
+			cosTheta *= -1.0f;
+			normal *= -1.0f;
+		}
+
+		float sin2Theta = (1.0f - cosTheta * cosTheta);
+		float sin2Theta_t = sin2Theta / (ior * ior);
+		if (sin2Theta_t >= 1.0f) {
+			return false;
+		}
+
+		float cosTheta_t = sqrtf(1.0f - sin2Theta_t);
+		wt = (-1.0f * wi) / ior + (cosTheta / ior - cosTheta_t) * normal;
+		return true;
+	}
+
+	inline __device__ float3 faceForward(float3 a, float3 i, float3 n) {
+		return (dot(n, i) < 0.0f) ? a : -a;
+	}
 
 	inline __device__ bool sameHemisphere(const float3& a, const float3& b, const float3& n)
 	{

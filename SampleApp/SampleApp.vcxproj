@@ -151,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\gui_application.cpp" />
+    <ClCompile Include="thirdparty\tinygltf\tiny_gltf.cc" />
     <ClInclude Include="src\gui_application.hpp" />
     <ClCompile Include="src\gui_widgets.cpp" />
     <ClCompile Include="src\imgui_themes.cpp" />
@@ -174,6 +175,8 @@
     <ClInclude Include="src\imgui_themes.hpp" />
     <ClInclude Include="src\sample_app\camera_controller.hpp" />
     <ClInclude Include="src\sample_app\event_dispatcher.hpp" />
+    <ClInclude Include="src\sample_app\mesh_object.hpp" />
+    <ClInclude Include="src\sample_app\model_importer.hpp" />
     <ClInclude Include="src\sample_app\sample_app.hpp" />
     <ClInclude Include="src\sample_app\shared_state.hpp" />
     <ClInclude Include="src\sample_app\texture.hpp" />
