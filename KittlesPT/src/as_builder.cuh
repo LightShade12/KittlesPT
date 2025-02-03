@@ -43,12 +43,9 @@ namespace KittlesPT
 			{
 				uint32_t tri_id = (*m_tris_index_buffer)[first + i];
 				Triangle& leaf_tri = m_tris_buffer[tri_id];
-				node.bounds.pmin = fminf(node.bounds.pmin, leaf_tri.vertex0.position);
-				node.bounds.pmin = fminf(node.bounds.pmin, leaf_tri.vertex1.position);
-				node.bounds.pmin = fminf(node.bounds.pmin, leaf_tri.vertex2.position);
-				node.bounds.pmax = fmaxf(node.bounds.pmax, leaf_tri.vertex0.position);
-				node.bounds.pmax = fmaxf(node.bounds.pmax, leaf_tri.vertex1.position);
-				node.bounds.pmax = fmaxf(node.bounds.pmax, leaf_tri.vertex2.position);
+				node.bounds.grow(leaf_tri.vertex0.position);
+				node.bounds.grow(leaf_tri.vertex1.position);
+				node.bounds.grow(leaf_tri.vertex2.position);
 			}
 		}
 
