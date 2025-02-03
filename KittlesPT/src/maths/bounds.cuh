@@ -24,6 +24,11 @@ namespace KittlesPT {
 			return 2.0f * (d.x * d.y + d.y * d.z + d.z * d.x);
 		}
 
+		__host__ void grow(float3 p)
+		{
+			pmin = fminf(pmin, p), pmax = fmaxf(pmax, p);
+		}
+
 		/*
 		__host__ __device__ void adaptBounds(const Mat4& model_mat, const Bounds3f& original)
 		{
@@ -81,6 +86,6 @@ namespace KittlesPT {
 		}
 
 	public:
-		float3 pmin, pmax;
+		float3 pmin = constexpr_float3(FLT_MAX), pmax = constexpr_float3(-FLT_MAX);
 	};
 }

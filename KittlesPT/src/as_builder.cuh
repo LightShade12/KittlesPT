@@ -63,23 +63,61 @@ namespace KittlesPT
 			return(idx == 0) ? v.x : (idx == 1) ? v.y : v.z;
 		}
 
+		__host__ float EvaluateSAH(const std::vector<BVHTriangleCache>& cache, BVHNode& node, PlaneAxis axis, float pos)
+		{
+			// determine triangle counts and bounds for this split candidate
+			Bounds3f leftBox{}, rightBox{};
+			int leftCount = 0, rightCount = 0;
+			for (uint i = 0; i < node.node_tris_idx_count; i++)
+			{
+				int32_t tri_id = (*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i];
+				const Triangle& triangle = m_tris_buffer[tri_id];
+				const BVHTriangleCache& tri_cache = cache[tri_id];
+
+				if (comp(tri_cache.centroid, axis) < pos)
+				{
+					leftCount++;
+					leftBox.grow(triangle.vertex0.position);
+					leftBox.grow(triangle.vertex1.position);
+					leftBox.grow(triangle.vertex2.position);
+				}
+				else
+				{
+					rightCount++;
+					rightBox.grow(triangle.vertex0.position);
+					rightBox.grow(triangle.vertex1.position);
+					rightBox.grow(triangle.vertex2.position);
+				}
+			}
+			float cost = leftCount * leftBox.surfaceArea() + rightCount * rightBox.surfaceArea();
+			return (cost > 0.0f) ? cost : INFINITY;
+		}
+
 		__host__ void subdivide(const std::vector<BVHTriangleCache>& cache, uint32_t node_id, uint32_t* node_index_ptr)
 		{
 			BVHNode& parent_node = (*m_bvhnodes_buffer)[node_id];
-			if (parent_node.node_tris_idx_count <= 2) {
+
+			int32_t best_axis = -1;
+			float best_pos = 0, best_cost = INFINITY;
+			for (int32_t axis = 0; axis < 3; axis++) {
+				for (uint32_t i = 0; i < parent_node.node_tris_idx_count; i++)
+				{
+					int32_t tri_id = (*m_tris_index_buffer)[parent_node.left_child_node_id_or_tris_index_start_id + i];
+					Triangle& triangle = m_tris_buffer[tri_id];
+					float candidate_pos = comp(cache[tri_id].centroid, axis);
+					float cost = EvaluateSAH(cache, parent_node, (PlaneAxis)axis, candidate_pos);
+					if (cost < best_cost) {
+						best_pos = candidate_pos, best_axis = axis, best_cost = cost;
+					}
+				}
+			}
+			int32_t axis = best_axis;
+			float split_pos = best_pos;
+
+			float parent_cost = parent_node.node_tris_idx_count * parent_node.surfaceArea();
+			if (parent_cost <= best_cost) {
 				return;//termination condition
 			}
-
-			//decide split axis and pos---
-			float3 extent = parent_node.bounds.pmax - parent_node.bounds.pmin;
-			PlaneAxis axis = PlaneAxis::X;
-			if (extent.y > extent.x) {
-				axis = PlaneAxis::Y;
-			}
-			if (extent.z > comp(extent, axis)) {
-				axis = PlaneAxis::Z;
-			}
-			float split_pos = comp(parent_node.bounds.pmin, axis) + (comp(extent, axis) * 0.5f);//centre split along longest axis
 
 			//split grp---------
 			int32_t i = parent_node.left_child_node_id_or_tris_index_start_id;
