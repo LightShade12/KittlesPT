@@ -10,6 +10,7 @@
 #include "maths/sampling.cuh"
 #include "color.cuh"
 #include "packing.cuh"
+#include "blas.cuh"
 
 //TODO:use *_t types
 
@@ -19,6 +20,8 @@ namespace KittlesPT
 	{
 		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax)
 		{
+			return shader_data.blas_buffer.data[0].intersect(shader_data, ray, tmin, tmax);
+
 			Intersection closest;
 			Intersection intr;
 
@@ -45,6 +48,8 @@ namespace KittlesPT
 
 		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax)
 		{
+			return shader_data.blas_buffer.data[0].intersectP(shader_data, ray, tmin, tmax);
+
 			Intersection intr;
 			for (int32_t instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{

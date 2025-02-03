@@ -26,7 +26,7 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		ImGui::StyleColorsDark();
 
-		loadSceneFile("test.glb");
+		loadSceneFile("dense.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();

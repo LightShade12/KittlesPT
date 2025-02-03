@@ -1,15 +1,18 @@
 #pragma once
 #include "shaders/device_texture_buffer.cuh"
-//#include "shaders/sphere.cuh"
 #include "shaders/triangle.cuh"
 #include "shaders/camera.cuh"
 #include "shaders/material.cuh"
 #include "shaders/light.cuh"
 #include "shaders/texture.cuh"
+//#include "shaders/blas.cuh"
 #include "pod_types.hpp"
 
 namespace KittlesPT
 {
+	class BVHNode;
+	class BLAS;
+
 	template <typename T> struct Buffer
 	{
 		Buffer() = default;
@@ -34,7 +37,10 @@ namespace KittlesPT
 		Buffer<Material> materials_buffer;
 		Buffer<Light> lights_buffer;
 		Buffer<Texture> texture_buffer;
-		Buffer<unsigned char> pixel_buffer;
+		Buffer<uint8_t> pixel_buffer;
+		Buffer<int32_t> triangle_index_buffer;
+		Buffer<BVHNode> bvh_nodes_buffer;
+		Buffer<BLAS> blas_buffer;
 
 		Camera scene_camera;
 

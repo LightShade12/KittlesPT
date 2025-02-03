@@ -2,6 +2,7 @@
 
 #include "maths/vector_maths.cuh"
 #include "containers.cuh"
+#include "as_builder.cuh"
 #include "shaders/kernels.cuh"
 
 #include "glm/glm.hpp"
@@ -89,6 +90,9 @@ namespace KittlesPT
 		thrust::universal_vector<Light> scene_lights;
 		thrust::universal_vector<Material> scene_materials;
 		thrust::universal_vector<Texture> scene_textures;
+		thrust::universal_vector<BLAS> blas_buffer;
+		thrust::universal_vector<BVHNode> bvhnodes_buffer;
+		thrust::universal_vector<int32_t> triangle_index_buffer;
 		thrust::device_vector<float> histogram_buffer;
 
 		thrust::device_vector<unsigned char> pixel_buffer;
@@ -112,6 +116,8 @@ namespace KittlesPT
 			scene_textures.clear();
 			pixel_buffer.clear();
 			m_frame_textures.clear();
+			bvhnodes_buffer.clear();
+			triangle_index_buffer.clear();
 			histogram_buffer.clear();
 		}
 
@@ -501,6 +507,13 @@ namespace KittlesPT
 
 			TriangleMesh tri_mesh(static_cast<int32_t>(mesh_prim_start_id), static_cast<int32_t>(mesh.shape_entities.size()),
 				Mat4(glm::inverse(mesh.model_matrix)));
+
+			std::vector<BVHNode> bvhnodes;
+			std::vector<int32_t> tri_ids;
+			BLASBuilder blas_builder(m_renderer_rsrc->scene_triangles, &tri_ids, &bvhnodes);
+			m_renderer_rsrc->blas_buffer.push_back(blas_builder.build(tri_mesh, m_renderer_rsrc->scene_meshes.size()));
+			m_renderer_rsrc->bvhnodes_buffer = bvhnodes;
+			m_renderer_rsrc->triangle_index_buffer = tri_ids;
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
@@ -511,6 +524,20 @@ namespace KittlesPT
 
 	void Renderer::submitScene()
 	{
+		m_renderer_rsrc->shader_global_data.blas_buffer = Buffer<BLAS>(
+			thrust::raw_pointer_cast(m_renderer_rsrc->blas_buffer.data()),
+			m_renderer_rsrc->blas_buffer.size());
+
+		m_renderer_rsrc->shader_global_data.bvh_nodes_buffer =
+			Buffer<BVHNode>(
+				thrust::raw_pointer_cast(m_renderer_rsrc->bvhnodes_buffer.data()),
+				m_renderer_rsrc->bvhnodes_buffer.size());
+
+		m_renderer_rsrc->shader_global_data.triangle_index_buffer =
+			Buffer<int32_t>(
+				thrust::raw_pointer_cast(m_renderer_rsrc->triangle_index_buffer.data()),
+				m_renderer_rsrc->triangle_index_buffer.size());
+
 		m_renderer_rsrc->shader_global_data.meshes_buffer =
 			Buffer<TriangleMesh>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->scene_meshes.data()),
@@ -532,7 +559,7 @@ namespace KittlesPT
 				m_renderer_rsrc->scene_lights.size());
 
 		m_renderer_rsrc->shader_global_data.pixel_buffer =
-			Buffer<unsigned char>(
+			Buffer<uint8_t>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->pixel_buffer.data()),
 				m_renderer_rsrc->pixel_buffer.size());
 
