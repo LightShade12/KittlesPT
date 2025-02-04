@@ -17,7 +17,7 @@ namespace KittlesPT
 			float3 centroid;
 		};
 
-		__host__ BLASBuilder(const std::vector<Triangle>* tris, std::vector<int32_t>* trisid, std::vector<BVHNode>* bvhnodes) :
+		__host__ BLASBuilder(const thrust::universal_vector<Triangle>* tris, thrust::universal_vector<int32_t>* trisid, thrust::universal_vector<BVHNode>* bvhnodes) :
 			m_bvhnodes_buffer(bvhnodes), m_tris_index_buffer(trisid)
 		{
 			m_tris_buffer = tris;
@@ -28,6 +28,7 @@ namespace KittlesPT
 			mesh_tris_count = mesh.prim_count;
 			mesh_tris_offset = mesh.prim_offset;
 			BLAS mesh_blas = buildBLAS();
+			mesh_blas.original_bounds = mesh_blas.bounds;
 			mesh_blas.inv_model_matrix = mesh.inv_model_matrix;
 			mesh_blas.mesh_id = mesh_id;
 			return mesh_blas;
@@ -280,22 +281,21 @@ namespace KittlesPT
 		uint32_t mesh_tris_count = 0;
 
 		std::vector<BVHTriangleCache>m_cache;
-		const std::vector<Triangle>* m_tris_buffer = nullptr;
-		std::vector<int32_t>* m_tris_index_buffer = nullptr;
-		std::vector<BVHNode>* m_bvhnodes_buffer = nullptr;
+		const thrust::universal_vector<Triangle>* m_tris_buffer = nullptr;
+		thrust::universal_vector<int32_t>* m_tris_index_buffer = nullptr;
+		thrust::universal_vector<BVHNode>* m_bvhnodes_buffer = nullptr;
 	};
 
 	class TLASBuilder
 	{
 	public:
 
-		TLASBuilder(const thrust::universal_vector<BLAS>* blas_buffer) :
-			m_blas_buffer(blas_buffer)
+		TLASBuilder(const thrust::universal_vector<BLAS>* blas_buffer, thrust::universal_vector<TLASNode>* tlasnodes_buffer) :
+			m_blas_buffer(blas_buffer), m_tlasnodes_buffer(tlasnodes_buffer)
 		{}
 
-		__host__ TLAS build(std::vector<TLASNode>* tlasnodes_buffer)
+		__host__ TLAS build()
 		{
-			m_tlasnodes_buffer = tlasnodes_buffer;
 			return buildTLAS();
 		}
 
@@ -388,6 +388,6 @@ namespace KittlesPT
 		}
 
 		const thrust::universal_vector<BLAS>* m_blas_buffer = nullptr;
-		std::vector<TLASNode>* m_tlasnodes_buffer = nullptr;
+		thrust::universal_vector<TLASNode>* m_tlasnodes_buffer = nullptr;
 	};
 }

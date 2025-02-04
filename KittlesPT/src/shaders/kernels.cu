@@ -153,7 +153,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 
 	float3 gas_heat_map = (make_float3(0, 1, 0) * visible_surface.blas_hits * 0.02f) + (make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
 
-	//shader_data.debug_texture.textureWriteUV(make_float4(gas_heat_map, 1), shading_job.uv_coord);
+	shader_data.debug_texture.textureWriteUV(make_float4(gas_heat_map, 1), shading_job.uv_coord);
 
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }

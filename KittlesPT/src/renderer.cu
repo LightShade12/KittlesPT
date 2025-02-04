@@ -96,6 +96,9 @@ namespace KittlesPT
 		thrust::universal_vector<int32_t> triangle_index_buffer;
 		thrust::device_vector<float> histogram_buffer;
 
+		BLASBuilder blas_builder = BLASBuilder(&scene_triangles, &triangle_index_buffer, &bvhnodes_buffer);
+		TLASBuilder tlas_builder = TLASBuilder(&blas_buffer, &tlasnodes_buffer);
+
 		thrust::device_vector<unsigned char> pixel_buffer;
 		GlobalShaderData shader_global_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
@@ -244,6 +247,8 @@ namespace KittlesPT
 		m_renderer_rsrc->shader_global_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_global_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
+
+		m_renderer_rsrc->shader_global_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_global_data);
 
@@ -488,13 +493,9 @@ namespace KittlesPT
 
 		printf("loaded %zu materials\nstarting geometry\n", m_renderer_rsrc->scene_materials.size());
 
-		std::vector<BVHNode> bvhnodes;
-		std::vector<int32_t> tri_ids;
-		std::vector<Triangle> tris;
-		BLASBuilder blas_builder(&tris, &tri_ids, &bvhnodes);
 		for (const MeshSceneEntity& mesh : parsed_scene.mesh_entities)
 		{
-			size_t mesh_prim_start_id = tris.size();
+			size_t mesh_prim_start_id = m_renderer_rsrc->scene_triangles.size();
 			for (const TriangleSceneEntity& tri : mesh.shape_entities)
 			{
 				const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
@@ -502,12 +503,12 @@ namespace KittlesPT
 
 				if (mat.isEmissive())
 				{
-					int32_t prim_id = static_cast<int32_t>(tris.size());
+					int32_t prim_id = static_cast<int32_t>(m_renderer_rsrc->scene_triangles.size());
 					m_renderer_rsrc->scene_lights.push_back(Light(tri.getArea(), prim_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits));
 					light_id = static_cast<int32_t>(m_renderer_rsrc->scene_lights.size() - 1);
 				}
 
-				tris.push_back(Triangle(
+				m_renderer_rsrc->scene_triangles.push_back(Triangle(
 					Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
 					Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
 					Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
@@ -519,17 +520,14 @@ namespace KittlesPT
 				Mat4(glm::inverse(mesh.model_matrix)));
 			tri_mesh.blas_id = m_renderer_rsrc->blas_buffer.size();//TODO:move to constructor
 
-			m_renderer_rsrc->blas_buffer.push_back(blas_builder.build(tri_mesh, m_renderer_rsrc->scene_meshes.size()));
+			m_renderer_rsrc->blas_buffer.push_back(m_renderer_rsrc->blas_builder.build(tri_mesh, m_renderer_rsrc->scene_meshes.size()));
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
-		m_renderer_rsrc->scene_triangles = tris;
-		m_renderer_rsrc->bvhnodes_buffer = bvhnodes;
-		m_renderer_rsrc->triangle_index_buffer = tri_ids;
 
-		std::vector<TLASNode> tlasnodes;
-		TLASBuilder tlas_builder(&m_renderer_rsrc->blas_buffer);
-		m_renderer_rsrc->shader_global_data.top_level_acceleration_structure = tlas_builder.build(&tlasnodes);
-		m_renderer_rsrc->tlasnodes_buffer = tlasnodes;
+		//thrust::universal_vector<TLASNode> tlasnodes;
+		m_renderer_rsrc->shader_global_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
+
+		//m_renderer_rsrc->tlasnodes_buffer = tlasnodes;
 
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
 			m_renderer_rsrc->scene_triangles.size(), m_renderer_rsrc->scene_lights.size());

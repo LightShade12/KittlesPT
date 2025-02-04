@@ -195,9 +195,9 @@ namespace KittlesPT
 		__host__ void setTransform(const Mat4& model) {
 			inv_model_matrix = model.inverse();
 
-			float3 bmin = bounds.pmin, bmax = bounds.pmax;
+			float3 bmin = original_bounds.pmin, bmax = original_bounds.pmax;
 			bounds = Bounds3f();
-			for (int i = 0; i < 8; i++)
+			for (int32_t i = 0; i < 8; i++)
 			{
 				bounds.grow(make_float3(model * make_float4(i & 1 ? bmax.x : bmin.x,
 					i & 2 ? bmax.y : bmin.y, i & 4 ? bmax.z : bmin.z, 1)));
@@ -205,6 +205,7 @@ namespace KittlesPT
 		}
 	public:
 		Bounds3f bounds;
+		Bounds3f original_bounds;
 		int64_t bvhnode_root_id = -1;
 		int32_t mesh_id = -1;
 		Mat4 inv_model_matrix;
