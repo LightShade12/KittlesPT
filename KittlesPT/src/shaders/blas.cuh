@@ -187,6 +187,17 @@ namespace KittlesPT
 			return closest;
 		};
 
+		__host__ void setTransform(const Mat4& model) {
+			inv_model_matrix = model.inverse();
+
+			float3 bmin = bounds.pmin, bmax = bounds.pmax;
+			bounds = Bounds3f();
+			for (int i = 0; i < 8; i++)
+			{
+				bounds.grow(make_float3(model * make_float4(i & 1 ? bmax.x : bmin.x,
+					i & 2 ? bmax.y : bmin.y, i & 4 ? bmax.z : bmin.z, 1)));
+			}
+		}
 	public:
 		Bounds3f bounds;
 		int64_t bvhnode_root_id = -1;
@@ -226,7 +237,8 @@ namespace KittlesPT
 	};
 
 	__constant__ constexpr uint8_t TLAS_TRAVERSAL_MAX_STACK_DEPTH = 16;//can handle max 65535 blases
-	class TLAS {
+	class TLAS
+	{
 	public:
 		TLAS() = default;
 
@@ -241,7 +253,7 @@ namespace KittlesPT
 				return Intersection();
 			}
 			const TLASNode* tlas_nodes_buffer = nullptr;//put actual buffer here
-			const BLAS* blas_buffer = nullptr;
+			const BLAS* blas_buffer = shader_data.blas_buffer.data;
 
 			int32_t node_id_stack[TLAS_TRAVERSAL_MAX_STACK_DEPTH]{};
 			uint16_t stack_ptr = 0u;

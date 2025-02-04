@@ -32,6 +32,17 @@ namespace KittlesPT
 			mesh_blas.mesh_id = mesh_id;
 			return mesh_blas;
 		}
+
+		__host__ BLAS refit(const TriangleMesh& mesh, int32_t mesh_id)
+		{
+			mesh_tris_count = mesh.prim_count;
+			mesh_tris_offset = mesh.prim_offset;
+			BLAS mesh_blas = refitBLAS();
+			mesh_blas.inv_model_matrix = mesh.inv_model_matrix;
+			mesh_blas.mesh_id = mesh_id;
+			return mesh_blas;
+		}
+
 	private:
 
 		__host__ void updateNodeBounds(uint32_t node_idx)
@@ -215,7 +226,6 @@ namespace KittlesPT
 
 		__host__ BLAS buildBLAS()
 		{
-			//std::vector<BVHTriangleCache>tris_cache;
 			for (int32_t i = 0; i < m_tris_buffer.size(); i++) {
 				Triangle& tri = m_tris_buffer[i];
 				float3 centroid = (tri.vertex0.position + tri.vertex1.position + tri.vertex2.position) * 0.3333f;
@@ -224,7 +234,7 @@ namespace KittlesPT
 
 			m_bvhnodes_buffer->resize(2 * m_tris_buffer.size() - 1);
 			m_tris_index_buffer->resize(m_tris_buffer.size());
-			std::iota(m_tris_index_buffer->begin(), m_tris_index_buffer->end(), 0);
+			std::iota(m_tris_index_buffer->begin(), m_tris_index_buffer->end(), mesh_tris_offset);
 
 			BLAS blas;
 			blas.bvhnode_root_id = 0;
@@ -232,10 +242,35 @@ namespace KittlesPT
 			root.node_tris_idx_count = m_tris_buffer.size();
 			root.left_child_node_id_or_tris_index_start_id = 0;
 			updateNodeBounds(blas.bvhnode_root_id);
+			blas.bounds = root.bounds;
 			uint32_t node_index_ptr = 1;
 			subdivide(blas.bvhnode_root_id, &node_index_ptr);
 			m_bvhnodes_buffer->shrink_to_fit();
 			return blas;
+		}
+
+		__host__ BLAS refitBLAS()
+		{
+			int32_t nodesUsed = m_bvhnodes_buffer->size();
+
+			for (int i = nodesUsed - 1; i >= 0; i--)
+			{
+				//if (i != 1)
+				{
+					BVHNode* node = &(*m_bvhnodes_buffer)[i];
+					if (node->isLeaf())
+					{
+						// leaf node: adjust bounds to contained triangles
+						updateNodeBounds(i);
+						continue;
+					}
+					// interior node: adjust bounds to child node bounds
+					BVHNode& leftChild = (*m_bvhnodes_buffer)[node->left_child_node_id_or_tris_index_start_id];
+					BVHNode& rightChild = (*m_bvhnodes_buffer)[node->left_child_node_id_or_tris_index_start_id + 1];
+					node->bounds.pmin = fminf(leftChild.bounds.pmin, rightChild.bounds.pmin);
+					node->bounds.pmax = fmaxf(leftChild.bounds.pmax, rightChild.bounds.pmax);
+				}
+			}
 		}
 
 		int32_t mesh_tris_offset = -1;

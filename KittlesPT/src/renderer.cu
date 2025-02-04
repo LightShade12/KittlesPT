@@ -347,7 +347,11 @@ namespace KittlesPT
 			return false;
 		}
 
-		m_renderer_rsrc->scene_meshes[idx].inv_model_matrix = Mat4(glm::inverse(model));
+		TriangleMesh mesh = m_renderer_rsrc->scene_meshes[idx];
+		mesh.inv_model_matrix = Mat4(glm::inverse(model));
+		m_renderer_rsrc->scene_meshes[idx] = mesh;
+
+		m_renderer_rsrc->blas_buffer[mesh.blas_id].setTransform(Mat4(model));
 
 		resetAccumulation();
 
@@ -511,6 +515,7 @@ namespace KittlesPT
 			std::vector<BVHNode> bvhnodes;
 			std::vector<int32_t> tri_ids;
 			BLASBuilder blas_builder(m_renderer_rsrc->scene_triangles, &tri_ids, &bvhnodes);
+			tri_mesh.blas_id = m_renderer_rsrc->blas_buffer.size();
 			m_renderer_rsrc->blas_buffer.push_back(blas_builder.build(tri_mesh, m_renderer_rsrc->scene_meshes.size()));
 			m_renderer_rsrc->bvhnodes_buffer = bvhnodes;
 			m_renderer_rsrc->triangle_index_buffer = tri_ids;
