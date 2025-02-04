@@ -60,7 +60,7 @@ namespace KittlesPT
 			return(idx == 0) ? v.x : (idx == 1) ? v.y : v.z;
 		}
 
-		__host__ float EvaluateSAH(const std::vector<BVHTriangleCache>& cache, BVHNode& node, PlaneAxis axis, float pos)
+		__host__ float evaluateSAH(const BVHNode& node, PlaneAxis axis, float pos)
 		{
 			// determine triangle counts and bounds for this split candidate
 			Bounds3f leftBox{}, rightBox{};
@@ -69,7 +69,7 @@ namespace KittlesPT
 			{
 				int32_t tri_id = (*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i];
 				const Triangle& triangle = m_tris_buffer[tri_id];
-				const BVHTriangleCache& tri_cache = cache[tri_id];
+				const BVHTriangleCache& tri_cache = m_cache[tri_id];
 
 				if (comp(tri_cache.centroid, axis) < pos)
 				{
@@ -90,29 +90,48 @@ namespace KittlesPT
 			return (cost > 0.0f) ? cost : INFINITY;
 		}
 
-		__host__ void subdivide(const std::vector<BVHTriangleCache>& cache, uint32_t node_id, uint32_t* node_index_ptr)
+		__host__ float findBestSplitPlane(const BVHNode& node, int32_t* axis, float* split_pos)
 		{
-			BVHNode& parent_node = (*m_bvhnodes_buffer)[node_id];
-
-			int32_t best_axis = -1;
-			float best_pos = 0, best_cost = INFINITY;
-			for (int32_t axis = 0; axis < 3; axis++) {
-				for (uint32_t i = 0; i < parent_node.node_tris_idx_count; i++)
+			//TODO: try out longest axis SAH
+			constexpr int32_t bins = 8;
+			float best_cost = INFINITY;
+			for (int32_t candidate_axis = 0; candidate_axis < 3; candidate_axis++)
+			{
+				float boundsMin = INFINITY, boundsMax = -INFINITY;
+				for (int i = 0; i < node.node_tris_idx_count; i++)
 				{
-					int32_t tri_id = (*m_tris_index_buffer)[parent_node.left_child_node_id_or_tris_index_start_id + i];
-					Triangle& triangle = m_tris_buffer[tri_id];
-					float candidate_pos = comp(cache[tri_id].centroid, axis);
-					float cost = EvaluateSAH(cache, parent_node, (PlaneAxis)axis, candidate_pos);
+					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					boundsMin = min(boundsMin, comp(cache.centroid, candidate_axis));
+					boundsMax = max(boundsMax, comp(cache.centroid, candidate_axis));
+				}
+				//float boundsMin = comp(node.bounds.pmin, candidate_axis);
+				//float boundsMax = comp(node.bounds.pmax, candidate_axis);
+				if (boundsMin == boundsMax) {
+					continue;
+				}
+				float scale = (boundsMax - boundsMin) / bins;
+				for (uint32_t i = 1; i < bins; i++)
+				{
+					float candidatePos = boundsMin + i * scale;
+					float cost = evaluateSAH(node, (PlaneAxis)candidate_axis, candidatePos);
 					if (cost < best_cost) {
-						best_pos = candidate_pos, best_axis = axis, best_cost = cost;
+						(*split_pos) = candidatePos, (*axis) = candidate_axis, best_cost = cost;
 					}
 				}
 			}
-			int32_t axis = best_axis;
-			float split_pos = best_pos;
+			return best_cost;
+		}
 
-			float parent_cost = parent_node.node_tris_idx_count * parent_node.surfaceArea();
-			if (parent_cost <= best_cost) {
+		__host__ void subdivide(uint32_t node_id, uint32_t* node_index_ptr)
+		{
+			BVHNode& parent_node = (*m_bvhnodes_buffer)[node_id];
+
+			int32_t axis = -1;
+			float split_pos = 0;
+			float split_cost = findBestSplitPlane(parent_node, &axis, &split_pos);
+
+			float nosplit_cost = parent_node.node_tris_idx_count * parent_node.surfaceArea();
+			if (nosplit_cost <= split_cost) {
 				return;//termination condition
 			}
 
@@ -121,7 +140,7 @@ namespace KittlesPT
 			int32_t j = i + parent_node.node_tris_idx_count - 1;
 			while (i <= j)
 			{
-				if (comp(cache[(*m_tris_index_buffer)[i]].centroid, axis) < split_pos) {
+				if (comp(m_cache[(*m_tris_index_buffer)[i]].centroid, axis) < split_pos) {
 					i++;
 				}
 				else {
@@ -149,17 +168,17 @@ namespace KittlesPT
 			updateNodeBounds(left_child_id);
 			updateNodeBounds(right_child_id);
 
-			subdivide(cache, left_child_id, node_index_ptr);
-			subdivide(cache, right_child_id, node_index_ptr);
+			subdivide(left_child_id, node_index_ptr);
+			subdivide(right_child_id, node_index_ptr);
 		}
 
 		__host__ BLAS buildBLAS()
 		{
-			std::vector<BVHTriangleCache>tris_cache;
+			//std::vector<BVHTriangleCache>tris_cache;
 			for (int32_t i = 0; i < m_tris_buffer.size(); i++) {
 				Triangle& tri = m_tris_buffer[i];
 				float3 centroid = (tri.vertex0.position + tri.vertex1.position + tri.vertex2.position) * 0.3333f;
-				tris_cache.push_back(BVHTriangleCache(centroid));
+				m_cache.push_back(BVHTriangleCache(centroid));
 			}
 
 			m_bvhnodes_buffer->resize(2 * m_tris_buffer.size() - 1);
@@ -173,7 +192,7 @@ namespace KittlesPT
 			root.left_child_node_id_or_tris_index_start_id = 0;
 			updateNodeBounds(blas.bvhnode_root_id);
 			uint32_t node_index_ptr = 1;
-			subdivide(tris_cache, blas.bvhnode_root_id, &node_index_ptr);
+			subdivide(blas.bvhnode_root_id, &node_index_ptr);
 			m_bvhnodes_buffer->shrink_to_fit();
 			return blas;
 		}
@@ -181,6 +200,7 @@ namespace KittlesPT
 		int32_t mesh_tris_offset = -1;
 		uint32_t mesh_tris_count = 0;
 
+		std::vector<BVHTriangleCache>m_cache;
 		thrust::host_vector<Triangle> m_tris_buffer;
 		std::vector<int32_t>* m_tris_index_buffer = nullptr;
 		std::vector<BVHNode>* m_bvhnodes_buffer = nullptr;
