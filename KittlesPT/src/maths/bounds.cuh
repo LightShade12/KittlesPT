@@ -28,6 +28,11 @@ namespace KittlesPT {
 		{
 			pmin = fminf(pmin, p), pmax = fmaxf(pmax, p);
 		}
+		__host__ void grow(Bounds3f b)
+		{
+			grow(b.pmax);
+			grow(b.pmin);
+		}
 
 		/*
 		__host__ __device__ void adaptBounds(const Mat4& model_mat, const Bounds3f& original)

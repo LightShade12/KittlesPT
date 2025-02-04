@@ -90,11 +90,16 @@ namespace KittlesPT
 			return (cost > 0.0f) ? cost : INFINITY;
 		}
 
+		struct Bin {
+			Bounds3f bounds;
+			uint32_t tris_count = 0;
+		};
+
 		__host__ float findBestSplitPlane(const BVHNode& node, int32_t* axis, float* split_pos)
 		{
-			//TODO: try out longest axis SAH
-			constexpr int32_t bins = 8;
+			constexpr uint8_t BINS = 8;
 			float best_cost = INFINITY;
+			//TODO: try out longest axis SAH
 			for (int32_t candidate_axis = 0; candidate_axis < 3; candidate_axis++)
 			{
 				float boundsMin = INFINITY, boundsMax = -INFINITY;
@@ -106,16 +111,52 @@ namespace KittlesPT
 				}
 				//float boundsMin = comp(node.bounds.pmin, candidate_axis);
 				//float boundsMax = comp(node.bounds.pmax, candidate_axis);
+
 				if (boundsMin == boundsMax) {
 					continue;
 				}
-				float scale = (boundsMax - boundsMin) / bins;
-				for (uint32_t i = 1; i < bins; i++)
+
+				//precompute bins (processing prims only once instead)--------------
+				Bin bin[BINS];
+				float scale = BINS / (boundsMax - boundsMin);
+
+				for (uint32_t i = 0; i < node.node_tris_idx_count; i++)
 				{
-					float candidatePos = boundsMin + i * scale;
-					float cost = evaluateSAH(node, (PlaneAxis)candidate_axis, candidatePos);
-					if (cost < best_cost) {
-						(*split_pos) = candidatePos, (*axis) = candidate_axis, best_cost = cost;
+					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					const Triangle& tri = m_tris_buffer[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					int binIdx = min(BINS - 1,
+						(int32_t)((comp(cache.centroid, candidate_axis) - boundsMin) * scale));
+					bin[binIdx].tris_count++;
+					bin[binIdx].bounds.grow(tri.vertex0.position);
+					bin[binIdx].bounds.grow(tri.vertex1.position);
+					bin[binIdx].bounds.grow(tri.vertex2.position);
+				}
+
+				//initialise per plane data--------------
+				constexpr int32_t PLANES_COUNT = BINS - 1;
+				float leftArea[PLANES_COUNT], rightArea[PLANES_COUNT];
+				int32_t  leftCount[PLANES_COUNT], rightCount[PLANES_COUNT];
+				Bounds3f leftBox, rightBox;
+				int32_t leftSum = 0, rightSum = 0;
+				for (int32_t i = 0; i < PLANES_COUNT; i++)
+				{
+					leftSum += bin[i].tris_count;
+					leftCount[i] = leftSum;
+					leftBox.grow(bin[i].bounds);
+					leftArea[i] = leftBox.surfaceArea();
+					rightSum += bin[PLANES_COUNT - i].tris_count;
+					rightCount[PLANES_COUNT - 1 - i] = rightSum;
+					rightBox.grow(bin[PLANES_COUNT - i].bounds);
+					rightArea[PLANES_COUNT - 1 - i] = rightBox.surfaceArea();
+				}
+
+				//eval sah for per plane
+				scale = (boundsMax - boundsMin) / BINS;
+				for (int32_t i = 0; i < PLANES_COUNT; i++)
+				{
+					float planeCost = leftCount[i] * leftArea[i] + rightCount[i] * rightArea[i];
+					if (planeCost < best_cost) {
+						(*axis) = candidate_axis, (*split_pos) = boundsMin + scale * (i + 1), best_cost = planeCost;
 					}
 				}
 			}
