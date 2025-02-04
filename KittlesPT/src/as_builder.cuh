@@ -17,7 +17,7 @@ namespace KittlesPT
 			float3 centroid;
 		};
 
-		__host__ BLASBuilder(const thrust::universal_vector<Triangle>& tris, std::vector<int32_t>* trisid, std::vector<BVHNode>* bvhnodes) :
+		__host__ BLASBuilder(const std::vector<Triangle>* tris, std::vector<int32_t>* trisid, std::vector<BVHNode>* bvhnodes) :
 			m_bvhnodes_buffer(bvhnodes), m_tris_index_buffer(trisid)
 		{
 			m_tris_buffer = tris;
@@ -33,14 +33,14 @@ namespace KittlesPT
 			return mesh_blas;
 		}
 
-		__host__ BLAS refit(const TriangleMesh& mesh, int32_t mesh_id)
+		__host__ void refit(const TriangleMesh& mesh, int32_t mesh_id)
 		{
 			mesh_tris_count = mesh.prim_count;
 			mesh_tris_offset = mesh.prim_offset;
-			BLAS mesh_blas = refitBLAS();
-			mesh_blas.inv_model_matrix = mesh.inv_model_matrix;
-			mesh_blas.mesh_id = mesh_id;
-			return mesh_blas;
+			refitBLAS();
+			//mesh_blas.inv_model_matrix = mesh.inv_model_matrix;
+			//mesh_blas.mesh_id = mesh_id;
+			//return mesh_blas;
 		}
 
 	private:
@@ -53,7 +53,7 @@ namespace KittlesPT
 			for (uint32_t first = node.left_child_node_id_or_tris_index_start_id, i = 0; i < node.node_tris_idx_count; i++)
 			{
 				uint32_t tri_id = (*m_tris_index_buffer)[first + i];
-				Triangle& leaf_tri = m_tris_buffer[tri_id];
+				const Triangle& leaf_tri = (*m_tris_buffer)[tri_id];
 				node.bounds.grow(leaf_tri.vertex0.position);
 				node.bounds.grow(leaf_tri.vertex1.position);
 				node.bounds.grow(leaf_tri.vertex2.position);
@@ -79,7 +79,7 @@ namespace KittlesPT
 			for (uint i = 0; i < node.node_tris_idx_count; i++)
 			{
 				int32_t tri_id = (*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i];
-				const Triangle& triangle = m_tris_buffer[tri_id];
+				const Triangle& triangle = (*m_tris_buffer)[tri_id];
 				const BVHTriangleCache& tri_cache = m_cache[tri_id];
 
 				if (comp(tri_cache.centroid, axis) < pos)
@@ -134,7 +134,7 @@ namespace KittlesPT
 				for (uint32_t i = 0; i < node.node_tris_idx_count; i++)
 				{
 					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
-					const Triangle& tri = m_tris_buffer[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					const Triangle& tri = (*m_tris_buffer)[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
 					int binIdx = min(BINS - 1,
 						(int32_t)((comp(cache.centroid, candidate_axis) - boundsMin) * scale));
 					bin[binIdx].tris_count++;
@@ -226,20 +226,20 @@ namespace KittlesPT
 
 		__host__ BLAS buildBLAS()
 		{
-			for (int32_t i = 0; i < m_tris_buffer.size(); i++) {
-				Triangle& tri = m_tris_buffer[i];
+			for (int32_t i = 0; i < m_tris_buffer->size(); i++) {
+				const Triangle& tri = (*m_tris_buffer)[i];
 				float3 centroid = (tri.vertex0.position + tri.vertex1.position + tri.vertex2.position) * 0.3333f;
 				m_cache.push_back(BVHTriangleCache(centroid));
 			}
 
-			m_bvhnodes_buffer->resize(2 * m_tris_buffer.size() - 1);
-			m_tris_index_buffer->resize(m_tris_buffer.size());
+			m_bvhnodes_buffer->resize(2 * m_tris_buffer->size() - 1);
+			m_tris_index_buffer->resize(m_tris_buffer->size());
 			std::iota(m_tris_index_buffer->begin(), m_tris_index_buffer->end(), mesh_tris_offset);
 
 			BLAS blas;
 			blas.bvhnode_root_id = 0;
 			BVHNode& root = (*m_bvhnodes_buffer)[blas.bvhnode_root_id];
-			root.node_tris_idx_count = m_tris_buffer.size();
+			root.node_tris_idx_count = m_tris_buffer->size();
 			root.left_child_node_id_or_tris_index_start_id = 0;
 			updateNodeBounds(blas.bvhnode_root_id);
 			blas.bounds = root.bounds;
@@ -249,7 +249,7 @@ namespace KittlesPT
 			return blas;
 		}
 
-		__host__ BLAS refitBLAS()
+		__host__ void refitBLAS()
 		{
 			int32_t nodesUsed = m_bvhnodes_buffer->size();
 
@@ -277,7 +277,7 @@ namespace KittlesPT
 		uint32_t mesh_tris_count = 0;
 
 		std::vector<BVHTriangleCache>m_cache;
-		thrust::host_vector<Triangle> m_tris_buffer;
+		const std::vector<Triangle>* m_tris_buffer = nullptr;
 		std::vector<int32_t>* m_tris_index_buffer = nullptr;
 		std::vector<BVHNode>* m_bvhnodes_buffer = nullptr;
 	};
@@ -287,19 +287,82 @@ namespace KittlesPT
 	public:
 
 		TLASBuilder(const thrust::universal_vector<BLAS>* blas_buffer) :
-			blas_buffer(blas_buffer)
+			m_blas_buffer(blas_buffer)
 		{}
-		const thrust::universal_vector<BLAS>* blas_buffer;
 
-		__host__ int32_t findBestMatch(int32_t* TLASwork_idx_list, int32_t work_idx_list_size, int32_t TLAS_A_idx, const std::vector<TLASNode>& tlasnodes)
+		__host__ TLAS build(std::vector<TLASNode>* tlasnodes_buffer)
 		{
-			float smallest = FLT_MAX;
-			int bestB = -1;
-			for (int B = 0; B < work_idx_list_size; B++) {
-				if (B != TLAS_A_idx)
+			m_tlasnodes_buffer = tlasnodes_buffer;
+			return buildTLAS();
+		}
+
+	private:
+
+		__host__ TLAS buildTLAS()
+		{
+			const uint32_t BLAS_COUNT = m_blas_buffer->size();
+
+			if (BLAS_COUNT <= 0) {
+				return TLAS();
+			}
+
+			m_tlasnodes_buffer->resize(2 * BLAS_COUNT - 1);
+			int32_t node_index_ptr = 1;
+			int32_t* tlas_node_ids = new int32_t[BLAS_COUNT];
+			int32_t node_indices_left = BLAS_COUNT;//work list size
+
+			// assign a TLASleaf parent_node to each BLAS; making work list
+			for (uint32_t i = 0; i < BLAS_COUNT; i++)
+			{
+				tlas_node_ids[i] = node_index_ptr;
+				(*m_tlasnodes_buffer)[node_index_ptr].bounds = (*m_blas_buffer)[i].bounds;
+				(*m_tlasnodes_buffer)[node_index_ptr].blas_id = i;
+				(*m_tlasnodes_buffer)[node_index_ptr++].left_right_id = 0u; // makes it a leaf
+			}
+
+			// use agglomerative clustering to build the TLAS
+			int A = 0, B = findBestMatch(tlas_node_ids, node_indices_left, A);
+			while (node_indices_left > 1)
+			{
+				int C = findBestMatch(tlas_node_ids, node_indices_left, B);
+				if (A == C)
 				{
-					float3 bmax = fmaxf(tlasnodes[TLASwork_idx_list[TLAS_A_idx]].bounds.pmax, tlasnodes[TLASwork_idx_list[B]].bounds.pmax);
-					float3 bmin = fminf(tlasnodes[TLASwork_idx_list[TLAS_A_idx]].bounds.pmin, tlasnodes[TLASwork_idx_list[B]].bounds.pmin);
+					//left | right
+					int32_t node_id_A = tlas_node_ids[A], node_id_B = tlas_node_ids[B];
+					const TLASNode& nodeA = (*m_tlasnodes_buffer)[node_id_A];
+					const TLASNode& nodeB = (*m_tlasnodes_buffer)[node_id_B];
+					TLASNode& new_node = (*m_tlasnodes_buffer)[node_index_ptr];
+					new_node.left_right_id = node_id_A + (node_id_B << 16);
+					new_node.bounds.pmin = fminf(nodeA.bounds.pmin, nodeB.bounds.pmin);
+					new_node.bounds.pmax = fmaxf(nodeA.bounds.pmax, nodeB.bounds.pmax);
+					tlas_node_ids[A] = node_index_ptr++;
+					tlas_node_ids[B] = tlas_node_ids[node_indices_left - 1];
+					B = findBestMatch(tlas_node_ids, --node_indices_left, A);
+				}
+				else {
+					A = B, B = C;
+				}
+			}
+
+			TLAS tlas;
+			tlas.tlasnode_root_id = 0;
+			(*m_tlasnodes_buffer)[tlas.tlasnode_root_id] = (*m_tlasnodes_buffer)[tlas_node_ids[A]];
+			tlas.bounds = (*m_tlasnodes_buffer)[tlas.tlasnode_root_id].bounds;
+			m_tlasnodes_buffer->shrink_to_fit();
+			delete[] tlas_node_ids;
+
+			return tlas;
+		}
+
+		__host__ int32_t findBestMatch(int32_t* nodes_indices, int32_t list_size, int32_t A)
+		{
+			float smallest = INFINITY;
+			int32_t bestB = -1;
+			for (int32_t B = 0; B < list_size; B++) {
+				if (B != A)//skip if same as arg
+				{
+					float3 bmax = fmaxf((*m_tlasnodes_buffer)[nodes_indices[A]].bounds.pmax, (*m_tlasnodes_buffer)[nodes_indices[B]].bounds.pmax);
+					float3 bmin = fminf((*m_tlasnodes_buffer)[nodes_indices[A]].bounds.pmin, (*m_tlasnodes_buffer)[nodes_indices[B]].bounds.pmin);
 					float3 e = bmax - bmin;
 					float surfaceArea = e.x * e.y + e.y * e.z + e.z * e.x;//half SA
 					if (surfaceArea < smallest) {
@@ -310,59 +373,7 @@ namespace KittlesPT
 			return bestB;
 		}
 
-		__host__ TLAS build(std::vector<TLASNode>* tlasnodes_buffer)
-		{
-			uint32_t BLAS_COUNT = blas_buffer->size();
-			if (BLAS_COUNT <= 0) {
-				return TLAS();
-			}
-
-			int32_t* tlas_node_ids = new int32_t[BLAS_COUNT];
-
-			int32_t node_indices = BLAS_COUNT;//work list size
-
-			// assign a TLASleaf parent_node to each BLAS; making work list
-			for (uint64_t i = 0; i < BLAS_COUNT; i++)
-			{
-				tlas_node_ids[i] = BLAS_COUNT;//i derived from m_BLASCount also works
-				TLASNode tlas_node;
-				tlas_node.bounds = (*blas_buffer)[i].bounds;
-				tlas_node.blas_id = i;
-				tlas_node.left_right_id = 0u; // makes it a leaf
-				tlasnodes_buffer->push_back(tlas_node);
-			}
-
-			// use agglomerative clustering to build the TLAS
-			int A = 0, B = findBestMatch(tlas_node_ids, node_indices, A, *tlasnodes_buffer);
-			while (node_indices > 1)
-			{
-				int C = findBestMatch(tlas_node_ids, node_indices, B, *tlasnodes_buffer);
-				if (A == C)
-				{
-					//left | right
-					int node_id_A = tlas_node_ids[A], node_id_B = tlas_node_ids[B];
-					const TLASNode* nodeA = &((*tlasnodes_buffer)[node_id_A]);
-					const TLASNode* nodeB = &((*tlasnodes_buffer)[node_id_B]);
-					TLASNode new_node;
-					new_node.left_right_id = node_id_A + (node_id_B << 16);
-					new_node.bounds.pmin = fminf(nodeA->bounds.pmin, nodeB->bounds.pmin);
-					new_node.bounds.pmax = fmaxf(nodeA->bounds.pmax, nodeB->bounds.pmax);
-					tlasnodes_buffer->push_back(new_node);
-					tlas_node_ids[A] = tlasnodes_buffer->size() - 1;
-					tlas_node_ids[B] = tlas_node_ids[node_indices - 1];
-					B = findBestMatch(tlas_node_ids, --node_indices, A, *tlasnodes_buffer);
-				}
-				else {
-					A = B, B = C;
-				}
-			}
-			//TODO:make and add root somewhere
-			//tlasnodes[0] = tlasnodes[tlas_node_ids[A]];
-			tlasnodes_buffer->push_back((*tlasnodes_buffer)[tlas_node_ids[A]]);
-
-			delete[] tlas_node_ids;
-
-			return TLAS();
-		}
+		const thrust::universal_vector<BLAS>* m_blas_buffer = nullptr;
+		std::vector<TLASNode>* m_tlasnodes_buffer = nullptr;
 	};
 }

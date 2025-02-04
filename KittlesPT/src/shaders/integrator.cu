@@ -20,6 +20,8 @@ namespace KittlesPT
 	{
 		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax)
 		{
+			//return shader_data.top_level_acceleration_structure.intersect(shader_data, ray, tmin, tmax);
+
 			return shader_data.blas_buffer.data[0].intersect(shader_data, ray, tmin, tmax);
 
 			Intersection closest;
@@ -48,6 +50,8 @@ namespace KittlesPT
 
 		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax)
 		{
+			//return shader_data.top_level_acceleration_structure.intersectP(shader_data, ray, tmin, tmax);
+
 			return shader_data.blas_buffer.data[0].intersectP(shader_data, ray, tmin, tmax);
 
 			Intersection intr;

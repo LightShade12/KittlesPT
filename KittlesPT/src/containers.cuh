@@ -5,12 +5,13 @@
 #include "shaders/material.cuh"
 #include "shaders/light.cuh"
 #include "shaders/texture.cuh"
-//#include "shaders/blas.cuh"
+#include "shaders/tlas.cuh"
 #include "pod_types.hpp"
 
 namespace KittlesPT
 {
 	class BVHNode;
+	class TLASNode;
 	class BLAS;
 
 	template <typename T> struct Buffer
@@ -41,6 +42,8 @@ namespace KittlesPT
 		Buffer<int32_t> triangle_index_buffer;
 		Buffer<BVHNode> bvh_nodes_buffer;
 		Buffer<BLAS> blas_buffer;
+		Buffer<TLASNode> tlas_nodes_buffer;
+		TLAS top_level_acceleration_structure;
 
 		Camera scene_camera;
 
