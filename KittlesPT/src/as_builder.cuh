@@ -226,15 +226,15 @@ namespace KittlesPT
 
 		__host__ BLAS buildBLAS()
 		{
-			for (int32_t i = 0; i < m_tris_buffer->size(); i++) {
+			for (int32_t i = mesh_tris_offset; i < mesh_tris_offset + mesh_tris_count; i++) {
 				const Triangle& tri = (*m_tris_buffer)[i];
 				float3 centroid = (tri.vertex0.position + tri.vertex1.position + tri.vertex2.position) * 0.3333f;
 				m_cache.push_back(BVHTriangleCache(centroid));
 			}
 
-			m_bvhnodes_buffer->resize(2 * m_tris_buffer->size() - 1);
-			m_tris_index_buffer->resize(m_tris_buffer->size());
-			std::iota(m_tris_index_buffer->begin(), m_tris_index_buffer->end(), mesh_tris_offset);
+			m_bvhnodes_buffer->resize(m_bvhnodes_buffer->size() + (2 * mesh_tris_count - 1));
+			m_tris_index_buffer->resize(m_tris_index_buffer->size() + mesh_tris_count);
+			std::iota(m_tris_index_buffer->end() - mesh_tris_count, m_tris_index_buffer->end(), mesh_tris_offset);
 
 			BLAS blas;
 			blas.bvhnode_root_id = 0;
@@ -302,55 +302,66 @@ namespace KittlesPT
 		{
 			const uint32_t BLAS_COUNT = m_blas_buffer->size();
 
-			if (BLAS_COUNT <= 0) {
+			if (BLAS_COUNT == 0) {
+				printf("EMPTY TLAS EMITTED\n");
 				return TLAS();
 			}
 
-			m_tlasnodes_buffer->resize(2 * BLAS_COUNT - 1);
-			int32_t node_index_ptr = 1;
-			int32_t* tlas_node_ids = new int32_t[BLAS_COUNT];
-			int32_t node_indices_left = BLAS_COUNT;//work list size
+			// Resize TLAS node buffer with a safe margin
+			m_tlasnodes_buffer->resize(2 * BLAS_COUNT);
 
-			// assign a TLASleaf parent_node to each BLAS; making work list
-			for (uint32_t i = 0; i < BLAS_COUNT; i++)
-			{
+			// Work list for agglomerative clustering
+			std::vector<int32_t> tlas_node_ids(BLAS_COUNT);
+			int32_t node_index_ptr = 1;
+			int32_t node_indices_left = BLAS_COUNT;
+
+			// Initialize leaf nodes
+			for (uint32_t i = 0; i < BLAS_COUNT; i++) {
 				tlas_node_ids[i] = node_index_ptr;
 				(*m_tlasnodes_buffer)[node_index_ptr].bounds = (*m_blas_buffer)[i].bounds;
 				(*m_tlasnodes_buffer)[node_index_ptr].blas_id = i;
-				(*m_tlasnodes_buffer)[node_index_ptr++].left_right_id = 0u; // makes it a leaf
+				(*m_tlasnodes_buffer)[node_index_ptr++].left_right_id = 0u; // Leaf marker
 			}
 
-			// use agglomerative clustering to build the TLAS
-			int A = 0, B = findBestMatch(tlas_node_ids, node_indices_left, A);
-			while (node_indices_left > 1)
-			{
-				int C = findBestMatch(tlas_node_ids, node_indices_left, B);
-				if (A == C)
-				{
-					//left | right
+			// Agglomerative clustering to build TLAS
+			int A = 0, B = findBestMatch(tlas_node_ids.data(), node_indices_left, A);
+			while (node_indices_left > 1) {
+				int C = findBestMatch(tlas_node_ids.data(), node_indices_left, B);
+
+				if (A == C) {
 					int32_t node_id_A = tlas_node_ids[A], node_id_B = tlas_node_ids[B];
+
+					// Ensure valid indices
+					if (node_id_A <= 0 || node_id_B <= 0) {
+						printf("ERROR: Invalid node ID (A: %d, B: %d)\n", node_id_A, node_id_B);
+						return TLAS();
+					}
+
 					const TLASNode& nodeA = (*m_tlasnodes_buffer)[node_id_A];
 					const TLASNode& nodeB = (*m_tlasnodes_buffer)[node_id_B];
+
 					TLASNode& new_node = (*m_tlasnodes_buffer)[node_index_ptr];
 					new_node.left_right_id = node_id_A + (node_id_B << 16);
 					new_node.bounds.pmin = fminf(nodeA.bounds.pmin, nodeB.bounds.pmin);
 					new_node.bounds.pmax = fmaxf(nodeA.bounds.pmax, nodeB.bounds.pmax);
+
 					tlas_node_ids[A] = node_index_ptr++;
 					tlas_node_ids[B] = tlas_node_ids[node_indices_left - 1];
-					B = findBestMatch(tlas_node_ids, --node_indices_left, A);
+					B = findBestMatch(tlas_node_ids.data(), --node_indices_left, A);
 				}
 				else {
 					A = B, B = C;
 				}
 			}
 
+			// Assign the root node
 			TLAS tlas;
 			tlas.tlasnode_root_id = 0;
 			(*m_tlasnodes_buffer)[tlas.tlasnode_root_id] = (*m_tlasnodes_buffer)[tlas_node_ids[A]];
 			tlas.bounds = (*m_tlasnodes_buffer)[tlas.tlasnode_root_id].bounds;
-			m_tlasnodes_buffer->shrink_to_fit();
-			delete[] tlas_node_ids;
 
+			// Shrink buffer to actual used size
+			m_tlasnodes_buffer->resize(node_index_ptr);
 			return tlas;
 		}
 

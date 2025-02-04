@@ -21,6 +21,7 @@ namespace KittlesPT
 
 		float child1_hitdist = INFINITY;
 		float child2_hitdist = INFINITY;
+		bool hit = false;
 
 		//traversal
 		while (stack_ptr > 0) {
@@ -45,7 +46,10 @@ namespace KittlesPT
 			}
 			else//if leaf
 			{
-				return blas_buffer[stack_top_node->blas_id].intersectP(shader_data, ray, tmin, tmax);
+				hit |= blas_buffer[stack_top_node->blas_id].intersectP(shader_data, ray, tmin, tmax);
+			}
+			if (hit) {
+				return true;
 			}
 		}
 		return false;
