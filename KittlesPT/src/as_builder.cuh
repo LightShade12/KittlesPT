@@ -226,24 +226,27 @@ namespace KittlesPT
 
 		__host__ BLAS buildBLAS()
 		{
-			for (int32_t i = mesh_tris_offset; i < mesh_tris_offset + mesh_tris_count; i++) {
-				const Triangle& tri = (*m_tris_buffer)[i];
+			//cache mesh tri data
+			for (int32_t i = 0; i < mesh_tris_count; i++) {
+				int32_t  tri_id = mesh_tris_offset + i;
+				const Triangle& tri = (*m_tris_buffer)[tri_id];
 				float3 centroid = (tri.vertex0.position + tri.vertex1.position + tri.vertex2.position) * 0.3333f;
 				m_cache.push_back(BVHTriangleCache(centroid));
 			}
 
+			int32_t bvh_root_id = m_bvhnodes_buffer->size();
 			m_bvhnodes_buffer->resize(m_bvhnodes_buffer->size() + (2 * mesh_tris_count - 1));
 			m_tris_index_buffer->resize(m_tris_index_buffer->size() + mesh_tris_count);
 			std::iota(m_tris_index_buffer->end() - mesh_tris_count, m_tris_index_buffer->end(), mesh_tris_offset);
 
 			BLAS blas;
-			blas.bvhnode_root_id = 0;
+			blas.bvhnode_root_id = bvh_root_id;
 			BVHNode& root = (*m_bvhnodes_buffer)[blas.bvhnode_root_id];
-			root.node_tris_idx_count = m_tris_buffer->size();
-			root.left_child_node_id_or_tris_index_start_id = 0;
+			root.node_tris_idx_count = mesh_tris_count;
+			root.left_child_node_id_or_tris_index_start_id = mesh_tris_offset;
 			updateNodeBounds(blas.bvhnode_root_id);
 			blas.bounds = root.bounds;
-			uint32_t node_index_ptr = 1;
+			uint32_t node_index_ptr = bvh_root_id + 1;
 			subdivide(blas.bvhnode_root_id, &node_index_ptr);
 			m_bvhnodes_buffer->shrink_to_fit();
 			return blas;
