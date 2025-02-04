@@ -36,6 +36,11 @@ namespace KittlesPT
 
 	__constant__ constexpr uint8_t BLAS_TRAVERSAL_MAX_STACK_DEPTH = 16;
 
+	struct DebugData {
+		int32_t blas_hits = 0;
+		int32_t tlas_hits = 0;
+	};
+
 	//One BLAS = One BVH Tree
 	class BLAS
 	{
@@ -108,7 +113,7 @@ namespace KittlesPT
 			return false;
 		};
 
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
+		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg) const
 		{
 			if (bvhnode_root_id < 0) {
 				return Intersection();
@@ -135,7 +140,7 @@ namespace KittlesPT
 			while (stack_ptr > 0)
 			{
 				stack_top_node = &bvh_nodes_buffer[node_id_stack[--stack_ptr]];//pop node id stack
-
+				dbg.blas_hits++;
 				//if interior
 				if (!stack_top_node->isLeaf())
 				{

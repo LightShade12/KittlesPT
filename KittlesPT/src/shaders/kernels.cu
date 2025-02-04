@@ -129,6 +129,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 
 	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
 	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
+	jittered_ndc = ndc_coord;
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc);
 
@@ -150,7 +151,9 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 	//scale = ceilf(scale);
 	//if (!scale) frag_color += make_float4(1.0f) * length(make_float3(frag_color));
 
-	//shader_data.debug_texture.textureWriteUV(frag_color, shading_job.uv_coord);
+	float3 gas_heat_map = (make_float3(0, 1, 0) * visible_surface.blas_hits * 0.02f) + (make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
+
+	//shader_data.debug_texture.textureWriteUV(make_float4(gas_heat_map, 1), shading_job.uv_coord);
 
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }

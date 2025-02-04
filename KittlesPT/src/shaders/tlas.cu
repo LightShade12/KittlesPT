@@ -55,11 +55,20 @@ namespace KittlesPT
 		return false;
 	};
 
-	__device__ Intersection TLAS::intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
+	__device__ Intersection TLAS::intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg) const
 	{
 		if (tlasnode_root_id < 0) {
 			return Intersection();
 		}
+		float child1_hitdist = INFINITY;
+		float child2_hitdist = INFINITY;
+		if (!bounds.intersectP(ray, tmin, tmax, &child1_hitdist, &child2_hitdist))
+		{
+			return Intersection();
+		}
+		child1_hitdist = INFINITY;
+		child2_hitdist = INFINITY;
+
 		const TLASNode* tlas_nodes_buffer = shader_data.tlas_nodes_buffer.data;
 		const BLAS* blas_buffer = shader_data.blas_buffer.data;
 
@@ -69,14 +78,12 @@ namespace KittlesPT
 		const TLASNode* stack_top_node = &tlas_nodes_buffer[tlasnode_root_id];//load root; unneeded
 		node_id_stack[stack_ptr++] = tlasnode_root_id;
 
-		float child1_hitdist = INFINITY;
-		float child2_hitdist = INFINITY;
 		Intersection closest;
 
 		//traversal
 		while (stack_ptr > 0) {
 			stack_top_node = &tlas_nodes_buffer[node_id_stack[--stack_ptr]];
-
+			dbg.tlas_hits++;
 			//if interior
 			if (!stack_top_node->isleaf())
 			{
@@ -107,7 +114,10 @@ namespace KittlesPT
 			}
 			else//if leaf
 			{
-				closest = blas_buffer[stack_top_node->blas_id].intersect(shader_data, ray, tmin, tmax);
+				Intersection intr = blas_buffer[stack_top_node->blas_id].intersect(shader_data, ray, tmin, tmax, dbg);
+				if (intr.distance < closest.distance) {
+					closest = intr;
+				}
 			}
 		}
 		return closest;

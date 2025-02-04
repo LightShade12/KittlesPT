@@ -57,6 +57,9 @@ namespace KittlesPT
 		float3 wgnorm{};
 		float depth = INFINITY;
 
+		int blas_hits = 0;
+		int tlas_hits = 0;
+
 		__device__ float4 packGBuffer();
 
 		__device__ static GBuffer unpackGBuffer(float4 data);

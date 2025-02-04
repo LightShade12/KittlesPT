@@ -25,6 +25,7 @@ namespace KittlesPT
 	struct GlobalShaderData;
 	struct Intersection;
 	struct GBuffer;
+	struct DebugData;
 	struct SurfaceInteraction;
 
 	class Ray;
@@ -37,9 +38,9 @@ namespace KittlesPT
 	namespace Integrator
 	{
 		//will implicitly use GAS in GlobalShaderData
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax);
+		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg);
 
-		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax);
+		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg);
 
 		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target);
 

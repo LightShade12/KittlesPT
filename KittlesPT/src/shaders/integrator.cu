@@ -18,11 +18,11 @@ namespace KittlesPT
 {
 	namespace Integrator
 	{
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax)
+		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
 		{
-			return shader_data.top_level_acceleration_structure.intersect(shader_data, ray, tmin, tmax);
+			return shader_data.top_level_acceleration_structure.intersect(shader_data, ray, tmin, tmax, dbg);
 
-			return shader_data.blas_buffer.data[0].intersect(shader_data, ray, tmin, tmax);
+			return shader_data.blas_buffer.data[0].intersect(shader_data, ray, tmin, tmax, dbg);
 
 			Intersection closest;
 			Intersection intr;
@@ -48,7 +48,7 @@ namespace KittlesPT
 			return closest;
 		}
 
-		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax)
+		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
 		{
 			return shader_data.top_level_acceleration_structure.intersectP(shader_data, ray, tmin, tmax);
 
@@ -80,7 +80,8 @@ namespace KittlesPT
 			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
 			Ray shadow_ray = surface.spawnRayTo(target);
 			float tmax = distance(target, shadow_ray.getOrigin()) - SHADOWRAY_EPSILON;
-			return (!intersectShadow(shader_data, shadow_ray, 0.0f, tmax));
+			DebugData dummy;
+			return (!intersectShadow(shader_data, shadow_ray, 0.0f, tmax, dummy));
 		}
 
 		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
@@ -188,13 +189,14 @@ namespace KittlesPT
 			UniformLightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
 			Ray ray = ray_in;
+			DebugData dbg;
 
 			//iterate through path vertices
 			for (int32_t bounce_depth = 0; bounce_depth <= max_ray_depth; bounce_depth++)
 			{
 				sampler.setSeed(sampler.getSeed() + bounce_depth); bool first_surface = (bounce_depth == 0);
 
-				Intersection intr = intersect(shader_data, ray, 0.0f, INFINITY);
+				Intersection intr = intersect(shader_data, ray, 0.0f, INFINITY, dbg);
 
 				//Sample participating media here--
 
@@ -267,7 +269,8 @@ namespace KittlesPT
 					break;
 				}
 			}
-
+			visible_surface->blas_hits = dbg.blas_hits;
+			visible_surface->tlas_hits = dbg.tlas_hits;
 			return light;
 		}
 
