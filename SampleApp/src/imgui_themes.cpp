@@ -413,7 +413,7 @@ namespace ImGuiThemes {
 	ImFont* VictorSix()
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		ImFont* font = io.Fonts->AddFontFromFileTTF("resources/fonts/JetBrainsMono-Regular.ttf", 18);
+		ImFont* font = io.Fonts->AddFontFromFileTTF("resources/fonts/JetBrainsMono-Regular.ttf", 14);
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.Colors[ImGuiCol_Text] = ImVec4(0.00f, 1.00f, 0.50f, 1.00f);

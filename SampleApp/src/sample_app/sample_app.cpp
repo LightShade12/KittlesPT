@@ -22,11 +22,11 @@ namespace SampleApp
 		m_viewport.init(m_viewport_texture);
 		m_renderer.init();
 
-		//g_custom_font = ImGuiThemes::VictorSix();
+		g_custom_font = ImGuiThemes::VictorSix();
 		//ImGuiThemes::Dark();
-		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsDark();
 
-		loadSceneFile("skulls.glb");
+		loadSceneFile("mc_fort.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();

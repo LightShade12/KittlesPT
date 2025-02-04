@@ -129,7 +129,6 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 
 	float2 ndc_coord = 2.0f * shading_job.uv_coord - 1.0f;
 	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
-	jittered_ndc = ndc_coord;
 
 	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc);
 
