@@ -4,155 +4,40 @@
 #include "containers.cuh"
 #include "as_builder.cuh"
 #include "shaders/kernels.cuh"
+#include "helpers.cuh"
+#include "renderer_resource.cuh"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#include <thrust/universal_vector.h>
-#include <thrust/device_vector.h>
-
-#include <unordered_map>
 #include <vector>
 #include <string>
 #include <iostream>
 
 namespace KittlesPT
 {
-	float3 glm3_2f3(glm::vec3 v) {
-		return make_float3(v.x, v.y, v.z);
-	}
-
-	float2 glm2_2f2(glm::vec2 v) {
-		return make_float2(v.x, v.y);
-	}
 	//TODO:Add proper logging
 
-	class MipChain
-	{
-	public:
-
-		void init()
-		{
-			for (int mip_level = 0; mip_level < max_mip_count; mip_level++)
-			{
-				mip_textures.push_back(TextureBuffer());
-			}
-		}
-
-		void resize(int base_width, int base_height)
-		{
-			max_mip_level = getMaxValidMipLevels({ base_width, base_height });
-			max_mip_level = std::min(max_mip_level, max_mip_count - 1);
-
-			for (int miplevel = 0; miplevel <= max_mip_level; miplevel++)
-			{
-				int mip_width = base_width >> miplevel;
-				int	mip_height = base_height >> miplevel;
-
-				TextureBuffer& mip_texture = mip_textures[miplevel];
-
-				if (mip_texture.isInitialised()) {
-					mip_texture.resize(mip_width, mip_height);
-				}
-				else {
-					mip_texture.init(mip_width, mip_height);
-				}
-			}
-		}
-
-		void destroy()
-		{
-			for (TextureBuffer& tex : mip_textures)
-			{
-				tex.destroy();
-			}
-			mip_textures.clear();
-		}
-
-		//excludes mip0
-		static int32_t getMaxValidMipLevels(int2 t_base_resolution)
-		{
-			int32_t mipx = static_cast<int32_t>(std::log2(t_base_resolution.x)), mipy = static_cast<int32_t>(std::log2(t_base_resolution.y));
-			return std::min(mipx, mipy);
-		}
-
-	public:
-		const int max_mip_count = 7;
-		int max_mip_level = 0;
-		std::vector<TextureBuffer> mip_textures;
-	};
-
-	//TODO: add API for direct content management
-	struct RendererResource
-	{
-		thrust::universal_vector<TriangleMesh> scene_meshes;
-		thrust::universal_vector<Triangle> scene_triangles;
-		thrust::universal_vector<Light> scene_lights;
-		thrust::universal_vector<Material> scene_materials;
-		thrust::universal_vector<Texture> scene_textures;
-		thrust::universal_vector<BLAS> blas_buffer;
-		thrust::universal_vector<BVHNode> bvhnodes_buffer;
-		thrust::universal_vector<TLASNode> tlasnodes_buffer;
-		thrust::universal_vector<int32_t> triangle_index_buffer;
-		thrust::device_vector<float> histogram_buffer;
-
-		BLASBuilder blas_builder = BLASBuilder(&scene_triangles, &triangle_index_buffer, &bvhnodes_buffer);
-		TLASBuilder tlas_builder = TLASBuilder(&blas_buffer, &tlasnodes_buffer);
-
-		thrust::device_vector<unsigned char> pixel_buffer;
-		//TODO: store ShaderData in constant_memory
-		ShaderData shader_data;
-		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
-		MipChain bloom_mipchain;
-
-		void destroy()
-		{
-			cudaFree(shader_data.scene_average_luminance);
-			bloom_mipchain.destroy();
-
-			for (std::pair<const std::string, TextureBuffer>& tex : m_frame_textures)
-			{
-				tex.second.destroy();
-			}
-
-			scene_triangles.clear();
-			scene_lights.clear();
-			scene_materials.clear();
-			scene_textures.clear();
-			pixel_buffer.clear();
-			m_frame_textures.clear();
-			bvhnodes_buffer.clear();
-			triangle_index_buffer.clear();
-			histogram_buffer.clear();
-		}
-
-		~RendererResource()
-		{
-			destroy();
-		}
-	};
-
-	void Renderer::init()
+	void Renderer::initialize()
 	{
 		int cuda_driver_version, cuda_runtime_version;
 		cudaDriverGetVersion(&cuda_driver_version); cudaRuntimeGetVersion(&cuda_runtime_version);
 		std::printf("[RENDERER] CUDA driver version: %d.%d\n[RENDERER] CUDA toolkit runtime version: %d.%d\n",
 			cuda_driver_version / 1000, cuda_driver_version % 100, cuda_runtime_version / 1000, cuda_runtime_version % 100);
+
 		m_renderer_rsrc = new RendererResource();
+		m_renderer_rsrc->bloom_mipchain.init();
+
 		m_renderer_rsrc->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["debug_texture"] = TextureBuffer();
-		m_renderer_rsrc->bloom_mipchain.init();
-		m_renderer_rsrc->histogram_buffer = thrust::device_vector<float>((size_t)Constants::HISTOGRAM_SIZE, 0.0f);
-		submitScene();
 
-		//-------------------------
-
+		m_renderer_rsrc->histogram_buffer = thrust::device_vector<float>(Constants::HISTOGRAM_SIZE, 0.0f);
+		m_renderer_rsrc->shader_data.histogram_buffer = Buffer<float>(thrust::raw_pointer_cast(m_renderer_rsrc->histogram_buffer.data()), Constants::HISTOGRAM_SIZE);
 		cudaMallocManaged(&m_renderer_rsrc->shader_data.scene_average_luminance, sizeof(float));
-		m_renderer_rsrc->shader_data.histogram_buffer = Buffer<float>(
-			thrust::raw_pointer_cast(m_renderer_rsrc->histogram_buffer.data()), Constants::HISTOGRAM_SIZE);
-		m_renderer_rsrc->shader_data.scene_camera = Camera(make_float3(0));
+
+		m_renderer_rsrc->updateResource();
 	}
 
 	void Renderer::shutdown()
@@ -162,19 +47,20 @@ namespace KittlesPT
 		m_renderer_rsrc = nullptr;
 	}
 
-	void Renderer::resizeResolution(int width, int height)
+	void Renderer::resizeResolution(uint32_t width, uint32_t height)
 	{
-		if (m_width == width && m_height == height)
+		if (m_output_width == width && m_output_height == height)
 		{
 			return;
 		}
-		m_width = width; m_height = height;
-		m_renderer_rsrc->shader_data.frame_resolution = make_int2(m_width, m_height);
+
+		m_output_width = width; m_output_height = height;
+		m_renderer_rsrc->shader_data.frame_resolution = make_int2(m_output_width, m_output_height);
 
 		//recompute projection for new screen size
 		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.inv_projection_matrix.inverse().toGLM();
 		float fov_rad = 2.0f * atan(1.0f / old_proj[1][1]);
-		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_width, (float)m_height, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_output_width, (float)m_output_height, 0.1f, 100.0f);
 		m_renderer_rsrc->shader_data.scene_camera.inv_projection_matrix = Mat4(projection).inverse();
 		resetAccumulation();
 
@@ -182,95 +68,39 @@ namespace KittlesPT
 		{
 			if (tex.second.isInitialised())
 			{
-				tex.second.resize(m_width, m_height);
+				tex.second.resize(m_output_width, m_output_height);
 				continue;
 			}
 			std::printf("[RENDERER] Initializing renderer texture:%s\n", tex.first.c_str());
-			tex.second.init(m_width, m_height);
+			tex.second.init(m_output_width, m_output_height);
 		}
 
-		m_renderer_rsrc->bloom_mipchain.resize(m_width, m_height);
-	}
-
-	float computeEV100(float average_luminance)
-	{
-		// K is a light meter calibration constant
-		constexpr float K = 12.5f;
-		return log2((average_luminance * 100.0f) / K);
-	}
-
-	// Notes:
-	// EV below refers to EV at ISO 100
-
-	// Given an aperture, shutter speed, and exposure value compute the required ISO value
-	float ComputeISO(float aperture, float shutterSpeed, float ev)
-	{
-		return (Sqr(aperture) * 100.0f) / (shutterSpeed * pow(2.0f, ev));
-	}
-
-	// Given the camera settings compute the current exposure value
-	float ComputeEV(float aperture, float shutterSpeed, float iso)
-	{
-		return log2((Sqr(aperture) * 100.0f) / (shutterSpeed * iso));
-	}
-
-	static float g_ev_comp = 0.0f;
-	static Renderer::ExposureValues g_exposure_values;
-	static float g_white_point = 0.0f;
-	static float g_black_point = 0.0f;
-
-	void applyAperturePriority(float focalLength,
-		float targetEV,
-		float& aperture,
-		float& shutterSpeed,
-		float& iso)
-	{
-		// Start with the assumption that we want a shutter speed of 1/f
-		shutterSpeed = 1.0f / (focalLength * 1000.0f);
-
-		// Compute the resulting ISO if we left the shutter speed here
-		iso = clamp(ComputeISO(aperture, shutterSpeed, targetEV),
-			static_cast<float>(g_exposure_values.MIN_ISO), static_cast<float>(g_exposure_values.MAX_ISO));
-		// Figure out how far we were from the target exposure value
-		float evDiff = targetEV - ComputeEV(aperture, shutterSpeed, iso);
-
-		// Compute the final shutter speed
-		shutterSpeed = clamp(shutterSpeed * pow(2.0f, -evDiff), g_exposure_values.MIN_SHUTTER_SECS,
-			g_exposure_values.MAX_SHUTTER_SECS);
+		m_renderer_rsrc->bloom_mipchain.resize(m_output_width, m_output_height);
 	}
 
 	void Renderer::executeRendering(float delta_time_ms)
 	{
-		m_renderer_rsrc->shader_data.frame_delta = delta_time_ms;
+		m_renderer_rsrc->shader_data.frame_delta_ms = delta_time_ms;
 		m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
 
-		m_renderer_rsrc->shader_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
+		m_renderer_rsrc->updateTLAS();
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_data);
-
 		//generate bloom buffer
-		if (m_renderer_rsrc->shader_data.renderer_settings.generate_bloom)
-		{
+		if (m_renderer_rsrc->shader_data.renderer_settings.generate_bloom) {
 			executeBloomGeneration();
 			m_renderer_rsrc->shader_data.bloom_texture = m_renderer_rsrc->bloom_mipchain.mip_textures[0].enableCudaAccess();
 		}
-
 		//auto exposure pipeline
-		if (m_renderer_rsrc->shader_data.renderer_settings.enable_auto_exposure)
-		{
+		if (m_renderer_rsrc->shader_data.renderer_settings.enable_auto_exposure) {
 			launchHistogramComputeKernel(m_renderer_rsrc->shader_data);
 			launchHistogramAverageComputeKernel(m_renderer_rsrc->shader_data);
-
-			float avg_lum = *m_renderer_rsrc->shader_data.scene_average_luminance;
-			float ev_target = computeEV100(avg_lum) - g_ev_comp;
-			ev_target += 6.0f;//TODO:FIXME:Nasty fix for auto exposure undererestimation
-			applyAperturePriority(0.1f, ev_target,
-				g_exposure_values.aperture_f_num, g_exposure_values.shutter_speed_secs, g_exposure_values.ISO);
-			setExposure(g_exposure_values, g_ev_comp, g_white_point, g_black_point);
-			//printf("[delta %.3fms]: avg scene lm: %.3f\n", delta_time_ms, avg_lum);
+			AutoExposureProgram& ae = m_renderer_rsrc->auto_exposure_program; float avg_lum = *m_renderer_rsrc->shader_data.scene_average_luminance;
+			ae.computeExposure(avg_lum);
+			setExposure(ae.getExposureValues(), ae.getEVComp(), ae.getWhitePoint(), ae.getBlackPoint());
 		}
 
 		launchPostProcessComputeKernel(m_renderer_rsrc->shader_data);
@@ -297,27 +127,19 @@ namespace KittlesPT
 		m_renderer_rsrc->m_frame_textures["debug_texture"].copyTo(r_texture);
 	}
 
-	bool Renderer::setMaterial(int idx, MaterialSceneEntity material)
+	bool Renderer::setMaterial(uint32_t idx, const MaterialSceneEntity& material)
 	{
 		if (idx >= m_renderer_rsrc->scene_materials.size()) {
 			return false;
 		}
 
-		Material old_material = m_renderer_rsrc->scene_materials[idx];
 		Material new_material(
-			material.albedo_texture_id,
-			glm3_2f3(material.albedo_factor),
-			material.ORM_texture_id,
-			material.metallic_factor,
-			material.roughness_factor,
-			material.transmission_texture_id,
-			material.transmission_factor,
+			material.albedo_texture_id, glm3_2f3(material.albedo_factor),
+			material.ORM_texture_id, material.metallic_factor, material.roughness_factor,
+			material.transmission_texture_id, material.transmission_factor,
 			material.ior,
-			material.emission_texture_id,
-			glm3_2f3(material.emission_factor),
-			material.emission_scale_nits,
-			material.normal_texture_id,
-			material.normal_scale
+			material.emission_texture_id, glm3_2f3(material.emission_factor), material.emission_scale_nits,
+			material.normal_texture_id, material.normal_scale
 		);
 		m_renderer_rsrc->scene_materials[idx] = new_material;
 
@@ -326,7 +148,7 @@ namespace KittlesPT
 		return true;
 	}
 
-	MaterialSceneEntity Renderer::getMaterial(int idx) const
+	MaterialSceneEntity Renderer::getMaterial(uint32_t idx) const
 	{
 		if (idx >= m_renderer_rsrc->scene_materials.size())
 		{
@@ -336,17 +158,19 @@ namespace KittlesPT
 		Material mat = m_renderer_rsrc->scene_materials[idx];
 
 		MaterialSceneEntity ret_mat(
-			mat.albedo_texture_id, glm::vec3(mat.albedo.x, mat.albedo.y, mat.albedo.z),
+			"unpreserved_name",
+			mat.albedo_texture_id, f3_2glm3(mat.albedo),
 			mat.ORM_texture_id, mat.metallic_factor, mat.roughness_factor,
 			mat.transmission_texture_id, mat.transmission_factor,
 			mat.ior,
-			mat.emission_texture_id, glm::vec3(mat.emissive_factor.x, mat.emissive_factor.y, mat.emissive_factor.z), mat.emission_scale_nits,
+			mat.emission_texture_id, f3_2glm3(mat.emissive_factor), mat.emission_scale_nits,
 			mat.normal_texture_id, mat.normal_scale
 		);
+
 		return ret_mat;
 	}
 
-	bool Renderer::setMeshTransform(int idx, const glm::mat4& model)
+	bool Renderer::setMeshTransform(uint32_t idx, const glm::mat4& model)
 	{
 		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
 			return false;
@@ -363,7 +187,7 @@ namespace KittlesPT
 		return true;
 	}
 
-	glm::mat4 Renderer::getMeshTransform(int idx) const
+	glm::mat4 Renderer::getMeshTransform(uint32_t idx) const
 	{
 		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
 			assert("OUT OF BOUNDES ACCES[MESHES]");
@@ -382,13 +206,13 @@ namespace KittlesPT
 		return m_renderer_rsrc->scene_meshes.size();
 	}
 
-	void Renderer::setProceduralEnvironmentData(ProceduralEnvironmentData data)
+	void Renderer::setProceduralEnvironmentData(const ProceduralEnvironmentSettings& data)
 	{
 		m_renderer_rsrc->shader_data.procedural_environment_data = data;
 		resetAccumulation();
 	}
 
-	ProceduralEnvironmentData Renderer::getProceduralEnvironmentData() const
+	ProceduralEnvironmentSettings Renderer::getProceduralEnvironmentData() const
 	{
 		return m_renderer_rsrc->shader_data.procedural_environment_data;
 	}
@@ -404,26 +228,7 @@ namespace KittlesPT
 		return m_renderer_rsrc->shader_data.renderer_settings;
 	}
 
-	float getSaturationBasedExposure(float aperture, float shutter_time, float iso)
-	{
-		//measuring for iso = S pmax
-		constexpr float q = 0.65f;
-		float l_max = (78.0f / q) * (Sqr(aperture) / (iso * shutter_time));
-		return 1.0f / l_max;//why reciprocal?
-	}
-
-	float getStandardOutputBasedExposure(float aperture,
-		float shutterSpeed,
-		float iso,
-		float middleGrey = 0.18f)
-	{
-		//for 18% gray derived from 118/255 after gamma correction
-		constexpr float q = 0.65f;
-		float l_avg = (10.0f / q) * (Sqr(aperture) / (iso * shutterSpeed));
-		return middleGrey / l_avg;
-	}
-
-	void Renderer::setExposure(ExposureValues camera_values, float ev_comp, float white_point_ev, float black_point_ev)
+	void Renderer::setExposure(const ExposureValues& camera_values, float ev_comp, float white_point_ev, float black_point_ev)
 	{
 		/*
 		* lens properties:
@@ -433,18 +238,17 @@ namespace KittlesPT
 		* q = 0.65
 		*/
 
-		g_exposure_values = camera_values;
-		g_ev_comp = ev_comp; g_white_point = white_point_ev; g_black_point = black_point_ev;
+		m_renderer_rsrc->auto_exposure_program.recordValues(camera_values, ev_comp, white_point_ev, black_point_ev);
 
-		float luminance_exposure_scalar = getStandardOutputBasedExposure(camera_values.aperture_f_num,
+		float luminance_exposure_scalar = AutoExposureProgram::getStandardOutputBasedExposure(camera_values.aperture_f_num,
 			camera_values.shutter_speed_secs, camera_values.ISO);
 		m_renderer_rsrc->shader_data.scene_camera.setExposure(luminance_exposure_scalar,
 			white_point_ev, black_point_ev);
 	}
 
-	Renderer::ExposureValues Renderer::getExposure() const
+	ExposureValues Renderer::getExposure() const
 	{
-		return g_exposure_values;
+		return m_renderer_rsrc->auto_exposure_program.getExposureValues();
 	}
 
 	void Renderer::resetAccumulation()
@@ -517,13 +321,13 @@ namespace KittlesPT
 			TriangleMesh tri_mesh(static_cast<int32_t>(mesh_prim_start_id),
 				static_cast<int32_t>(mesh.shape_entities.size()),
 				Mat4(glm::inverse(mesh.model_matrix)));
-			tri_mesh.blas_id = m_renderer_rsrc->blas_buffer.size();//TODO:move to constructor
+			tri_mesh.blas_id = static_cast<int32_t>(m_renderer_rsrc->blas_buffer.size());//TODO:move to constructor
 
 			m_renderer_rsrc->blas_buffer.push_back(m_renderer_rsrc->blas_builder.build(tri_mesh, m_renderer_rsrc->scene_meshes.size()));
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
 
-		m_renderer_rsrc->shader_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
+		m_renderer_rsrc->updateTLAS();
 
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
 			m_renderer_rsrc->scene_triangles.size(), m_renderer_rsrc->scene_lights.size());
@@ -536,69 +340,16 @@ namespace KittlesPT
 			new_camera.inv_projection_matrix = Mat4(glm::inverse(glm::perspectiveFovLH(parsed_camera.y_fov_radians,
 				100.0f, 100.0f, 1.0f, 100.0f)));//Done to intialize reusable fovyrad in inv_proj_mat
 			new_camera.world_position = make_float3(new_camera.inv_view_matrix[3]);
-			//printf("> x:%.3f y:%.3f z:%.3f\n", parsed_camera.view_matrix[3][0], parsed_camera.view_matrix[3][1], parsed_camera.view_matrix[3][2]);
-			//printf("> x:%.3f y:%.3f z:%.3f\n", new_camera.inv_view_matrix[3].x, new_camera.inv_view_matrix[3].y, new_camera.inv_view_matrix[3].z);
 			m_renderer_rsrc->shader_data.scene_camera = new_camera;
 		}
 
-		submitScene();
-	}
-
-	void Renderer::submitScene()
-	{
-		m_renderer_rsrc->shader_data.tlas_nodes_buffer = Buffer<TLASNode>(
-			thrust::raw_pointer_cast(m_renderer_rsrc->tlasnodes_buffer.data()),
-			m_renderer_rsrc->tlasnodes_buffer.size());
-
-		m_renderer_rsrc->shader_data.blas_buffer = Buffer<BLAS>(
-			thrust::raw_pointer_cast(m_renderer_rsrc->blas_buffer.data()),
-			m_renderer_rsrc->blas_buffer.size());
-
-		m_renderer_rsrc->shader_data.bvh_nodes_buffer =
-			Buffer<BVHNode>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->bvhnodes_buffer.data()),
-				m_renderer_rsrc->bvhnodes_buffer.size());
-
-		m_renderer_rsrc->shader_data.triangle_index_buffer =
-			Buffer<int32_t>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->triangle_index_buffer.data()),
-				m_renderer_rsrc->triangle_index_buffer.size());
-
-		m_renderer_rsrc->shader_data.meshes_buffer =
-			Buffer<TriangleMesh>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->scene_meshes.data()),
-				m_renderer_rsrc->scene_meshes.size());
-
-		m_renderer_rsrc->shader_data.lights_buffer =
-			Buffer<Light>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->scene_lights.data()),
-				m_renderer_rsrc->scene_lights.size());
-
-		m_renderer_rsrc->shader_data.triangles_buffer =
-			Buffer<Triangle>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->scene_triangles.data()),
-				m_renderer_rsrc->scene_triangles.size());
-
-		m_renderer_rsrc->shader_data.materials_buffer =
-			Buffer<Material>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->scene_materials.data()),
-				m_renderer_rsrc->scene_materials.size());
-
-		m_renderer_rsrc->shader_data.texture_buffer =
-			Buffer<Texture>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->scene_textures.data()),
-				m_renderer_rsrc->scene_textures.size());
-
-		m_renderer_rsrc->shader_data.pixel_buffer =
-			Buffer<uint8_t>(
-				thrust::raw_pointer_cast(m_renderer_rsrc->pixel_buffer.data()),
-				m_renderer_rsrc->pixel_buffer.size());
+		m_renderer_rsrc->updateResource();
 	}
 
 	void Renderer::executeBloomGeneration()
 	{
 		//downscale
-		for (int miplevel = 0; miplevel < m_renderer_rsrc->bloom_mipchain.max_mip_level; miplevel++)
+		for (uint32_t miplevel = 0; miplevel < m_renderer_rsrc->bloom_mipchain.max_mip_level; miplevel++)
 		{
 			TextureBuffer& src = m_renderer_rsrc->bloom_mipchain.mip_textures[miplevel];
 			TextureBuffer& dst = m_renderer_rsrc->bloom_mipchain.mip_textures[miplevel + 1];

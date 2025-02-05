@@ -23,9 +23,6 @@ namespace KittlesPT
 
 		Camera() = default;
 
-		__host__ Camera(float3 pos) :
-			world_position(pos) {};
-
 		//generate camera rays; -1 => forawrd depth
 		__device__ Ray generateRay(float2 ndc_coords) const;
 

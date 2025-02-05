@@ -257,7 +257,7 @@ namespace SampleApp
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Environment Edit"))
 		{
-			KittlesPT::ProceduralEnvironmentData env_data = m_shared_data_handle->environment_data;
+			KittlesPT::ProceduralEnvironmentSettings env_settings = m_shared_data_handle->environment_settings;
 			bool env_updated = false;
 
 			if (ImGui::BeginTable("envedittable", 2))
@@ -270,7 +270,7 @@ namespace SampleApp
 				ImGui::Text("Sun Radiance");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderFloat("###sun_radiance", &env_data.sun_emission_nits, 0, 6e5f,
+				env_updated |= ImGui::SliderFloat("###sun_radiance", &env_settings.sun_emission_nits, 0, 6e5f,
 					"%.3f nits", ImGuiSliderFlags_Logarithmic);
 
 				ImGui::TableNextRow();
@@ -278,7 +278,7 @@ namespace SampleApp
 				ImGui::Text("Sun Angular Diameter");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderAngle("###sun_angular_diameter", &env_data.sun_angular_diameter_rad, 0, 45,
+				env_updated |= ImGui::SliderAngle("###sun_angular_diameter", &env_settings.sun_angular_diameter_rad, 0, 45,
 					"%.1f deg", ImGuiSliderFlags_Logarithmic);
 
 				ImGui::TableNextRow();
@@ -286,20 +286,20 @@ namespace SampleApp
 				ImGui::Text("Sun Altitude Theta");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderAngle("###sun_altitude_theta", &env_data.sun_theta_rad, -20, 90);
+				env_updated |= ImGui::SliderAngle("###sun_altitude_theta", &env_settings.sun_theta_rad, -20, 90);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Sun Position Phi");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderAngle("###sun_phi", &env_data.sun_phi_rad, 0, 360);
+				env_updated |= ImGui::SliderAngle("###sun_phi", &env_settings.sun_phi_rad, 0, 360);
 
 				ImGui::EndTable();
 			}
 
 			if (env_updated) {
-				m_event_dispatcher_handle->emitSignal(Event("environment_settings_changed"), env_data);
+				m_event_dispatcher_handle->emitSignal(Event("environment_settings_changed"), env_settings);
 			}
 		}
 

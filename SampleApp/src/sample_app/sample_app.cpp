@@ -20,7 +20,7 @@ namespace SampleApp
 		std::printf("[APP] initializing app\n");
 		m_viewport_texture.init(m_window_width, m_window_height);
 		m_viewport.init(m_viewport_texture);
-		m_renderer.init();
+		m_renderer.initialize();
 
 		g_custom_font = ImGuiThemes::VictorSix();
 		//ImGuiThemes::Dark();
@@ -28,7 +28,7 @@ namespace SampleApp
 
 		loadSceneFile("two_objects.glb");
 		//TODO: not robust to empty scenes
-		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
+		m_application_data.environment_settings = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();
 		//----
 		m_application_data.editable_material = m_renderer.getMaterial(m_application_data.editable_material_idx);
@@ -37,7 +37,7 @@ namespace SampleApp
 		m_application_data.editable_mesh_object = m_meshes[m_application_data.editable_mesh_idx];
 		m_application_data.meshes_count = m_renderer.getMeshCount();
 
-		KittlesPT::Renderer::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
+		KittlesPT::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
 			CameraController::ISO_MAX, CameraController::ISO_MIN,
 			1.0f / CameraController::SHUTTER_DENOM_MIN, 1.0f / CameraController::SHUTTER_DENOM_MAX);
 
@@ -65,7 +65,7 @@ namespace SampleApp
 		//sync client camera with renderer;Assuming aperture priority
 		if (m_renderer.getRendererSettings().enable_auto_exposure)
 		{
-			KittlesPT::Renderer::ExposureValues cam_val = m_renderer.getExposure();
+			KittlesPT::ExposureValues cam_val = m_renderer.getExposure();
 			m_camera.setISO(static_cast<int>(cam_val.ISO));
 			m_camera.setShutterSecs(cam_val.shutter_speed_secs);
 		}
@@ -133,7 +133,7 @@ namespace SampleApp
 					m_camera.setWhitePointEV(cm_val[4]);
 					m_camera.setBlackPointEV(cm_val[5]);
 
-					KittlesPT::Renderer::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
+					KittlesPT::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
 						CameraController::ISO_MAX, CameraController::ISO_MIN,
 						1.0f / CameraController::SHUTTER_DENOM_MIN, 1.0f / CameraController::SHUTTER_DENOM_MAX);
 
@@ -197,8 +197,8 @@ namespace SampleApp
 		m_event_dispatcher.registerListener(Event("environment_settings_changed"),
 			Listener([this](const std::any& data)
 				{
-					m_application_data.environment_data = std::any_cast<KittlesPT::ProceduralEnvironmentData>(data);
-					m_renderer.setProceduralEnvironmentData(m_application_data.environment_data);
+					m_application_data.environment_settings = std::any_cast<KittlesPT::ProceduralEnvironmentSettings>(data);
+					m_renderer.setProceduralEnvironmentData(m_application_data.environment_settings);
 				}));
 	}
 }

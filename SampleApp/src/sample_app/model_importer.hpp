@@ -306,7 +306,7 @@ namespace SampleApp
 
 			printf("> name: %s | dims: %d x %d | channels: %d------\n", gltf_image.name.c_str(), width, height, numcolch);
 			//TODO: avoid casting away constness
-			m_scene->addTexture(KittlesPT::TextureSceneEntity(const_cast<unsigned char*>(finalimgdata), width, height, 3));
+			m_scene->addTexture(KittlesPT::TextureSceneEntity(gltf_image.name, const_cast<uint8_t*>(finalimgdata), width, height, 3));
 
 			stbi_image_free((void*)finalimgdata);
 		}
@@ -365,6 +365,7 @@ namespace SampleApp
 			};
 
 			m_scene->addMaterial(KittlesPT::MaterialSceneEntity(
+				gltf_material.name,
 				albedo_tex_id, albedo_factor,
 				ORM_tex_id, (float)PBR_data.metallicFactor, (float)PBR_data.roughnessFactor,
 				transmission_tex_id, transmission, ior,

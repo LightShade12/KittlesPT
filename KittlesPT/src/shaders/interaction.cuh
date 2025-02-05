@@ -46,11 +46,10 @@ namespace KittlesPT
 			return (primitive_id >= 0);
 		}
 
-		//--------------------------------------------------------
+		//-------------------------------------
 		float distance = INFINITY;
-		int primitive_id = -1;
-		int instance_id = -1;
-
+		int32_t primitive_id = -1;
+		int32_t instance_id = -1;
 		float3 bary_coords{ 0.0f,0.0f,0.0f };
 	};
 }/*KittlesPT*/

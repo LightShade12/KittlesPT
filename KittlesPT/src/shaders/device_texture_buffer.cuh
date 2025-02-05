@@ -5,12 +5,9 @@
 
 namespace KittlesPT
 {
-	//TODO: refactor this nonsense
-
+	//TODO: rename this
 	struct DeviceTextureBuffer
 	{
-	public:
-
 		__device__ void textureWrite(float4 value, int2 pixel_coord) const;
 
 		__device__ void textureWriteUV(float4 value, float2 uv_coord) const;
@@ -25,32 +22,5 @@ namespace KittlesPT
 
 		int2 dimensions;
 		cudaSurfaceObject_t m_surface_object;
-	};
-
-	class TextureBuffer
-	{
-	public:
-
-		void init(int width, int height);
-
-		void resize(int width, int height);
-
-		DeviceTextureBuffer enableCudaAccess();
-
-		void disableCudaAccess(DeviceTextureBuffer dev_tex_buff);
-
-		bool isInitialised();
-
-		void destroy();
-
-		void copyTo(GLuint dst);
-
-		void copyTo(const TextureBuffer& dst);
-
-	public:
-
-		int m_width = 0, m_height = 0;
-		GLuint m_GL_texture = NULL;
-		cudaGraphicsResource* m_graphics_resource = nullptr;
 	};
 }/*KittlesPT*/

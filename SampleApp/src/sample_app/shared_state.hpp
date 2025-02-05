@@ -8,7 +8,7 @@ namespace SampleApp
 {
 	struct ApplicationData
 	{
-		KittlesPT::ProceduralEnvironmentData environment_data;
+		KittlesPT::ProceduralEnvironmentSettings environment_settings;
 		KittlesPT::RendererSettings renderer_settings;
 		//----------
 		KittlesPT::MaterialSceneEntity editable_material;

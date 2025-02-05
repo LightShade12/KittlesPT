@@ -34,12 +34,12 @@ namespace KittlesPT
 		*/
 
 		//standard shader uniforms
-		int2 frame_resolution;
-		int frame_index = 0;
-		float frame_delta = 0.0f;//in ms
+		int2 frame_resolution;//output resolution
+		int32_t frame_index = 0;
+		float frame_delta_ms = 0.0f;//in ms
 
 		//post process uniforms
-		float* scene_average_luminance = nullptr;
+		float* scene_average_luminance = nullptr;//nits
 
 		//geometry shader uniforms
 		Buffer<Triangle> triangles_buffer;
@@ -57,7 +57,7 @@ namespace KittlesPT
 		Camera scene_camera;
 
 		//custom shader data
-		ProceduralEnvironmentData procedural_environment_data;
+		ProceduralEnvironmentSettings procedural_environment_data;
 		RendererSettings renderer_settings;
 
 		//frame textures

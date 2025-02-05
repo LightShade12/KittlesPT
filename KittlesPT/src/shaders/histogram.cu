@@ -146,7 +146,7 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::ShaderDa
 
 		float lum_last_frame = *(shader_data.scene_average_luminance);
 		float speed = 0.5f;
-		float adapted_lum = lerp(lum_last_frame, avg_luminance, 1.0f - expf(-shader_data.frame_delta * speed));
+		float adapted_lum = lerp(lum_last_frame, avg_luminance, 1.0f - expf(-shader_data.frame_delta_ms * speed));
 		*(shader_data.scene_average_luminance) = adapted_lum;
 	}
 }

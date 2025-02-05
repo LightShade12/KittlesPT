@@ -116,8 +116,12 @@
     <CudaCompile Include="src\shaders\color.cu" />
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
     <ClInclude Include="src\as_builder.cuh" />
+    <ClInclude Include="src\autoexposure_program.hpp" />
+    <ClInclude Include="src\helpers.cuh" />
     <ClInclude Include="src\maths\bounds.cuh" />
+    <ClInclude Include="src\mipchain.cuh" />
     <ClInclude Include="src\pod_types.hpp" />
+    <ClInclude Include="src\renderer_resource.cuh" />
     <ClInclude Include="src\shaders\blas.cuh" />
     <ClInclude Include="src\shaders\bloom.cuh" />
     <ClInclude Include="src\shaders\filter.cuh" />
@@ -136,6 +140,7 @@
     <CudaCompile Include="src\shaders\shading_kernel.cu" />
     <CudaCompile Include="src\shaders\texture.cu" />
     <CudaCompile Include="src\shaders\tlas.cu" />
+    <CudaCompile Include="src\texture_buffer.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kittlesPT\kittlesPT.hpp" />
@@ -168,6 +173,7 @@
     <ClInclude Include="src\shaders\texture.cuh" />
     <ClInclude Include="src\shaders\tlas.cuh" />
     <ClInclude Include="src\shaders\triangle.cuh" />
+    <ClInclude Include="src\texture_buffer.cuh" />
     <ClInclude Include="thirdparty\glad\include\glad\glad.h" />
   </ItemGroup>
   <ItemGroup>
