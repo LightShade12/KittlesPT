@@ -18,12 +18,12 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderData shader_data);
-__global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data);
+__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData shader_data);
+__global__ void computePostProcess(const KittlesPT::ShaderData shader_data);
 
 namespace KittlesPT
 {
-	void launchPathTraceComputeMegaKernel(const GlobalShaderData& shader_data)
+	void launchPathTraceComputeMegaKernel(const ShaderData& shader_data)
 	{
 		//8 x 8 = 64 = 32 x 2
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
@@ -37,7 +37,7 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	void launchPostProcessComputeKernel(const GlobalShaderData& shader_data)
+	void launchPostProcessComputeKernel(const ShaderData& shader_data)
 	{
 		//8 x 8 = 64 = 32 x 2
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
@@ -51,7 +51,7 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	void launchHistogramComputeKernel(const GlobalShaderData& shader_data)
+	void launchHistogramComputeKernel(const ShaderData& shader_data)
 	{
 		//16x16 = 256
 		dim3 thread_block_dimensions = dim3(16, 16, 1);
@@ -66,7 +66,7 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	void launchHistogramAverageComputeKernel(const GlobalShaderData& shader_data)
+	void launchHistogramAverageComputeKernel(const ShaderData& shader_data)
 	{
 		//256 x 1
 		dim3 thread_block_dimensions = dim3(Constants::HISTOGRAM_SIZE, 1, 1);
@@ -78,7 +78,7 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	void launchBloomDownSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src,
+	void launchBloomDownSampleComputeKernel(const ShaderData& shader_data, const DeviceTextureBuffer& src,
 		const DeviceTextureBuffer& dst, bool karis_avg)
 	{
 		//8x8=64=32x2
@@ -94,7 +94,7 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	void launchBloomUpSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst)
+	void launchBloomUpSampleComputeKernel(const ShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst)
 	{
 		//8x8=64=32x2
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
@@ -110,7 +110,7 @@ namespace KittlesPT
 	}
 }/*KittlesPT*/
 
-__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderData shader_data)
+__global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 
@@ -157,7 +157,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::GlobalShaderD
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
-__global__ void computePostProcess(const KittlesPT::GlobalShaderData shader_data)
+__global__ void computePostProcess(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 

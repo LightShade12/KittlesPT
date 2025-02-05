@@ -18,7 +18,7 @@ namespace KittlesPT
 {
 	namespace Integrator
 	{
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
+		__device__ Intersection intersect(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
 		{
 			return shader_data.top_level_acceleration_structure.intersect(shader_data, ray, tmin, tmax, dbg);
 
@@ -48,7 +48,7 @@ namespace KittlesPT
 			return closest;
 		}
 
-		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
+		__device__ bool intersectShadow(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
 		{
 			return shader_data.top_level_acceleration_structure.intersectP(shader_data, ray, tmin, tmax);
 
@@ -75,7 +75,7 @@ namespace KittlesPT
 			}
 			return false;
 		}
-		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target)
+		__device__ bool Unoccluded(const ShaderData& shader_data, const SurfaceInteraction& surface, float3 target)
 		{
 			constexpr float SHADOWRAY_EPSILON = 0.11f;//TODO: put this in a constants file
 			Ray shadow_ray = surface.spawnRayTo(target);
@@ -84,7 +84,7 @@ namespace KittlesPT
 			return (!intersectShadow(shader_data, shadow_ray, 0.0f, tmax, dummy));
 		}
 
-		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
+		__device__ RGBSpectrum sampleLdSun(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0.0f);
@@ -125,7 +125,7 @@ namespace KittlesPT
 			return Ld;
 		}
 
-		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
+		__device__ RGBSpectrum sampleLd(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const UniformLightSampler& light_sampler, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0.0f);
@@ -160,7 +160,7 @@ namespace KittlesPT
 			return Ld;
 		}
 
-		__device__ RGBSpectrum LeSun(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
+		__device__ RGBSpectrum LeSun(const ShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
 		{
 			float3 atmosphere_observer_position = make_float3(0.0f, atmosphere.getEarthRadiusMeters() + 1.0f, 0.0f);
 
@@ -173,7 +173,7 @@ namespace KittlesPT
 			return sampled_sun_col * shader_data.procedural_environment_data.sun_emission_nits * shape_mask_factor;
 		}
 
-		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
+		__device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
 		{
 			RGBSpectrum light(0.0f);//L
 			RGBSpectrum throughput(1.0f);//beta
@@ -274,7 +274,7 @@ namespace KittlesPT
 			return light;
 		}
 
-		__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample)
+		__device__ RGBSpectrum addSample(const ShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample)
 		{
 			RGBSpectrum accumulated_sample = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(make_float2(pixel_coord)));
 			RGBSpectrum new_accumulated_sample = accumulated_sample + radiance_sample;

@@ -6,7 +6,7 @@
 
 namespace KittlesPT
 {
-	__device__ SurfaceInteraction Intersection::getSurfaceInteraction(const GlobalShaderData& shader_data, const Ray& ray)
+	__device__ SurfaceInteraction Intersection::getSurfaceInteraction(const ShaderData& shader_data, const Ray& ray)
 	{
 		SurfaceInteraction surfintr;
 		const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
@@ -37,12 +37,12 @@ namespace KittlesPT
 
 	//=========================================================================================
 
-	__device__ RGBSpectrum SurfaceInteraction::Le(const GlobalShaderData& shader_data, const Ray& ray) const
+	__device__ RGBSpectrum SurfaceInteraction::Le(const ShaderData& shader_data, const Ray& ray) const
 	{
 		return(arealight) ? arealight->L(shader_data, uv) : RGBSpectrum(0.0f);
 	}
 
-	__device__ BSDF SurfaceInteraction::getBSDF(const GlobalShaderData& shader_data) const
+	__device__ BSDF SurfaceInteraction::getBSDF(const ShaderData& shader_data) const
 	{
 		const Material& mat = shader_data.materials_buffer.data[material_id];
 

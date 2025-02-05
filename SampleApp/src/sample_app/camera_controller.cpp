@@ -7,7 +7,6 @@
 
 namespace SampleApp
 {
-	constexpr static glm::vec3 global_up(0, 1, 0);
 	static glm::vec2 last_mouse_pos;
 
 	bool CameraController::processInput(GLFWwindow* window_ctx, float delta_ts_ms)

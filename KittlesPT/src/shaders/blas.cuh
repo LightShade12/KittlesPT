@@ -47,7 +47,7 @@ namespace KittlesPT
 	public:
 		BLAS() = default;
 
-		__device__ bool intersectP(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
+		__device__ bool intersectP(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
 		{
 			if (bvhnode_root_id < 0) {
 				return false;
@@ -113,7 +113,7 @@ namespace KittlesPT
 			return false;
 		};
 
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg) const
+		__device__ Intersection intersect(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg) const
 		{
 			if (bvhnode_root_id < 0) {
 				return Intersection();

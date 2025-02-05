@@ -100,13 +100,14 @@ namespace KittlesPT
 		TLASBuilder tlas_builder = TLASBuilder(&blas_buffer, &tlasnodes_buffer);
 
 		thrust::device_vector<unsigned char> pixel_buffer;
-		GlobalShaderData shader_global_data;
+		//TODO: store ShaderData in constant_memory
+		ShaderData shader_data;
 		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
 		MipChain bloom_mipchain;
 
 		void destroy()
 		{
-			cudaFree(shader_global_data.scene_average_luminance);
+			cudaFree(shader_data.scene_average_luminance);
 			bloom_mipchain.destroy();
 
 			for (std::pair<const std::string, TextureBuffer>& tex : m_frame_textures)
@@ -148,11 +149,12 @@ namespace KittlesPT
 
 		//-------------------------
 
-		cudaMallocManaged(&m_renderer_rsrc->shader_global_data.scene_average_luminance, sizeof(float));
-		m_renderer_rsrc->shader_global_data.histogram_buffer = Buffer<float>(
+		cudaMallocManaged(&m_renderer_rsrc->shader_data.scene_average_luminance, sizeof(float));
+		m_renderer_rsrc->shader_data.histogram_buffer = Buffer<float>(
 			thrust::raw_pointer_cast(m_renderer_rsrc->histogram_buffer.data()), Constants::HISTOGRAM_SIZE);
-		m_renderer_rsrc->shader_global_data.scene_camera = Camera(make_float3(0));
+		m_renderer_rsrc->shader_data.scene_camera = Camera(make_float3(0));
 	}
+
 	void Renderer::shutdown()
 	{
 		m_renderer_rsrc->destroy();
@@ -167,17 +169,14 @@ namespace KittlesPT
 			return;
 		}
 		m_width = width; m_height = height;
-		m_renderer_rsrc->shader_global_data.frame_resolution = make_int2(m_width, m_height);
-		glm::mat4 view = glm::mat4
-		(1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, -1, 0,
-			0, 0, 0, 1);
+		m_renderer_rsrc->shader_data.frame_resolution = make_int2(m_width, m_height);
 
-		//TODO: fix view
-		setView(glm::perspectiveFovLH(glm::radians(90.0f),
-			float(m_width), float(m_height), 1.f, 100.f),
-			glm::inverse(view));
+		//recompute projection for new screen size
+		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.inv_projection_matrix.inverse().toGLM();
+		float fov_rad = 2.0f * atan(1.0f / old_proj[1][1]);
+		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_width, (float)m_height, 0.1f, 100.0f);
+		m_renderer_rsrc->shader_data.scene_camera.inv_projection_matrix = Mat4(projection).inverse();
+		resetAccumulation();
 
 		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_rsrc->m_frame_textures)
 		{
@@ -242,30 +241,30 @@ namespace KittlesPT
 
 	void Renderer::executeRendering(float delta_time_ms)
 	{
-		m_renderer_rsrc->shader_global_data.frame_delta = delta_time_ms;
-		m_renderer_rsrc->shader_global_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
-		m_renderer_rsrc->shader_global_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
-		m_renderer_rsrc->shader_global_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
-		m_renderer_rsrc->shader_global_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.frame_delta = delta_time_ms;
+		m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
 
-		m_renderer_rsrc->shader_global_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
+		m_renderer_rsrc->shader_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
 
-		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_global_data);
+		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_data);
 
 		//generate bloom buffer
-		if (m_renderer_rsrc->shader_global_data.renderer_settings.generate_bloom)
+		if (m_renderer_rsrc->shader_data.renderer_settings.generate_bloom)
 		{
 			executeBloomGeneration();
-			m_renderer_rsrc->shader_global_data.bloom_texture = m_renderer_rsrc->bloom_mipchain.mip_textures[0].enableCudaAccess();
+			m_renderer_rsrc->shader_data.bloom_texture = m_renderer_rsrc->bloom_mipchain.mip_textures[0].enableCudaAccess();
 		}
 
 		//auto exposure pipeline
-		if (m_renderer_rsrc->shader_global_data.renderer_settings.enable_auto_exposure)
+		if (m_renderer_rsrc->shader_data.renderer_settings.enable_auto_exposure)
 		{
-			launchHistogramComputeKernel(m_renderer_rsrc->shader_global_data);
-			launchHistogramAverageComputeKernel(m_renderer_rsrc->shader_global_data);
+			launchHistogramComputeKernel(m_renderer_rsrc->shader_data);
+			launchHistogramAverageComputeKernel(m_renderer_rsrc->shader_data);
 
-			float avg_lum = *m_renderer_rsrc->shader_global_data.scene_average_luminance;
+			float avg_lum = *m_renderer_rsrc->shader_data.scene_average_luminance;
 			float ev_target = computeEV100(avg_lum) - g_ev_comp;
 			ev_target += 6.0f;//TODO:FIXME:Nasty fix for auto exposure undererestimation
 			applyAperturePriority(0.1f, ev_target,
@@ -274,18 +273,18 @@ namespace KittlesPT
 			//printf("[delta %.3fms]: avg scene lm: %.3f\n", delta_time_ms, avg_lum);
 		}
 
-		launchPostProcessComputeKernel(m_renderer_rsrc->shader_global_data);
+		launchPostProcessComputeKernel(m_renderer_rsrc->shader_data);
 
-		if (m_renderer_rsrc->shader_global_data.renderer_settings.generate_bloom) {
-			m_renderer_rsrc->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_rsrc->shader_global_data.bloom_texture);
+		if (m_renderer_rsrc->shader_data.renderer_settings.generate_bloom) {
+			m_renderer_rsrc->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_rsrc->shader_data.bloom_texture);
 		}
 
-		m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.main_texture);
-		m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.accumulation_texture);
-		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.gbuffer_texture);
-		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.debug_texture);
+		m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
+		m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
+		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.gbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.debug_texture);
 
-		m_renderer_rsrc->shader_global_data.frame_index++;//TODO:expose to host as readonly?
+		m_renderer_rsrc->shader_data.frame_index++;//TODO:expose to host as readonly?
 	}
 
 	void Renderer::getRenderTargetTexture(GLuint r_texture) const
@@ -385,24 +384,24 @@ namespace KittlesPT
 
 	void Renderer::setProceduralEnvironmentData(ProceduralEnvironmentData data)
 	{
-		m_renderer_rsrc->shader_global_data.procedural_environment_data = data;
+		m_renderer_rsrc->shader_data.procedural_environment_data = data;
 		resetAccumulation();
 	}
 
 	ProceduralEnvironmentData Renderer::getProceduralEnvironmentData() const
 	{
-		return m_renderer_rsrc->shader_global_data.procedural_environment_data;
+		return m_renderer_rsrc->shader_data.procedural_environment_data;
 	}
 
 	void Renderer::setRendererSettings(const RendererSettings& cfg)
 	{
-		m_renderer_rsrc->shader_global_data.renderer_settings = cfg;
+		m_renderer_rsrc->shader_data.renderer_settings = cfg;
 		resetAccumulation();
 	}
 
 	RendererSettings Renderer::getRendererSettings() const
 	{
-		return m_renderer_rsrc->shader_global_data.renderer_settings;
+		return m_renderer_rsrc->shader_data.renderer_settings;
 	}
 
 	float getSaturationBasedExposure(float aperture, float shutter_time, float iso)
@@ -439,7 +438,7 @@ namespace KittlesPT
 
 		float luminance_exposure_scalar = getStandardOutputBasedExposure(camera_values.aperture_f_num,
 			camera_values.shutter_speed_secs, camera_values.ISO);
-		m_renderer_rsrc->shader_global_data.scene_camera.setExposure(luminance_exposure_scalar,
+		m_renderer_rsrc->shader_data.scene_camera.setExposure(luminance_exposure_scalar,
 			white_point_ev, black_point_ev);
 	}
 
@@ -451,14 +450,14 @@ namespace KittlesPT
 	void Renderer::resetAccumulation()
 	{
 		glClearTexImage(m_renderer_rsrc->m_frame_textures["accumulation_texture"].m_GL_texture, 0, GL_RGBA, GL_FLOAT, NULL);
-		m_renderer_rsrc->shader_global_data.frame_index = 0;
+		m_renderer_rsrc->shader_data.frame_index = 0;
 	}
 
 	void Renderer::setView(const glm::mat4& projection_matrix, const glm::mat4& view_matrix)
 	{
 		Mat4 proj(projection_matrix);
 		Mat4 view(view_matrix);
-		m_renderer_rsrc->shader_global_data.scene_camera.setView(proj.inverse(), view.inverse());
+		m_renderer_rsrc->shader_data.scene_camera.setView(proj.inverse(), view.inverse());
 
 		resetAccumulation();
 	}
@@ -524,63 +523,73 @@ namespace KittlesPT
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
 
-		//thrust::universal_vector<TLASNode> tlasnodes;
-		m_renderer_rsrc->shader_global_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
-
-		//m_renderer_rsrc->tlasnodes_buffer = tlasnodes;
+		m_renderer_rsrc->shader_data.top_level_acceleration_structure = m_renderer_rsrc->tlas_builder.build();
 
 		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
 			m_renderer_rsrc->scene_triangles.size(), m_renderer_rsrc->scene_lights.size());
+
+		if (!parsed_scene.camera_entities.empty()) {
+			Camera new_camera;
+			const CameraSceneEntity& parsed_camera = parsed_scene.camera_entities[0];
+			new_camera.inv_view_matrix = Mat4(glm::inverse(parsed_camera.view_matrix));
+			new_camera.inv_view_matrix[2] *= -1.0f;
+			new_camera.inv_projection_matrix = Mat4(glm::inverse(glm::perspectiveFovLH(parsed_camera.y_fov_radians,
+				100.0f, 100.0f, 1.0f, 100.0f)));//Done to intialize reusable fovyrad in inv_proj_mat
+			new_camera.world_position = make_float3(new_camera.inv_view_matrix[3]);
+			//printf("> x:%.3f y:%.3f z:%.3f\n", parsed_camera.view_matrix[3][0], parsed_camera.view_matrix[3][1], parsed_camera.view_matrix[3][2]);
+			//printf("> x:%.3f y:%.3f z:%.3f\n", new_camera.inv_view_matrix[3].x, new_camera.inv_view_matrix[3].y, new_camera.inv_view_matrix[3].z);
+			m_renderer_rsrc->shader_data.scene_camera = new_camera;
+		}
 
 		submitScene();
 	}
 
 	void Renderer::submitScene()
 	{
-		m_renderer_rsrc->shader_global_data.tlas_nodes_buffer = Buffer<TLASNode>(
+		m_renderer_rsrc->shader_data.tlas_nodes_buffer = Buffer<TLASNode>(
 			thrust::raw_pointer_cast(m_renderer_rsrc->tlasnodes_buffer.data()),
 			m_renderer_rsrc->tlasnodes_buffer.size());
 
-		m_renderer_rsrc->shader_global_data.blas_buffer = Buffer<BLAS>(
+		m_renderer_rsrc->shader_data.blas_buffer = Buffer<BLAS>(
 			thrust::raw_pointer_cast(m_renderer_rsrc->blas_buffer.data()),
 			m_renderer_rsrc->blas_buffer.size());
 
-		m_renderer_rsrc->shader_global_data.bvh_nodes_buffer =
+		m_renderer_rsrc->shader_data.bvh_nodes_buffer =
 			Buffer<BVHNode>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->bvhnodes_buffer.data()),
 				m_renderer_rsrc->bvhnodes_buffer.size());
 
-		m_renderer_rsrc->shader_global_data.triangle_index_buffer =
+		m_renderer_rsrc->shader_data.triangle_index_buffer =
 			Buffer<int32_t>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->triangle_index_buffer.data()),
 				m_renderer_rsrc->triangle_index_buffer.size());
 
-		m_renderer_rsrc->shader_global_data.meshes_buffer =
+		m_renderer_rsrc->shader_data.meshes_buffer =
 			Buffer<TriangleMesh>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->scene_meshes.data()),
 				m_renderer_rsrc->scene_meshes.size());
 
-		m_renderer_rsrc->shader_global_data.lights_buffer =
+		m_renderer_rsrc->shader_data.lights_buffer =
 			Buffer<Light>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->scene_lights.data()),
 				m_renderer_rsrc->scene_lights.size());
 
-		m_renderer_rsrc->shader_global_data.triangles_buffer =
+		m_renderer_rsrc->shader_data.triangles_buffer =
 			Buffer<Triangle>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->scene_triangles.data()),
 				m_renderer_rsrc->scene_triangles.size());
 
-		m_renderer_rsrc->shader_global_data.materials_buffer =
+		m_renderer_rsrc->shader_data.materials_buffer =
 			Buffer<Material>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->scene_materials.data()),
 				m_renderer_rsrc->scene_materials.size());
 
-		m_renderer_rsrc->shader_global_data.texture_buffer =
+		m_renderer_rsrc->shader_data.texture_buffer =
 			Buffer<Texture>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->scene_textures.data()),
 				m_renderer_rsrc->scene_textures.size());
 
-		m_renderer_rsrc->shader_global_data.pixel_buffer =
+		m_renderer_rsrc->shader_data.pixel_buffer =
 			Buffer<uint8_t>(
 				thrust::raw_pointer_cast(m_renderer_rsrc->pixel_buffer.data()),
 				m_renderer_rsrc->pixel_buffer.size());
@@ -596,15 +605,15 @@ namespace KittlesPT
 
 			if (miplevel == 0)
 			{
-				m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_global_data.main_texture);
+				m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
 				m_renderer_rsrc->m_frame_textures["main_texture"].copyTo(src);
-				m_renderer_rsrc->shader_global_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
+				m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 			}
 			DeviceTextureBuffer dsrc = src.enableCudaAccess();
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
-			launchBloomDownSampleComputeKernel(m_renderer_rsrc->shader_global_data, dsrc, ddst,
-				(m_renderer_rsrc->shader_global_data.renderer_settings.use_karis_average && miplevel == 0));
+			launchBloomDownSampleComputeKernel(m_renderer_rsrc->shader_data, dsrc, ddst,
+				(m_renderer_rsrc->shader_data.renderer_settings.use_karis_average && miplevel == 0));
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);
@@ -618,7 +627,7 @@ namespace KittlesPT
 			DeviceTextureBuffer dsrc = src.enableCudaAccess();
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
-			launchBloomUpSampleComputeKernel(m_renderer_rsrc->shader_global_data, dsrc, ddst);
+			launchBloomUpSampleComputeKernel(m_renderer_rsrc->shader_data, dsrc, ddst);
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);

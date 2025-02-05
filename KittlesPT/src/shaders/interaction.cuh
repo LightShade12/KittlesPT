@@ -4,7 +4,7 @@
 
 namespace KittlesPT
 {
-	struct GlobalShaderData;
+	struct ShaderData;
 	class RGBSpectrum;
 	class Ray;
 	class BSDF;
@@ -12,9 +12,9 @@ namespace KittlesPT
 
 	struct SurfaceInteraction
 	{
-		__device__ RGBSpectrum Le(const GlobalShaderData& shader_data, const Ray& ray) const;
+		__device__ RGBSpectrum Le(const ShaderData& shader_data, const Ray& ray) const;
 
-		__device__ BSDF getBSDF(const GlobalShaderData& shader_data) const;
+		__device__ BSDF getBSDF(const ShaderData& shader_data) const;
 
 		__device__ void skipInteraction(Ray* ray);
 
@@ -35,7 +35,7 @@ namespace KittlesPT
 	struct Intersection
 	{
 		//closest hit shader
-		__device__ SurfaceInteraction getSurfaceInteraction(const GlobalShaderData& shader_data, const Ray& ray);
+		__device__ SurfaceInteraction getSurfaceInteraction(const ShaderData& shader_data, const Ray& ray);
 
 		__device__ bool operator!()
 		{

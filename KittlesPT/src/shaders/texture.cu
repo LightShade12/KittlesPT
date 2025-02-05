@@ -17,7 +17,7 @@ namespace KittlesPT
 
 	//=================================================================================================================
 
-	__device__ RGBSpectrum Texture::evaluate(const GlobalShaderData& shader_data, const TextureEvalContext& ctx)
+	__device__ RGBSpectrum Texture::evaluate(const ShaderData& shader_data, const TextureEvalContext& ctx)
 	{
 		if (pixel_buffer_index < 0 || pixel_buffer_index >= shader_data.pixel_buffer.num)
 		{

@@ -4,7 +4,7 @@
 namespace KittlesPT
 {
 	class BSDF;
-	struct GlobalShaderData;
+	struct ShaderData;
 	struct SurfaceInteraction;
 
 	struct MaterialEvalContext
@@ -49,7 +49,7 @@ namespace KittlesPT
 			normal_scale(normal_scale)
 		{}
 
-		__device__ BSDF getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx) const;
+		__device__ BSDF getBSDF(const ShaderData& shader_data, MaterialEvalContext ctx) const;
 
 		//----
 	public:

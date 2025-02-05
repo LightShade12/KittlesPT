@@ -11,7 +11,7 @@
 namespace KittlesPT
 {
 	class Sphere;
-	struct GlobalShaderData;
+	struct ShaderData;
 	//Surface data type; passed to sampler
 	struct LightSampleContext
 	{
@@ -74,9 +74,9 @@ namespace KittlesPT
 
 		//----------------------------------------------------------------------------
 
-		__device__ RGBSpectrum L(const GlobalShaderData& shader_data, float2 uv) const;
+		__device__ RGBSpectrum L(const ShaderData& shader_data, float2 uv) const;
 
-		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
+		__device__ LightLiSample sampleLi(const ShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
 
 		//TODO: maybe consider allowing this method to test intersection on its shape for bug free, reliable operation
 		__device__ float pdf_Li(const LightSampleContext& ctx, const LightLiSample& confirmed_ls) const;

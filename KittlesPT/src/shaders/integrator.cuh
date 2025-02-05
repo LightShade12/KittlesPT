@@ -22,7 +22,7 @@ namespace KittlesPT
 		*	- Medium
 		*/
 
-	struct GlobalShaderData;
+	struct ShaderData;
 	struct Intersection;
 	struct GBuffer;
 	struct DebugData;
@@ -37,27 +37,27 @@ namespace KittlesPT
 
 	namespace Integrator
 	{
-		//will implicitly use GAS in GlobalShaderData
-		__device__ Intersection intersect(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg);
+		//will implicitly use GAS in ShaderData
+		__device__ Intersection intersect(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg);
 
-		__device__ bool intersectShadow(const GlobalShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg);
+		__device__ bool intersectShadow(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg);
 
-		__device__ bool Unoccluded(const GlobalShaderData& shader_data, const SurfaceInteraction& surface, float3 target);
+		__device__ bool Unoccluded(const ShaderData& shader_data, const SurfaceInteraction& surface, float3 target);
 
 		//----------------------------------------------------------------
 
-		__device__ RGBSpectrum LeSun(const GlobalShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere);
+		__device__ RGBSpectrum LeSun(const ShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere);
 
-		__device__ RGBSpectrum sampleLdSun(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
+		__device__ RGBSpectrum sampleLdSun(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler);
 
-		__device__ RGBSpectrum sampleLd(const GlobalShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
+		__device__ RGBSpectrum sampleLd(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
 			const SurfaceInteraction& surface, const UniformLightSampler& light_sampler, IndependentSampler& sampler);
 
-		__device__ RGBSpectrum Li(const GlobalShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
+		__device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface);
 
 		//----------------------------------------------------------------
 		//Monte-Carlo estimation; static accumulation
-		__device__ RGBSpectrum addSample(const GlobalShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample);
+		__device__ RGBSpectrum addSample(const ShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample);
 	}
 }/*KittlesPT*/

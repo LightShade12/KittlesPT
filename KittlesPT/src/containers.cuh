@@ -24,14 +24,24 @@ namespace KittlesPT
 		size_t num = 0;
 	};
 
-	struct GlobalShaderData
+	struct ShaderData
 	{
+		/* ShaderToy
+		uniform vec3 iResolution; viewport res in px
+		uniform float iTime; shaderplaybacktime in secs
+		uniform float iTimeDelta; render time in secs
+		uniform float iFrameRate; fps
+		*/
+
+		//standard shader uniforms
 		int2 frame_resolution;
-
 		int frame_index = 0;
-		float frame_delta = 0.0f;
+		float frame_delta = 0.0f;//in ms
 
+		//post process uniforms
 		float* scene_average_luminance = nullptr;
+
+		//geometry shader uniforms
 		Buffer<Triangle> triangles_buffer;
 		Buffer<TriangleMesh> meshes_buffer;
 		Buffer<float> histogram_buffer;
@@ -44,12 +54,13 @@ namespace KittlesPT
 		Buffer<BLAS> blas_buffer;
 		Buffer<TLASNode> tlas_nodes_buffer;
 		TLAS top_level_acceleration_structure;
-
 		Camera scene_camera;
 
+		//custom shader data
 		ProceduralEnvironmentData procedural_environment_data;
 		RendererSettings renderer_settings;
 
+		//frame textures
 		DeviceTextureBuffer main_texture;
 		DeviceTextureBuffer accumulation_texture;
 		DeviceTextureBuffer gbuffer_texture;

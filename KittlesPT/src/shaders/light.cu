@@ -17,7 +17,7 @@ namespace KittlesPT
 		return pdf;
 	}
 
-	__device__ RGBSpectrum Light::L(const GlobalShaderData& shader_data, float2 uv) const
+	__device__ RGBSpectrum Light::L(const ShaderData& shader_data, float2 uv) const
 	{
 		Material mat = shader_data.materials_buffer.data[shader_data.triangles_buffer.data[prim_id].material_id];
 		RGBSpectrum emission = RGBSpectrum(mat.emissive_factor * mat.emission_scale_nits);
@@ -30,7 +30,7 @@ namespace KittlesPT
 		return emission;
 	};
 
-	__device__ LightLiSample Light::sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const
+	__device__ LightLiSample Light::sampleLi(const ShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const
 	{
 		ShapeSample ss = shader_data.triangles_buffer.data[prim_id].sample(u2, ctx);
 

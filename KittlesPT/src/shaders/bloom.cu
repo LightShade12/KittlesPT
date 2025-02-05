@@ -87,7 +87,7 @@ namespace KittlesPT
 	};
 }/*KittlesPT*/
 
-__global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src,
+__global__ void downSample(const KittlesPT::ShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src,
 	KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg)
 {
 	using namespace KittlesPT;
@@ -109,7 +109,7 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	t_dst.textureWrite(min_filtered_color, shading_job.pixel_coord);
 }
 
-__global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src,
+__global__ void upSampleCombine(const KittlesPT::ShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src,
 	KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;

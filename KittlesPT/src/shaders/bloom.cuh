@@ -10,6 +10,6 @@ namespace KittlesPT
 	__device__ float4 karisAverage(float4 sp0, float4 sp1, float4 sp2, float4 sp3);
 }/*KittlesPT*/
 
-__global__ void downSample(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg);
+__global__ void downSample(const KittlesPT::ShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg);
 
-__global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst);
+__global__ void upSampleCombine(const KittlesPT::ShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst);

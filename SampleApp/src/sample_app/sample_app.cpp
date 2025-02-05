@@ -26,7 +26,7 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		//ImGui::StyleColorsDark();
 
-		loadSceneFile("mc_fort.glb");
+		loadSceneFile("two_objects.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_data = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();
@@ -105,6 +105,14 @@ namespace SampleApp
 
 		for (int32_t i = 0; i < scene.mesh_entities.size(); i++) {
 			m_meshes.push_back(MeshObject(i, scene.mesh_entities[i].model_matrix));
+		}
+
+		if (!scene.camera_entities.empty()) {
+			const KittlesPT::CameraSceneEntity& parsed_camera = scene.camera_entities[0];
+			m_camera.setVerticalFOV_Radians(parsed_camera.y_fov_radians);
+			auto model = glm::inverse(parsed_camera.view_matrix);
+			m_camera.setPosition(model[3]);
+			m_camera.setLookAt(-model[2]);
 		}
 
 		m_renderer.loadScene(scene);

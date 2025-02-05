@@ -52,7 +52,7 @@ namespace KittlesPT
 }/*KittlesPT*/
 
 //Launch with thread dims 16x16=256
-__global__ void histogramComputeKernel(const KittlesPT::GlobalShaderData shader_data)
+__global__ void histogramComputeKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 
@@ -90,7 +90,7 @@ __global__ void histogramComputeKernel(const KittlesPT::GlobalShaderData shader_
 }
 
 //launched with thread dims = 256 x 1;
-__global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::GlobalShaderData shader_data)
+__global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 

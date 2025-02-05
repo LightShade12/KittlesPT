@@ -12,7 +12,7 @@ namespace KittlesPT
 
 	//========================================================================================================
 
-	__device__ BSDF Material::getBSDF(const GlobalShaderData& shader_data, MaterialEvalContext ctx) const
+	__device__ BSDF Material::getBSDF(const ShaderData& shader_data, MaterialEvalContext ctx) const
 	{
 		RGBSpectrum eval_albedo = RGBSpectrum(albedo);
 		float eval_roughness = roughness_factor;

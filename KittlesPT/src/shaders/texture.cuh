@@ -4,7 +4,7 @@
 namespace KittlesPT
 {
 	class RGBSpectrum;
-	struct GlobalShaderData;
+	struct ShaderData;
 	struct SurfaceInteraction;
 	struct MaterialEvalContext;
 
@@ -26,7 +26,7 @@ namespace KittlesPT
 			pixel_buffer_index(pixel_buffer_index) {}
 
 		//implied to be using UV mapping
-		__device__ RGBSpectrum evaluate(const GlobalShaderData& shader_data, const TextureEvalContext& ctx);
+		__device__ RGBSpectrum evaluate(const ShaderData& shader_data, const TextureEvalContext& ctx);
 
 	public:
 		int width = 0, height = 0;

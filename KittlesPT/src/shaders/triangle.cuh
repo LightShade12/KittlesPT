@@ -8,7 +8,7 @@
 
 namespace KittlesPT
 {
-	struct GlobalShaderData;
+	struct ShaderData;
 	class RGBSpectrum;
 	class BSDF;
 	struct SurfaceInteraction;

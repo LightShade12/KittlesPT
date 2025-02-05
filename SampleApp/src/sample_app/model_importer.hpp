@@ -381,30 +381,49 @@ namespace SampleApp
 		tinygltf::Camera gltf_camera = m_scene_model.cameras[camera_node.camera];
 		printf("\n> found a camera: %s\n", gltf_camera.name.c_str());
 
-		glm::mat4 translation_mat = glm::identity<glm::mat4>();
-		glm::mat4 rot_mat = glm::identity<glm::mat4>();
+		glm::mat4 model_mat(1.0f);
+		if (camera_node.matrix.empty())
+		{
+			printf("> found decomposed matrices\n");
+			glm::mat4 translation_mat = glm::identity<glm::mat4>();
+			glm::mat4 rot_mat = glm::identity<glm::mat4>();
 
-		if (camera_node.rotation.size() > 0) {
-			glm::quat quaternion = glm::quat(
-				(float)camera_node.rotation[3],
-				(float)camera_node.rotation[0],
-				(float)camera_node.rotation[1],
-				(float)camera_node.rotation[2]);
-			rot_mat = glm::toMat4(glm::normalize(quaternion));
+			if (camera_node.rotation.size() > 0) {
+				printf("> found rotation matrix\n");
+
+				glm::quat quaternion = glm::quat(
+					(float)camera_node.rotation[3],
+					(float)camera_node.rotation[0],
+					(float)camera_node.rotation[1],
+					(float)camera_node.rotation[2]);
+				rot_mat = glm::toMat4(glm::normalize(quaternion));
+			}
+
+			if (camera_node.translation.size() > 0)
+			{
+				printf("> found translation matrix\n");
+
+				translation_mat = glm::translate(glm::mat4(1.0f),
+					glm::vec3(
+						(float)camera_node.translation[0],
+						(float)camera_node.translation[1],
+						(float)camera_node.translation[2]));
+			}
+			model_mat = translation_mat * rot_mat;
 		}
-
-		if (camera_node.translation.size() > 0) {
-			translation_mat = glm::translate(glm::mat4(1.0f),
-				glm::vec3(
-					(float)camera_node.translation[0],
-					(float)camera_node.translation[1],
-					(float)camera_node.translation[2]));
+		else {
+			auto& m = camera_node.matrix;
+			printf("> found a model matrix\n");
+			model_mat = glm::mat4(
+				m[0], m[1], m[2], m[3],
+				m[4], m[5], m[6], m[7],
+				m[8], m[9], m[10], m[11],
+				m[12], m[13], m[14], m[15]);
 		}
-
-		glm::mat4 model_mat = translation_mat * rot_mat;
-
 		glm::mat4 view_matrix = glm::inverse(model_mat);
-
+		printf("> x:%.3f y:%.3f z:%.3f\n", camera_node.translation[0], camera_node.translation[1], camera_node.translation[2]);
+		printf("> x:%.3f y:%.3f z:%.3f\n", model_mat[3][0], model_mat[3][1], model_mat[3][2]);
+		printf("> x:%.3f y:%.3f z:%.3f\n", view_matrix[3][0], view_matrix[3][1], view_matrix[3][2]);
 		KittlesPT::CameraSceneEntity camera(gltf_camera.name, view_matrix, (float)gltf_camera.perspective.yfov);
 		m_scene->addCamera(camera);
 

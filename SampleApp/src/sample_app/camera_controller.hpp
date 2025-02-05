@@ -16,6 +16,16 @@ namespace SampleApp
 		void  setMovementSpeed(float speed) { m_movement_speed = speed; };
 		float getMovementSpeed() const { return m_movement_speed; };
 
+		void  setPosition(const glm::vec3& pos) { position = pos; };
+		glm::vec3 getPosition() const { return position; };
+
+		void  setLookAt(const glm::vec3& dir)
+		{
+			forward = dir;
+			right = normalize(glm::cross(forward, global_up));
+			up = normalize(glm::cross(right, forward));
+		};
+
 		float getVerticalFOV_Radians() const { return m_fov_y_rad; };
 		void setVerticalFOV_Radians(float fov_y_rad) { m_fov_y_rad = fov_y_rad; };
 
@@ -41,6 +51,7 @@ namespace SampleApp
 		static constexpr float SHUTTER_DENOM_MAX = 400.0f;
 
 	private:
+		constexpr static glm::vec3 global_up = glm::vec3(0, 1, 0);
 		//default: DayTime preset
 		float m_aperture_f_num = 11.0f;
 		float m_exposure_compensation_ev = 0.0f;
