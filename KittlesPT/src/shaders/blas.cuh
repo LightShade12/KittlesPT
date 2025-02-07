@@ -19,12 +19,12 @@ namespace KittlesPT
 			return bounds.surfaceArea();
 		}
 
-		__host__ __device__ bool isLeaf() const
+		__forceinline__ __host__ __device__ bool isLeaf() const
 		{
 			return node_tris_idx_count > 0;
 		}
 
-		__device__ bool intersectP(const Ray& ray, float tmin, float tmax, float* hit0, float* hit1)  const
+		__forceinline__ __device__ bool intersectP(const Ray& ray, float tmin, float tmax, float* hit0, float* hit1)  const
 		{
 			return bounds.intersectP(ray, tmin, tmax, hit0, hit1);
 		}
@@ -47,7 +47,7 @@ namespace KittlesPT
 	public:
 		BLAS() = default;
 
-		__device__ bool intersectP(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
+		__forceinline__ __device__ bool intersectP(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
 		{
 			if (bvhnode_root_id < 0) {
 				return false;
@@ -113,7 +113,7 @@ namespace KittlesPT
 			return false;
 		};
 
-		__device__ Intersection intersect(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg) const
+		__forceinline__ __device__ Intersection intersect(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg) const
 		{
 			if (bvhnode_root_id < 0) {
 				return Intersection();
@@ -220,12 +220,12 @@ namespace KittlesPT
 		uint32_t left_right_id = 0;
 		int32_t blas_id = -1;
 
-		__device__ __host__ bool isleaf() const {
+		__forceinline__ __device__ __host__ bool isleaf() const {
 			return left_right_id == 0;
 		};
 
 		//each child can represent max id of 65535
-		__device__ void getChildrenID(uint32_t* child1_id, uint32_t* child2_id) const
+		__forceinline__ __device__ void getChildrenID(uint32_t* child1_id, uint32_t* child2_id) const
 		{
 			*child1_id = left_right_id & 0xFFFF;//left child id in lower 16 bits
 			*child2_id = (left_right_id >> 16) & 0xFFFF;//right child in higher 16 bits
@@ -236,7 +236,7 @@ namespace KittlesPT
 			return bounds.surfaceArea();
 		}
 
-		__device__ bool intersectP(const Ray& ray, float tmin, float tmax, float* hit0, float* hit1) const
+		__forceinline__ __device__ bool intersectP(const Ray& ray, float tmin, float tmax, float* hit0, float* hit1) const
 		{
 			return bounds.intersectP(ray, tmin, tmax, hit0, hit1);
 		}

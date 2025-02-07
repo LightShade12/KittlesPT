@@ -53,7 +53,7 @@ namespace KittlesPT
 		return wm;
 	}
 
-	inline __device__ bool refract(const float3& wi, float3 normal, float ior, float3& wt)
+	__forceinline__ inline __device__ bool refract(const float3& wi, float3 normal, float ior, float3& wt)
 	{
 		float cosTheta = dot(wi, normal);
 

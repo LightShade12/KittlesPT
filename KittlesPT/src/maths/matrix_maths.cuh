@@ -88,7 +88,7 @@ namespace KittlesPT
 
 		//OPERATORS-----------------------
 
-		__host__ __device__ float3 operator*(const float3& vec) const {
+		__forceinline__ __host__ __device__ float3 operator*(const float3& vec) const {
 			float3 result;
 
 			result.x = m_columns[0].x * vec.x + m_columns[1].x * vec.y + m_columns[2].x * vec.z;
@@ -256,7 +256,7 @@ namespace KittlesPT
 
 		//OPERATORS----------------
 
-		__host__ __device__ float4 operator*(const float4& vec) const {
+		__forceinline__ __host__ __device__ float4 operator*(const float4& vec) const {
 			float4 result;
 
 			result.x = m_columns[0].x * vec.x + m_columns[1].x * vec.y + m_columns[2].x * vec.z + m_columns[3].x * vec.w;
@@ -365,6 +365,40 @@ namespace KittlesPT
 	using Mat4 = Matrix4x4;
 	using Mat3 = Matrix3x3;
 
-	__device__ Mat3 generateOrthonormalBasis(const float3& normal);
-	__device__ Mat3 generateONBFrisvad(float3 normal);
+	inline __device__ Mat3 generateOrthonormalBasis(const float3& normal)
+	{
+		// Choose a helper vector H that is not parallel to the normal
+		float3 helper = (fabs(normal.x) > fabs(normal.z)) ? make_float3(0, 1, 0) : make_float3(1, 0, 0);
+
+		// Compute tangent vector (orthogonal to normal)
+		float3 tangent = normalize(cross(helper, normal));
+
+		// Compute bitangent vector (orthogonal to both normal and tangent)
+		float3 bitangent = cross(normal, tangent);
+
+		return Mat3(tangent, bitangent, normal);
+	}
+
+	inline __device__ Mat3 generateONBFrisvad(float3 normal)
+	{
+		Mat3 ret;
+		ret[1] = normal;
+		if (normal.z < -0.999805696f)
+		{
+			ret[0] = make_float3(0.0f, -1.0f, 0.0f);
+			ret[2] = make_float3(-1.0f, 0.0f, 0.0f);
+		}
+		else
+		{
+			float a = 1.0f / (1.0f + normal.z);
+			float b = -normal.x * normal.y * a;
+			ret[0] = make_float3(1.0f - normal.x * normal.x * a, b, -normal.x);
+			ret[2] = make_float3(b, 1.0f - normal.y * normal.y * a, -normal.y);
+		}
+
+		ret[1] = ret[2];
+		ret[2] = normal;
+
+		return ret;
+	}
 }

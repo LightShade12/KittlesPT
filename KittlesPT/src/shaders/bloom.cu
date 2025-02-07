@@ -3,7 +3,19 @@
 
 namespace KittlesPT
 {
-	__device__ float4 textureRead36Texels(const DeviceTextureBuffer& t_texture, float2 t_pixel_coord, bool karis_avg)
+	inline __device__ float4 karisAverage(float4 sp0, float4 sp1, float4 sp2, float4 sp3)
+	{
+		float w0 = 1.0f / RGBSpectrum(sp0).getLuminance();
+		float w1 = 1.0f / RGBSpectrum(sp1).getLuminance();
+		float w2 = 1.0f / RGBSpectrum(sp2).getLuminance();
+		float w3 = 1.0f / RGBSpectrum(sp3).getLuminance();
+
+		float net_w = 1.0f / (w0 + w1 + w2 + w3);
+
+		return (sp0 * w0 + sp1 * w1 + sp2 * w2 + sp3 * w3) * net_w;
+	}
+
+	inline __device__ float4 textureRead36Texels(const DeviceTextureBuffer& t_texture, float2 t_pixel_coord, bool karis_avg)
 	{
 		//Bilinear taps-------------------------
 		//top left
@@ -62,22 +74,10 @@ namespace KittlesPT
 		return filtered_color;
 	}
 
-	__device__ float4 textureRead36TexelsUV(const DeviceTextureBuffer& t_texture, float2 uv_coord, bool karis_avg)
+	inline __device__ float4 textureRead36TexelsUV(const DeviceTextureBuffer& t_texture, float2 uv_coord, bool karis_avg)
 	{
 		float2 pixel_coord = uv_coord * t_texture.dimensions;
 		return textureRead36Texels(t_texture, pixel_coord, karis_avg);
-	}
-
-	__device__ float4 karisAverage(float4 sp0, float4 sp1, float4 sp2, float4 sp3)
-	{
-		float w0 = 1.0f / RGBSpectrum(sp0).getLuminance();
-		float w1 = 1.0f / RGBSpectrum(sp1).getLuminance();
-		float w2 = 1.0f / RGBSpectrum(sp2).getLuminance();
-		float w3 = 1.0f / RGBSpectrum(sp3).getLuminance();
-
-		float net_w = 1.0f / (w0 + w1 + w2 + w3);
-
-		return (sp0 * w0 + sp1 * w1 + sp2 * w2 + sp3 * w3) * net_w;
 	}
 
 	__constant__ constexpr float GAUSSIAN_3x3_KERNEL[3][3] = {

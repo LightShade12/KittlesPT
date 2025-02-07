@@ -28,8 +28,8 @@ namespace KittlesPT
 		size_t row_stride = width * px_stride;
 
 		float2 st = make_float2(ctx.uv.x - floorf(ctx.uv.x), ctx.uv.y - floorf(ctx.uv.y));
-		int x = int(st.x * width) % width;
-		int y = int(st.y * height) % height;
+		int32_t x = int32_t(st.x * width) % width;
+		int32_t y = int32_t(st.y * height) % height;
 
 		if (x < 0) x += width;
 		if (y < 0) y += height;
@@ -41,8 +41,8 @@ namespace KittlesPT
 			return RGBSpectrum(0.0f);
 		}
 
-		unsigned char* px_buff = &shader_data.pixel_buffer.data[pixel_buffer_index];
-		unsigned char* triplet_buff = &px_buff[px_offset];
+		uint8_t* px_buff = &shader_data.pixel_buffer.data[pixel_buffer_index];
+		uint8_t* triplet_buff = &px_buff[px_offset];
 
 		return RGBSpectrum(
 			triplet_buff[0] * Constants::INV_255,

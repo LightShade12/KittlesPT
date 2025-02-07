@@ -1,4 +1,6 @@
 #pragma once
+#include "containers.cuh"
+#include "color.cuh"
 #include <cuda.h>
 #include <vector_types.h>
 
@@ -17,7 +19,7 @@ namespace KittlesPT
 	*	-Wavefront rendering
 	*	-Mediums (Volumetric Rendering)
 	*	-Stratified Sampling
-	* 
+	*
 	*	-Anisotropy
 	*	-Specular material; specular/any_non_specular_bounces
 	*	-Path regularization
@@ -48,7 +50,6 @@ namespace KittlesPT
 	class BSDF;
 	class Atmosphere;
 	class UniformLightSampler;
-	class RGBSpectrum;
 	class IndependentSampler;
 
 	namespace Integrator
@@ -74,6 +75,15 @@ namespace KittlesPT
 
 		//----------------------------------------------------------------
 		//Monte-Carlo estimation; static accumulation
-		__device__ RGBSpectrum addSample(const ShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample);
+		inline __device__ RGBSpectrum addSample(const ShaderData& shader_data, int2 pixel_coord, const RGBSpectrum& radiance_sample)
+		{
+			RGBSpectrum accumulated_sample = RGBSpectrum(shader_data.accumulation_texture.textureReadNearest(make_float2(pixel_coord)));
+			RGBSpectrum new_accumulated_sample = accumulated_sample + radiance_sample;
+
+			shader_data.accumulation_texture.textureWrite(make_float4(new_accumulated_sample.toFloat3(), 1), pixel_coord);
+			RGBSpectrum integral_estimate = new_accumulated_sample / float(shader_data.frame_index + 1);
+
+			return integral_estimate;
+		}
 	}
 }/*KittlesPT*/

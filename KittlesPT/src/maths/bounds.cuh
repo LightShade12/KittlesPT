@@ -6,6 +6,7 @@ namespace KittlesPT {
 	public:
 
 		Bounds3f() = default;
+
 		__host__ Bounds3f(float3 min, float3 max) :
 			pmin(min), pmax(max) {};
 
@@ -34,7 +35,7 @@ namespace KittlesPT {
 			grow(b.pmin);
 		}
 
-		__device__ bool intersectP(const Ray& ray, float t_tmin, float t_tmax, float* hit0, float* hit1) const
+		__forceinline__ __device__ bool intersectP(const Ray& ray, float t_tmin, float t_tmax, float* hit0, float* hit1) const
 		{
 			float3 t0 = (pmin - ray.getOrigin()) * ray.getInvDirection();
 			float3 t1 = (pmax - ray.getOrigin()) * ray.getInvDirection();

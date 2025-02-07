@@ -82,6 +82,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)thirdparty\glad\include;$(ProjectDir)src;$(ProjectDir)thirdparty\</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -100,19 +102,20 @@
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <AdditionalOptions>-diag-suppress 20012 --std=c++17 %(AdditionalOptions)</AdditionalOptions>
+      <ExtensibleWholeProgramCompilation>false</ExtensibleWholeProgramCompilation>
     </CudaCompile>
+    <CudaLink>
+      <PerformDeviceLinkTimeOptimization>true</PerformDeviceLinkTimeOptimization>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="src\error_check.cu" />
-    <CudaCompile Include="src\maths\matrix_maths.cu" />
     <CudaCompile Include="src\reference.cu" />
-    <CudaCompile Include="src\maths\linear_algebra.cu" />
     <CudaCompile Include="src\renderer.cu" />
     <CudaCompile Include="src\shaders\atmosphere.cu" />
     <CudaCompile Include="src\shaders\bloom.cu" />
     <CudaCompile Include="src\shaders\bsdf.cu" />
     <CudaCompile Include="src\shaders\camera.cu" />
-    <CudaCompile Include="src\shaders\color.cu" />
     <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
     <ClInclude Include="src\as_builder.cuh" />
     <ClInclude Include="src\autoexposure_program.hpp" />
@@ -134,8 +137,6 @@
     <CudaCompile Include="src\shaders\interaction.cu" />
     <CudaCompile Include="src\shaders\light.cu" />
     <CudaCompile Include="src\shaders\material.cu" />
-    <CudaCompile Include="src\shaders\packing.cu" />
-    <CudaCompile Include="src\shaders\samplers.cu" />
     <CudaCompile Include="src\shaders\texture.cu" />
     <CudaCompile Include="src\shaders\tlas.cu" />
     <CudaCompile Include="src\texture_buffer.cu" />

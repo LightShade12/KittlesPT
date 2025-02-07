@@ -8,11 +8,6 @@
 
 namespace KittlesPT
 {
-	struct ShaderData;
-	class RGBSpectrum;
-	class BSDF;
-	struct SurfaceInteraction;
-
 	struct ShapeSample
 	{
 		ShapeSample() = default;
@@ -22,7 +17,7 @@ namespace KittlesPT
 
 		float3 wgnorm{};
 		float3 wpos{};
-		float pdf = 0;
+		float pdf = 0.0f;
 	};
 
 	struct ShapeSampleContext
@@ -67,7 +62,7 @@ namespace KittlesPT
 			local_geometric_normal = normalize(local_geometric_normal);
 		};
 
-		__device__ void intersect(const Ray& ray, float tmin, float tmax, Intersection* intr) const {
+		__forceinline__ __device__ void intersect(const Ray& ray, float tmin, float tmax, Intersection* intr) const {
 			intr->distance = INFINITY;
 
 			float3 v0v1 = vertex1.position - vertex0.position;
@@ -105,7 +100,7 @@ namespace KittlesPT
 			return;
 		}
 
-		__device__ ShapeSample sample(float2 u2, ShapeSampleContext ctx) const {
+		__forceinline__ __device__ ShapeSample sample(float2 u2, ShapeSampleContext ctx) const {
 			float3 p0 = vertex0.position, p1 = vertex1.position, p2 = vertex2.position;
 			float3 bary = sampleUniformTriangle(u2);
 			float3 p = p0 * bary.x + p1 * bary.y + p2 * bary.z;
