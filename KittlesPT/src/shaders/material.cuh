@@ -9,8 +9,9 @@ namespace KittlesPT
 
 	struct MaterialEvalContext
 	{
-		__device__ explicit MaterialEvalContext(const SurfaceInteraction& surf);
+		__device__ explicit MaterialEvalContext(const SurfaceInteraction& surface);
 
+		float3 wo;
 		float2 uv;
 		float3 wpos;
 		float3 wgnorm;

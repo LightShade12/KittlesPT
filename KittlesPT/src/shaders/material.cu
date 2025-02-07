@@ -7,11 +7,12 @@
 namespace KittlesPT
 {
 	__device__ MaterialEvalContext::MaterialEvalContext(const SurfaceInteraction& surface) :
-		wgnorm(surface.world_geometric_normal), backface(surface.backface), uv(surface.uv), wpos(surface.world_position)
+		wgnorm(surface.world_geometric_normal),
+		backface(surface.backface),
+		uv(surface.uv),
+		wpos(surface.world_position),
+		wo(surface.wo)
 	{}
-
-	//========================================================================================================
-
 	__device__ BSDF Material::getBSDF(const ShaderData& shader_data, MaterialEvalContext ctx) const
 	{
 		RGBSpectrum eval_albedo = RGBSpectrum(albedo);
@@ -38,6 +39,7 @@ namespace KittlesPT
 			sampled = powf(sampled, 2.2f);//sRGB to linear approx
 			eval_transmission *= sampled.r;
 		}
+		//normal map application
 		if (normal_texture_id >= 0) {
 			RGBSpectrum sampled = shader_data.texture_buffer.data[normal_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
 			float3 normal_encoded = powf(sampled, 2.2f).toFloat3();
@@ -46,7 +48,9 @@ namespace KittlesPT
 			mapped_normal.y *= normal_scale;
 			//mapped_normal.y = -mapped_normal.y;//DX12 => GL convention
 			Mat3 frame = generateONBFrisvad(ctx.wgnorm);
-			ctx.wgnorm = frame * normalize(mapped_normal);
+			float3 shading_wn = frame * normalize(mapped_normal);
+
+			ctx.wgnorm = (dot(ctx.wo, shading_wn) > 0.0f) ? shading_wn : ctx.wgnorm;
 		}
 
 		//TODO: consider moving basis generation to BSDF constructor

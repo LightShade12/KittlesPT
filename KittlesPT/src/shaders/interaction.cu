@@ -9,6 +9,7 @@ namespace KittlesPT
 	__device__ SurfaceInteraction Intersection::getSurfaceInteraction(const ShaderData& shader_data, const Ray& ray)
 	{
 		SurfaceInteraction surfintr;
+		surfintr.wo = -ray.getDirection();
 		const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
 		Mat4 model_mat = shader_data.meshes_buffer.data[instance_id].inv_model_matrix.inverse();
 		float3 wo = -ray.getDirection();

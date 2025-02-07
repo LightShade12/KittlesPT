@@ -23,8 +23,9 @@ namespace KittlesPT
 		__device__ Ray spawnRayTo(float3 target) const;
 
 		//--------------------------------------------------
+		float3 wo{ 0.0f,0.0f,0.0f };
 		const Light* arealight = nullptr;
-		int material_id = -1;
+		int32_t material_id = -1;
 		float distance = INFINITY;
 		float2 uv{ 0.0f,0.0f };
 		float3 world_position{ 0.0f,0.0f,0.0f };
