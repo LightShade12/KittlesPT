@@ -11,15 +11,6 @@ namespace KittlesPT
 		return 2.0f * distance * tanf(angle_rad / 2.0f);
 	}
 
-	__device__ float3 sphericalToSunDirection(float theta, float phi)
-	{
-		return normalize(make_float3(
-			cosf(phi) * cosf(theta),
-			sinf(theta),
-			sinf(phi) * cosf(theta)
-		));
-	}
-
 	__device__ bool intersectSphere(const Ray& ray, float3 t_sphere_centre, float t_sphere_radius, float& r_t0, float& r_t1)
 	{
 		float3 oc = t_sphere_centre - ray.getOrigin();

@@ -14,8 +14,6 @@ namespace KittlesPT
 
 	__device__ float angularDiameterToPhysicalDiameter(float angle_rad, float distance);
 
-	__device__ float3 sphericalToSunDirection(float theta, float phi);
-
 	class Atmosphere
 	{
 	public:

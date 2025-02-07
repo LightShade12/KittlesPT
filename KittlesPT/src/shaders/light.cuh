@@ -10,7 +10,6 @@
 
 namespace KittlesPT
 {
-	class Sphere;
 	struct ShaderData;
 	//Surface data type; passed to sampler
 	struct LightSampleContext

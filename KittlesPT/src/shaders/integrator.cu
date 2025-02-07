@@ -14,6 +14,8 @@
 
 //TODO:use *_t types
 
+//#define INTERSECT_DEBUG
+
 namespace KittlesPT
 {
 	namespace Integrator
@@ -22,6 +24,7 @@ namespace KittlesPT
 		{
 			return shader_data.top_level_acceleration_structure.intersect(shader_data, ray, tmin, tmax, dbg);
 
+#ifdef INTERSECT_DEBUG
 			return shader_data.blas_buffer.data[0].intersect(shader_data, ray, tmin, tmax, dbg);
 
 			Intersection closest;
@@ -46,12 +49,14 @@ namespace KittlesPT
 				}
 			}
 			return closest;
+#endif//INTERSECT_DEBUG
 		}
 
 		__device__ bool intersectShadow(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
 		{
 			return shader_data.top_level_acceleration_structure.intersectP(shader_data, ray, tmin, tmax);
 
+#ifdef INTERSECT_DEBUG
 			return shader_data.blas_buffer.data[0].intersectP(shader_data, ray, tmin, tmax);
 
 			Intersection intr;
@@ -74,6 +79,7 @@ namespace KittlesPT
 				}
 			}
 			return false;
+#endif//INTERSECT_DEBUG
 		}
 		__device__ bool Unoccluded(const ShaderData& shader_data, const SurfaceInteraction& surface, float3 target)
 		{
@@ -152,7 +158,6 @@ namespace KittlesPT
 			if (!Unoccluded(shader_data, surface, ls.wpos_light)) {
 				return Ld;
 			}
-
 			float p_l = (sampled_light.probability * ls.pdf);
 			float p_b = bsdf.pdf(wo, wi);
 			float w_l = powerHeuristic(1, p_l, 1, p_b);
@@ -173,17 +178,31 @@ namespace KittlesPT
 			return sampled_sun_col * shader_data.procedural_environment_data.sun_emission_nits * shape_mask_factor;
 		}
 
+		__device__ float3 getSunDirection(const ShaderData& shader_data)
+		{
+			float phi = shader_data.procedural_environment_data.sun_phi_rad, theta = shader_data.procedural_environment_data.sun_theta_rad;
+			return normalize(make_float3(
+				cosf(phi) * cosf(theta),
+				sinf(theta),
+				sinf(phi) * cosf(theta)
+			));
+		}
+
 		__device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
 		{
+			const int32_t max_ray_depth = shader_data.renderer_settings.max_bounce_depth;
+
 			RGBSpectrum light(0.0f);//L
 			RGBSpectrum throughput(1.0f);//beta
-			const int32_t max_ray_depth = shader_data.renderer_settings.max_bounce_depth;
+			bool specular_bounce = false, any_non_specular_bounces = false;
 			float eta_scale = 1.0;
+			int32_t depth = 0;
+
 			float p_b = 1.0f;
-			LightSampleContext prev_ctx{};
+			LightSampleContext prev_intr_ctx{};
 
 			//TODO:store in heap
-			float3 sun_direction = sphericalToSunDirection(shader_data.procedural_environment_data.sun_theta_rad, shader_data.procedural_environment_data.sun_phi_rad);
+			float3 sun_direction = getSunDirection(shader_data);
 			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_emission_nits);
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadiusMeters() + 1, 0);
 			UniformLightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
@@ -192,9 +211,9 @@ namespace KittlesPT
 			DebugData dbg;
 
 			//iterate through path vertices
-			for (int32_t bounce_depth = 0; bounce_depth <= max_ray_depth; bounce_depth++)
+			while (throughput)
 			{
-				sampler.setSeed(sampler.getSeed() + bounce_depth); bool first_surface = (bounce_depth == 0);
+				sampler.setSeed(sampler.getSeed() + depth); bool first_surface = (depth == 0);
 
 				Intersection intr = intersect(shader_data, ray, 0.0f, INFINITY, dbg);
 
@@ -218,19 +237,17 @@ namespace KittlesPT
 
 				//Sample Le from surface
 				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le) {
-					const Light* arealight = surfintr.arealight;
 					float w_l = 1.0f;
-					if (arealight && !first_surface) {
-						float light_pdf = light_sampler.PMF(arealight) * arealight->pdf_Li(prev_ctx, LightLiSample(surfintr));
+					if (surfintr.arealight && !first_surface) {
+						float light_pdf = light_sampler.PMF(surfintr.arealight) * surfintr.arealight->pdf_Li(prev_intr_ctx,
+							LightLiSample(surfintr));
 						w_l = powerHeuristic(1, p_b, 1, light_pdf);
 					}
 					light += Le * w_l * throughput;
 				}
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
-
-				//skip over medium boundaries
-				if (!bsdf) {
+				if (!bsdf) { //skip over medium boundaries
 					surfintr.skipInteraction(&ray);
 					continue;
 				}
@@ -240,12 +257,20 @@ namespace KittlesPT
 					*visible_surface = GBuffer(bsdf.getAlbedo(), surfintr);
 				}
 
-				//add regularize() here---
+				if (any_non_specular_bounces) {
+					bsdf.regularize();
+				}
 
-				RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
-				light += Ld * throughput;
-				RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
-				light += Ld_sun * throughput;
+				if (depth++ == max_ray_depth) {
+					break;
+				}
+
+				if (bsdf.isNonSpecular()) {
+					RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
+					light += Ld * throughput;
+					RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
+					light += Ld_sun * throughput;
+				}
 
 				float3 wo = -ray.getDirection();
 				BSDFSample bs = bsdf.sampleF(wo, sampler.get2D(), sampler.get2D());
@@ -253,19 +278,14 @@ namespace KittlesPT
 					break;
 				}
 
-				const float3& wi = bs.wi; float pdf = bs.pdf;
-				//uses absdot for allowing refraction
-				RGBSpectrum fcos = bs.f * AbsDot(surfintr.world_geometric_normal, wi);
-				if (!fcos) {
-					break;
-				}
+				throughput *= bs.f * AbsDot(surfintr.world_geometric_normal, bs.wi) / bs.pdf;//uses absdot for allowing refraction
+				p_b = bsdf.pdf(wo, bs.wi);
+				specular_bounce = bs.scatterTypeIs(BSDFSample::Specular);
+				any_non_specular_bounces |= !specular_bounce;
+				prev_intr_ctx = LightSampleContext(surfintr);
 
-				throughput *= (fcos / pdf);
-				p_b = bsdf.pdf(wo, wi);
-				prev_ctx = LightSampleContext(surfintr);
-				ray = surfintr.spawnRay(wi, bs.scatter);
-
-				if (russianRoulette(&throughput, eta_scale, bounce_depth, sampler)) {
+				ray = surfintr.spawnRay(bs.wi, bs.scatter);
+				if (russianRoulette(&throughput, eta_scale, depth, sampler)) {
 					break;
 				}
 			}

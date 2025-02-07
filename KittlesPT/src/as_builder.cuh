@@ -253,6 +253,7 @@ namespace KittlesPT
 			return blas;
 		}
 
+		//wrong
 		__host__ void refitBLAS()
 		{
 			int32_t nodesUsed = m_bvhnodes_buffer->size();
@@ -310,15 +311,14 @@ namespace KittlesPT
 				return TLAS();
 			}
 
-			// Resize TLAS node buffer with a safe margin
 			m_tlasnodes_buffer->resize(2 * BLAS_COUNT);
 
-			// Work list for agglomerative clustering
+			// work list for agglomerative clustering
 			std::vector<int32_t> tlas_node_ids(BLAS_COUNT);
 			int32_t node_index_ptr = 1;
 			int32_t node_indices_left = BLAS_COUNT;
 
-			// Initialize leaf nodes
+			// initialize leaves
 			for (uint32_t i = 0; i < BLAS_COUNT; i++) {
 				tlas_node_ids[i] = node_index_ptr;
 				(*m_tlasnodes_buffer)[node_index_ptr].bounds = (*m_blas_buffer)[i].bounds;
@@ -326,7 +326,7 @@ namespace KittlesPT
 				(*m_tlasnodes_buffer)[node_index_ptr++].left_right_id = 0u; // Leaf marker
 			}
 
-			// Agglomerative clustering to build TLAS
+			// agglomerative clustering to build TLAS
 			int A = 0, B = findBestMatch(tlas_node_ids.data(), node_indices_left, A);
 			while (node_indices_left > 1) {
 				int C = findBestMatch(tlas_node_ids.data(), node_indices_left, B);
@@ -334,7 +334,6 @@ namespace KittlesPT
 				if (A == C) {
 					int32_t node_id_A = tlas_node_ids[A], node_id_B = tlas_node_ids[B];
 
-					// Ensure valid indices
 					if (node_id_A <= 0 || node_id_B <= 0) {
 						printf("ERROR: Invalid node ID (A: %d, B: %d)\n", node_id_A, node_id_B);
 						return TLAS();
@@ -357,13 +356,11 @@ namespace KittlesPT
 				}
 			}
 
-			// Assign the root node
 			TLAS tlas;
 			tlas.tlasnode_root_id = 0;
 			(*m_tlasnodes_buffer)[tlas.tlasnode_root_id] = (*m_tlasnodes_buffer)[tlas_node_ids[A]];
 			tlas.bounds = (*m_tlasnodes_buffer)[tlas.tlasnode_root_id].bounds;
 
-			// Shrink buffer to actual used size
 			m_tlasnodes_buffer->resize(node_index_ptr);
 			return tlas;
 		}

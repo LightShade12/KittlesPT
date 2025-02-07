@@ -52,17 +52,19 @@ namespace KittlesPT
 	struct GBuffer
 	{
 		GBuffer() = default;
-		__device__ GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surf);
-		float3 albedo{};
-		float3 wgnorm{};
-		float depth = INFINITY;
 
-		int blas_hits = 0;
-		int tlas_hits = 0;
+		__device__ GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surf);
 
 		__device__ float4 packGBuffer();
 
 		__device__ static GBuffer unpackGBuffer(float4 data);
+
+		float3 albedo{ 0.0f,0.0f,0.0f };
+		float3 wgnorm{ 0.0f,0.0f,0.0f };
+		float depth = INFINITY;
+
+		int32_t blas_hits = 0;
+		int32_t tlas_hits = 0;
 		/*
 		* float3 wpos;
 		* int primitive_id = -1;

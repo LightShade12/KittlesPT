@@ -110,13 +110,19 @@ namespace KittlesPT
 	}
 }/*KittlesPT*/
 
+/*
+* The task is to simulate the process and result of :
+	1) Physically Based Light Transport in the scene,
+	2) Radiance reception at camera sensor,
+	3) Image reconstruction and output from camera
+*/
+
+//GPU Kernel to compute a single sample for Monte Carlo Integration of the Rendering Equation (task 1 and 2)
 __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
-
 	int2 frame_res = shader_data.frame_resolution;
 	ShadingJob shading_job = getShadingJob(frame_res);
-
 	if (shading_job.invalid) {
 		return;
 	}
@@ -143,7 +149,6 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 
 	//Monte-Carlo estimation; static accumulation
 	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
-
 	float4 frag_color = make_float4(sensor_radiance.toFloat3(), 1.0f);
 
 	//float scale = centerMeteringWeight(frame_res, shading_job.pixel_coord, 1.0f);
@@ -153,10 +158,10 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	float3 gas_heat_map = (make_float3(0, 1, 0) * visible_surface.blas_hits * 0.02f) + (make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
 
 	shader_data.debug_texture.textureWriteUV(make_float4(gas_heat_map, 1), shading_job.uv_coord);
-
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
+//Conversion from radiance to screen pixels (task 3)
 __global__ void computePostProcess(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;

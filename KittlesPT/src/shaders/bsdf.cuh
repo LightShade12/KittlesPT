@@ -1,5 +1,6 @@
 #pragma once
 #include "maths/matrix_maths.cuh"
+#include "maths/constants.cuh"
 #include "color.cuh"
 
 namespace KittlesPT
@@ -61,6 +62,17 @@ namespace KittlesPT
 		__device__ float pdf(float3 r_wo, float3 r_wi) const;
 
 		__device__ BSDFSample sampleF(float3 w_wo, float2 u2, float2 X2) const;
+
+		//TODO: add threshold constant
+		__device__ void regularize() {
+			if (m_roughness < 0.3f) {
+				m_roughness = clamp(2.0f * m_roughness, 0.1f, 0.3f);
+			}
+		}
+
+		__device__ bool isNonSpecular() {
+			return(m_roughness > Constants::GGX_ROUGHNESS_EPSILON);
+		}
 
 		__device__ bool operator! () {
 			return m_is_medium;

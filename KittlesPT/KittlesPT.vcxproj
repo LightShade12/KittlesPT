@@ -107,7 +107,6 @@
     <CudaCompile Include="src\maths\matrix_maths.cu" />
     <CudaCompile Include="src\reference.cu" />
     <CudaCompile Include="src\maths\linear_algebra.cu" />
-    <CudaCompile Include="src\maths\sampling.cu" />
     <CudaCompile Include="src\renderer.cu" />
     <CudaCompile Include="src\shaders\atmosphere.cu" />
     <CudaCompile Include="src\shaders\bloom.cu" />
@@ -137,7 +136,6 @@
     <CudaCompile Include="src\shaders\material.cu" />
     <CudaCompile Include="src\shaders\packing.cu" />
     <CudaCompile Include="src\shaders\samplers.cu" />
-    <CudaCompile Include="src\shaders\shading_kernel.cu" />
     <CudaCompile Include="src\shaders\texture.cu" />
     <CudaCompile Include="src\shaders\tlas.cu" />
     <CudaCompile Include="src\texture_buffer.cu" />

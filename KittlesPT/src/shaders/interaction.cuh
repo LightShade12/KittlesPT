@@ -25,7 +25,7 @@ namespace KittlesPT
 		//--------------------------------------------------
 		const Light* arealight = nullptr;
 		int material_id = -1;
-		float distance = -1.0f;
+		float distance = INFINITY;
 		float2 uv{ 0.0f,0.0f };
 		float3 world_position{ 0.0f,0.0f,0.0f };
 		float3 world_geometric_normal{ 0.0f,0.0f,0.0f };

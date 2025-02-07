@@ -48,8 +48,8 @@ namespace KittlesPT
 		int max_bounce_depth = 3;
 		bool generate_bloom = false;
 		bool use_karis_average = false;
-		float bloom_blend = 0.3f;
-		float bloom_internal_blend = 0.5f;
+		float bloom_blend = 0.175f;
+		float bloom_internal_blend = 0.65f;
 		bool enable_auto_exposure = false;
 	};
 

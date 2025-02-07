@@ -43,8 +43,8 @@ namespace KittlesPT
 			F += (fOpaqueDielectric(wo, wi) * w_opaque_dielectric);
 		}
 
-		//return albedo_factor * fDiffuseBRDF(wo, wi);
-		//return fTransparentDielectric(wo, wi);
+		//return m_albedo * fDiffuseBRDF(wo, wi);
+		//return fConductor(wo, wi);
 		return F;
 	}
 
@@ -68,7 +68,7 @@ namespace KittlesPT
 		if (w_opaque_dielectric > 0.0f) {
 			pdf += w_opaque_dielectric * pdfOpaqueDielectric(wo, wi);
 		}
-		//return pdfDiffuseBRDF(wo, wi);
+		//return pdfConductor(wo, wi);
 		//return pdfTransparentDielectric(wo, wi);
 		return pdf;
 	}
@@ -96,7 +96,7 @@ namespace KittlesPT
 			bs = sampleOpaqueDielectric(wo, u2, X2.y);
 		}
 
-		//bs = sampleOpaqueDielectric(wo, u2, X2.y);
+		//bs = sampleConductor(wo, u2, X2.y);
 		//bs = sampleTransparentDielectric(wo, u2, X2.y);
 
 		bs.wi = m_tangent_basis * bs.wi;
@@ -213,6 +213,7 @@ namespace KittlesPT
 		float NoH = fmaxf(wm.z, 0.0f);
 		float D = D_GGX(NoH, m_roughness);
 		float pdf = (VoH > 0.0f) ? (D * NoH) / (4.0f * VoH) : 0.0f;
+		pdf = (D * NoH) / (4.0f * VoH);
 		return pdf;
 	}
 
