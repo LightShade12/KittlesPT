@@ -141,16 +141,14 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	float camera_weight = 1.0f;
 	//We estimate radiance directly as RGB triplets
 	//evaluate integral(f(x)/p(x)) at Xi
-	RGBSpectrum sensor_radiance = RGBSpectrum(fs.weight) * camera_weight;
-	//* Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
+	RGBSpectrum sensor_radiance = RGBSpectrum(fs.weight) * camera_weight *
+		Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
 
 	shader_data.gbuffer_texture.textureWriteUV(visible_surface.packGBuffer(), shading_job.uv_coord);
 
 	//Monte-Carlo estimation; static accumulation
 	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
 	float4 frag_color = make_float4(sensor_radiance.toFloat3(), 1.0f);
-
-	return;
 
 	//float scale = centerMeteringWeight(frame_res, shading_job.pixel_coord, 1.0f);
 	//scale = ceilf(scale);
