@@ -337,7 +337,6 @@ namespace KittlesPT
 					break;
 				}
 				//90fps=>93fps(bsdf inlining)=>95fps(bxdf inlning)
-				return RGBSpectrum(0);
 			}
 			visible_surface->blas_hits = dbg.blas_hits;
 			visible_surface->tlas_hits = dbg.tlas_hits;

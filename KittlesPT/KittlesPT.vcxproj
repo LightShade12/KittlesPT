@@ -101,7 +101,7 @@
       <FastMath>true</FastMath>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
-      <AdditionalOptions>-diag-suppress 20012 --std=c++17 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-diag-suppress 20012 --std=c++17 -arch=lto_75 %(AdditionalOptions)</AdditionalOptions>
       <ExtensibleWholeProgramCompilation>false</ExtensibleWholeProgramCompilation>
     </CudaCompile>
     <CudaLink>
