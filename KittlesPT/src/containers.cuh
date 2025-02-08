@@ -9,9 +9,9 @@ namespace KittlesPT
 	class BVHNode;
 	class TLASNode;
 	class BLAS;
+	struct Material;
 	class Triangle;
 	class TriangleMesh;
-	struct Material;
 	class Light;
 	class Texture;
 
