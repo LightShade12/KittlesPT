@@ -1,21 +1,11 @@
 #pragma once
 #include "maths/linear_algebra.cuh"
 #include "ray.cuh"
+#include "film.cuh"
 #include "color.cuh"
 
 namespace KittlesPT
 {
-	//Not needed but added for parity with PBRTv4 implementation
-	class Film
-	{
-	public:
-		__device__ float3 getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const;
-
-		float luminance_exposure_scalar = 1.0f;//TODO: fix this retarded shit
-		float black_point_ev = -10.0f;
-		float white_point_ev = 6.5f;
-	};
-
 	class Camera
 	{
 	public:
@@ -33,14 +23,27 @@ namespace KittlesPT
 			//Z = -1 => forward depth
 			return Ray(rayorig_ws, raydir_ws);
 		}
+		__device__ Film getFilm() const { return m_film; }
 
-		__host__ void setView(Mat4 inv_proj, Mat4 inv_view);
-		__host__ void setExposure(float luminance_exposure_scalar, float white_point_ev, float black_point_ev);
+		__host__ void Camera::setView(Mat4 inv_proj, Mat4 inv_view)
+		{
+			inv_projection_matrix = inv_proj;
+			inv_view_matrix = inv_view;
+			world_position = make_float3(inv_view[3]);
+		}
+
+		__host__ void Camera::setExposure(float luminance_exposure_scalar, float white_point_ev, float black_point_ev)
+		{
+			m_film.luminance_exposure_scalar = luminance_exposure_scalar;
+			m_film.white_point_ev = white_point_ev;
+			m_film.black_point_ev = black_point_ev;
+		}
 
 	public:
-		Film film;
 		Mat4 inv_view_matrix;
 		Mat4 inv_projection_matrix;
 		float3 world_position;
+	private:
+		Film m_film;
 	};
 }/*KittlesPT*/

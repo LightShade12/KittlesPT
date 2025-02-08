@@ -72,9 +72,9 @@ __global__ void histogramComputeKernel(const KittlesPT::ShaderData shader_data)
 		__syncthreads();
 
 		RGBSpectrum linear_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
-		float dynamic_range_ev = shader_data.scene_camera.film.white_point_ev - shader_data.scene_camera.film.black_point_ev;
+		float dynamic_range_ev = shader_data.scene_camera.getFilm().white_point_ev - shader_data.scene_camera.getFilm().black_point_ev;
 		uint log_lum_bin_idx = luminanceToBin(linear_radiance.getLuminance(),
-			shader_data.scene_camera.film.black_point_ev, (1.0f / dynamic_range_ev));
+			shader_data.scene_camera.getFilm().black_point_ev, (1.0f / dynamic_range_ev));
 
 		float weight = centerMeteringWeight(frame_res, shading_job.pixel_coord, 0.4f);//TODO: user param radius
 		//weight = 1.0f;
@@ -140,9 +140,9 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::ShaderDa
 
 		//printf("Avg bin idx: %d\n", int(log_lum_bin_idx_avg));
 
-		float dynamic_range_ev = shader_data.scene_camera.film.white_point_ev - shader_data.scene_camera.film.black_point_ev;
+		float dynamic_range_ev = shader_data.scene_camera.getFilm().white_point_ev - shader_data.scene_camera.getFilm().black_point_ev;
 		// Map from our histogram space to actual luminance
-		float avg_luminance = powf(2, (clamp((log_lum_bin_idx_avg - 1.0f) / float(Constants::HISTOGRAM_SIZE - 2), 0.0f, 1.0f) * dynamic_range_ev) + shader_data.scene_camera.film.black_point_ev);
+		float avg_luminance = powf(2, (clamp((log_lum_bin_idx_avg - 1.0f) / float(Constants::HISTOGRAM_SIZE - 2), 0.0f, 1.0f) * dynamic_range_ev) + shader_data.scene_camera.getFilm().black_point_ev);
 
 		float lum_last_frame = *(shader_data.scene_average_luminance);
 		float speed = 0.5f;

@@ -180,10 +180,10 @@ __global__ void computePostProcess(const KittlesPT::ShaderData shader_data)
 	}
 
 	float3 Yxy = sensor_radiance.toYxy();
-	Yxy.x *= shader_data.scene_camera.film.luminance_exposure_scalar;//scale scene luminance
+	Yxy.x *= shader_data.scene_camera.getFilm().luminance_exposure_scalar;//scale scene luminance
 	sensor_radiance = RGBSpectrum::fromYxy(Yxy);
 
-	float3 frag_color = shader_data.scene_camera.film.getDisplayNonLinearSRGB(sensor_radiance);
+	float3 frag_color = shader_data.scene_camera.getFilm().getDisplayNonLinearSRGB(sensor_radiance);
 	//frag_color = make_float3(shader_data.gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
 	//non-linear srgb target; expects gamma correction
 	shader_data.main_texture.textureWriteUV(make_float4(frag_color, 1.0f), shading_job.uv_coord);

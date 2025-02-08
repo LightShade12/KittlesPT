@@ -336,7 +336,7 @@ namespace KittlesPT
 				if (russianRoulette(&throughput, eta_scale, depth, sampler)) {
 					break;
 				}
-				//90fps
+				//90fps=>93fps(bsdf inlining)=>95fps(bxdf inlning)
 				return RGBSpectrum(0);
 			}
 			visible_surface->blas_hits = dbg.blas_hits;

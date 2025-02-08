@@ -1,6 +1,7 @@
 #include "interaction.cuh"
 #include "containers.cuh"
 #include "light.cuh"
+#include "triangle.cuh"
 #include "ray.cuh"
 #include "bsdf.cuh"
 #include "maths/constants.cuh"
@@ -51,39 +52,5 @@ namespace KittlesPT
 		BSDF bsdf = mat.getBSDF(shader_data, MaterialEvalContext(*this));
 
 		return bsdf;
-	}
-
-	__device__ void SurfaceInteraction::skipInteraction(Ray* ray)
-	{
-		float3 offset = world_geometric_normal * Constants::HIT_EPSILON;
-		if (dot(ray->getDirection(), world_geometric_normal) < 0) {
-			offset *= -1.0f;
-		}
-		float3 orig = world_position + offset;
-		*ray = Ray(orig, ray->getDirection());
-	}
-
-	__device__ Ray SurfaceInteraction::spawnRay(float3 wi, int scatter_flags) const
-	{
-		float3 ray_orig;
-		if (scatter_flags & BSDFSample::Transmitted) {
-			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
-		}
-		else {
-			ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
-		}
-		return Ray(ray_orig, wi);
-	}
-
-	__device__ Ray SurfaceInteraction::spawnRayTo(float3 target) const
-	{
-		float3 ray_orig;
-		if (backface) {
-			ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
-		}
-		else {
-			ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
-		}
-		return Ray(ray_orig, normalize(target - ray_orig));
 	}
 }/*KittlesPT*/

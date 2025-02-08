@@ -1,5 +1,6 @@
 #include "material.cuh"
 #include "maths/vector_maths.cuh"
+#include "triangle.cuh"
 #include "containers.cuh"
 #include "bsdf.cuh"
 #include "interaction.cuh"

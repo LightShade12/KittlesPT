@@ -1,23 +1,9 @@
-#include "camera.cuh"
+#pragma once
+#include "color.cuh"
+#include "maths/linear_algebra.cuh"
 
 namespace KittlesPT
 {
-	__host__ void Camera::setView(Mat4 inv_proj, Mat4 inv_view)
-	{
-		inv_projection_matrix = inv_proj;
-		inv_view_matrix = inv_view;
-		world_position = make_float3(inv_view[3]);
-	}
-
-	__host__ void Camera::setExposure(float luminance_exposure_scalar, float white_point_ev, float black_point_ev)
-	{
-		film.luminance_exposure_scalar = luminance_exposure_scalar;
-		film.white_point_ev = white_point_ev;
-		film.black_point_ev = black_point_ev;
-	}
-
-	//====================================================================================================================
-
 	/*
 	* AgX Minimal Implementation
 	Courtesy: Benjamin Wrensch
@@ -68,7 +54,7 @@ namespace KittlesPT
 #define AGX_LOOK 0
 
 		// ASC CDL based look transform
-		__device__ float3 AgXLook(float3 val)
+		inline __device__ float3 AgXLook(float3 val)
 		{
 			float luma = dot(val, LUMINANCE_COEFFICIENTS);
 
@@ -97,7 +83,7 @@ namespace KittlesPT
 
 		//Fifth order
 		//Mean error^2: 3.6705141e-06
-		__device__ inline float3 AgXDefaultContrastApprox(float3 x)
+		inline __device__ float3 AgXDefaultContrastApprox(float3 x)
 		{
 			float3 x2 = x * x;
 			float3 x4 = x2 * x2;
@@ -112,7 +98,7 @@ namespace KittlesPT
 		}
 
 		//Input is expected as linear tristimulus with Rec.709(BT 709) primary chromaticities ("linear sRGB")
-		__device__ float3 AgXFitted(float3 linear_rec_709, float white_point_ev, float black_point_ev)
+		inline __device__ float3 AgXFitted(float3 linear_rec_709, float white_point_ev, float black_point_ev)
 		{
 			/*From https://gist.github.com/nxrighthere/eb208dae8b66dbe452af223f276e46cc
 			// DEFAULT_LOG2_MIN      = -10.0
@@ -149,7 +135,7 @@ namespace KittlesPT
 		}
 
 		//Outputs NON-LINEAR Rec. 709
-		__device__ float3 AgXFittedOETF(float3 val)
+		inline __device__ float3 AgXFittedOETF(float3 val)
 		{
 			// Convert back to linear before applying outset matrix.
 			val = powf(val, make_float3(2.4));
@@ -175,13 +161,21 @@ namespace KittlesPT
 	}
 
 	//FILM============================================================================================
-
-	__device__ float3 Film::getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const
+		//Not needed but added for parity with PBRTv4 implementation
+	class Film
 	{
-		float3 display_color = AgXMinimal::AgXFitted(linear_radiance.toFloat3(), white_point_ev, black_point_ev);
-		display_color = AgXMinimal::AgXLook(display_color);
-		display_color = AgXMinimal::AgXFittedOETF(display_color);
-		//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF however
-		return display_color;
-	}
-}/*KittlesPT*/
+	public:
+		__device__ float3 getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const
+		{
+			float3 display_color = AgXMinimal::AgXFitted(linear_radiance.toFloat3(), white_point_ev, black_point_ev);
+			display_color = AgXMinimal::AgXLook(display_color);
+			display_color = AgXMinimal::AgXFittedOETF(display_color);
+			//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF however
+			return display_color;
+		}
+
+		float luminance_exposure_scalar = 1.0f;//TODO: fix this retarded shit
+		float black_point_ev = -10.0f;
+		float white_point_ev = 6.5f;
+	};
+}

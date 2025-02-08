@@ -1,10 +1,6 @@
 #pragma once
 #include "shaders/device_texture_buffer.cuh"
-#include "shaders/triangle.cuh"
 #include "shaders/camera.cuh"
-#include "shaders/material.cuh"
-#include "shaders/light.cuh"
-#include "shaders/texture.cuh"
 #include "shaders/tlas.cuh"
 #include "pod_types.hpp"
 
@@ -13,6 +9,11 @@ namespace KittlesPT
 	class BVHNode;
 	class TLASNode;
 	class BLAS;
+	class Triangle;
+	class TriangleMesh;
+	struct Material;
+	class Light;
+	class Texture;
 
 	template <typename T> struct Buffer
 	{

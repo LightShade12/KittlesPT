@@ -113,8 +113,6 @@
     <CudaCompile Include="src\reference.cu" />
     <CudaCompile Include="src\renderer.cu" />
     <CudaCompile Include="src\shaders\bloom.cu" />
-    <CudaCompile Include="src\shaders\bsdf.cu" />
-    <CudaCompile Include="src\shaders\camera.cu" />
     <ClInclude Include="src\as_builder.cuh" />
     <ClInclude Include="src\autoexposure_program.hpp" />
     <ClInclude Include="src\helpers.cuh" />
@@ -124,6 +122,7 @@
     <ClInclude Include="src\renderer_resource.cuh" />
     <ClInclude Include="src\shaders\blas.cuh" />
     <ClInclude Include="src\shaders\bloom.cuh" />
+    <ClInclude Include="src\shaders\film.cuh" />
     <ClInclude Include="src\shaders\filter.cuh" />
     <ClInclude Include="src\shaders\histogram.cuh" />
     <ClInclude Include="src\shaders\interaction.cuh" />
