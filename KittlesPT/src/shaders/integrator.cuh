@@ -139,11 +139,10 @@ namespace KittlesPT
 
 			float min_similarity_threshold = cosf(shader_data.procedural_environment_data.sun_angular_diameter_rad / 2.0f);
 			float similarity = dot(ray.getDirection(), atmosphere.getSunDirection());
-			float shape_mask_factor = (similarity > min_similarity_threshold) ? 1.0f : 0.0f;//step
+			bool sun_surface = similarity > min_similarity_threshold;//step
 			//TODO:fucked sun emission
-			RGBSpectrum sampled_sun_col = atmosphere.sampleLe(Ray(atmosphere_observer_position, atmosphere.getSunDirection()));
-
-			return sampled_sun_col * shader_data.procedural_environment_data.sun_emission_nits * shape_mask_factor;
+			float sun_nits = shader_data.procedural_environment_data.sun_emission_nits;
+			return RGBSpectrum(sun_nits * ::powf(1.0f / sun_nits, !sun_surface));//branchless
 		}
 
 		inline __device__ RGBSpectrum sampleLdSun(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
@@ -233,10 +232,11 @@ namespace KittlesPT
 
 		inline __device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
 		{
+			//114fps
 			const int32_t max_ray_depth = shader_data.renderer_settings.max_bounce_depth;
 
-			RGBSpectrum light(0.0f);//L
-			RGBSpectrum throughput(1.0f);//beta
+			//L and beta
+			RGBSpectrum light(0.0f), throughput(1.0f);
 			bool specular_bounce = false, any_non_specular_bounces = false;
 			float eta_scale = 1.0;
 			int32_t depth = 0;
@@ -252,31 +252,33 @@ namespace KittlesPT
 
 			Ray ray = ray_in;
 			DebugData dbg;
-			return light;
+			//112fps
 			//iterate through path vertices
 			while (throughput)
 			{
 				sampler.setSeed(sampler.getSeed() + depth); bool first_surface = (depth == 0);
 
 				Intersection intr = intersect(shader_data, ray, 0.0f, INFINITY, dbg);
-
 				//Sample participating media here--
 
 				//Handle interaction with a medium; else surface scatter--
-
+				//110fps
 				if (!intr) {
 					/* MISS
 					* Sampling only one InfiniteLight with bsdf sampling here,
 					* without any explicit sky sampling elsewhere, so no MIS used here */
-					RGBSpectrum sky_radiance = LeSun(shader_data, ray, atmosphere);
-					if (!sky_radiance) {
-						sky_radiance = atmosphere.sampleLe(Ray(atmosphere_observer_position, ray.getDirection()));
-					}
+					//RGBSpectrum sky_radiance = LeSun(shader_data, ray, atmosphere);
+					RGBSpectrum sky_radiance = atmosphere.sampleLe(Ray(atmosphere_observer_position, ray.getDirection())) *
+						LeSun(shader_data, ray, atmosphere);
+
 					light += sky_radiance * throughput;
 					break;
 				}
+				//79fps => 105fps(90fps when looking through atmosphere)
 
 				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
+
+				//101fps=>105fps(kernel root inlining)
 
 				//Sample Le from surface
 				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le) {
@@ -288,6 +290,7 @@ namespace KittlesPT
 					}
 					light += Le * w_l * throughput;
 				}
+				//102fps
 
 				BSDF bsdf = surfintr.getBSDF(shader_data);
 				if (!bsdf) { //skip over medium boundaries
@@ -307,6 +310,8 @@ namespace KittlesPT
 				if (depth++ == max_ray_depth) {
 					break;
 				}
+
+				//99fps
 
 				if (bsdf.isNonSpecular()) {
 					RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
@@ -331,6 +336,8 @@ namespace KittlesPT
 				if (russianRoulette(&throughput, eta_scale, depth, sampler)) {
 					break;
 				}
+				//90fps
+				return RGBSpectrum(0);
 			}
 			visible_surface->blas_hits = dbg.blas_hits;
 			visible_surface->tlas_hits = dbg.tlas_hits;

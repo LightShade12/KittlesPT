@@ -1,18 +1,7 @@
 #include "camera.cuh"
-#include "ray.cuh"
 
 namespace KittlesPT
 {
-	__device__ Ray Camera::generateRay(float2 ndc_coords) const
-	{
-		float4 target_cs = inv_projection_matrix * make_float4(ndc_coords.x, ndc_coords.y, 1.0f, 1.0f);
-		float4 target_ws = inv_view_matrix * make_float4(normalize(make_float3(target_cs) / target_cs.w), 0.0f);
-		float3 raydir_ws = normalize(make_float3(target_ws));
-		float3 rayorig_ws = world_position;
-
-		//Z = -1 => forward depth
-		return Ray(rayorig_ws, raydir_ws);
-	}
 	__host__ void Camera::setView(Mat4 inv_proj, Mat4 inv_view)
 	{
 		inv_projection_matrix = inv_proj;

@@ -112,7 +112,6 @@
     <CudaCompile Include="src\error_check.cu" />
     <CudaCompile Include="src\reference.cu" />
     <CudaCompile Include="src\renderer.cu" />
-    <CudaCompile Include="src\shaders\atmosphere.cu" />
     <CudaCompile Include="src\shaders\bloom.cu" />
     <CudaCompile Include="src\shaders\bsdf.cu" />
     <CudaCompile Include="src\shaders\camera.cu" />
@@ -129,8 +128,8 @@
     <ClInclude Include="src\shaders\histogram.cuh" />
     <ClInclude Include="src\shaders\interaction.cuh" />
     <ClInclude Include="src\shaders\light.cuh" />
+    <ClInclude Include="src\shaders\light_context.cuh" />
     <ClInclude Include="src\shaders\light_sampler.cuh" />
-    <CudaCompile Include="src\shaders\filter.cu" />
     <CudaCompile Include="src\shaders\histogram.cu" />
     <CudaCompile Include="src\shaders\interaction.cu" />
     <CudaCompile Include="src\shaders\light.cu" />

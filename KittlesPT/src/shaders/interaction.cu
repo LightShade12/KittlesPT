@@ -1,5 +1,6 @@
 #include "interaction.cuh"
 #include "containers.cuh"
+#include "light.cuh"
 #include "ray.cuh"
 #include "bsdf.cuh"
 #include "maths/constants.cuh"
