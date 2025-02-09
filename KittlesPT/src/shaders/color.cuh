@@ -252,13 +252,13 @@ namespace KittlesPT
 		//================================================================================================================
 
 		//Y value
-		__device__ float getLuminance()
+		__device__ float getLuminance() const
 		{
 			// Rec. 709 luminance coefficients for linear RGB
 			return (0.2126f * r) + (0.7152f * g) + (0.0722f * b);
 		}
 
-		__device__ float Y()
+		__device__ float Y() const
 		{
 			return getLuminance();
 		}
@@ -273,14 +273,65 @@ namespace KittlesPT
 			return RGBSpectrum(convertYxy2RGB(v));
 		}
 
-		__device__ float3 toXYZ()
+		__device__ float3 toXYZ() const
 		{
 			return convertRGB2XYZ(toFloat3());
 		}
 
-		__device__ float3 toYxy()
+		__device__ float3 toYxy() const
 		{
 			return convertXYZ2Yxy(toXYZ());
+		}
+
+		__device__ RGBSpectrum linearToGamma2_2() const {
+			const float i = 1.0f / 2.2f;
+			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+		}
+
+		__device__ RGBSpectrum gamma2_2ToLinear() const {
+			const float i = 2.2f;
+			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+		}
+
+		__device__ RGBSpectrum linearToGamma2_4() const {
+			const float i = 1.0f / 2.4f;
+			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+		}
+
+		__device__ RGBSpectrum gamma2_4ToLinear() const {
+			const float i = 2.4f;
+			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+		}
+
+		//Same primaries and white-point as ITU-R BT.709
+		//IEC 61966-2-1:1999
+
+		__device__ float sRGBEncoding(float v) {
+			constexpr float V = 0.0031308f;
+			constexpr float A = 12.92f;
+			constexpr float C = 0.055f;
+			constexpr float T = 2.4f;
+
+			return (v <= V) ? (A * v) : ((1 + C) * ::powf(v, 1.0f / T) - C);
+		}
+
+		__device__ float sRGBDecoding(float v) {
+			constexpr float U = 0.04045f;
+			constexpr float A = 12.92f;
+			constexpr float C = 0.055f;
+			constexpr float T = 2.4f;
+
+			return (v <= U) ? (v / A) : ::powf((v + C) / (1 + C), T);
+		}
+
+		// linear RGB to sRGB (normalized [0,1])
+		__device__ RGBSpectrum linearTosRGB() {
+			return RGBSpectrum(sRGBEncoding(r), sRGBEncoding(g), sRGBEncoding(b));
+		}
+
+		// sRGB to linear RGB (normalized [0,1])
+		__device__ RGBSpectrum sRGBToLinear() {
+			return RGBSpectrum(sRGBDecoding(r), sRGBDecoding(g), sRGBDecoding(b));
 		}
 
 	public:

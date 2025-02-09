@@ -24,12 +24,11 @@ namespace KittlesPT
 		if (albedo_texture_id >= 0)
 		{
 			RGBSpectrum sampled = shader_data.texture_buffer.data[albedo_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			sampled = powf(sampled, 2.2f);//sRGB to linear approx
-			eval_albedo *= sampled;
+			//sRGB to linear approx
+			eval_albedo *= sampled.gamma2_2ToLinear();
 		}
 		if (ORM_texture_id >= 0) {
 			RGBSpectrum sampled = shader_data.texture_buffer.data[ORM_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			sampled = powf(sampled, 2.2f);//sRGB to linear approx
 			//ORM: r=Occlusion, g=Roughness, b=Metalness
 			eval_roughness *= sampled.g;
 			eval_metalness *= sampled.b;
@@ -37,15 +36,13 @@ namespace KittlesPT
 		if (transmission_texture_id >= 0)
 		{
 			RGBSpectrum sampled = shader_data.texture_buffer.data[transmission_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			sampled = powf(sampled, 2.2f);//sRGB to linear approx
 			eval_transmission *= sampled.r;
 		}
 		//normal map application
 		if (normal_texture_id >= 0) {
 			RGBSpectrum sampled = shader_data.texture_buffer.data[normal_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			//float3 normal_encoded = powf(sampled, 2.2f).toFloat3();
-			float3 normal_encoded = sampled.toFloat3();
-			float3 mapped_normal = (normal_encoded * 2.0f) - 1.0f;
+			float3 normal_quantized = sampled.toFloat3();
+			float3 mapped_normal = (normal_quantized * 2.0f) - 1.0f;
 			mapped_normal.x *= normal_scale;
 			mapped_normal.y *= normal_scale;
 			//mapped_normal.y = -mapped_normal.y;//DX12 => GL convention

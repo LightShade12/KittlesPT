@@ -30,7 +30,7 @@ namespace KittlesPT
 			channel_count(channel_count), bit_depth(bit_depth),
 			pixel_buffer_index(pixel_buffer_index) {}
 
-		//implied to be using UV mapping
+		//implied to be using UV mapping; returns normalized(0=>1)
 		__device__ RGBSpectrum evaluate(const ShaderData& shader_data, const TextureEvalContext& ctx)
 		{
 			if (pixel_buffer_index < 0 || pixel_buffer_index >= shader_data.pixel_buffer.num)

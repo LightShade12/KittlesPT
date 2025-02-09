@@ -158,7 +158,9 @@ namespace KittlesPT
 		GBuffer() = default;
 
 		__device__ GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surf) :
-			albedo(albedo.toFloat3()), wgnorm(surf.world_geometric_normal), depth(surf.distance)
+			albedo(albedo.toFloat3()),
+			wgnorm(surf.world_geometric_normal),
+			depth(surf.distance)
 		{}
 
 		__device__ float4 packGBuffer()
@@ -183,12 +185,16 @@ namespace KittlesPT
 			return gb;
 		}
 
+		//Quantized
 		float3 albedo{ 0.0f,0.0f,0.0f };
+		//Precise
 		float3 wgnorm{ 0.0f,0.0f,0.0f };
 		float depth = INFINITY;
 
+		//Not included in packing:
 		int32_t blas_hits = 0;
 		int32_t tlas_hits = 0;
+
 		/*
 		* float3 wpos;
 		* int primitive_id = -1;

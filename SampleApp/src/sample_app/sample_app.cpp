@@ -27,8 +27,8 @@ namespace SampleApp
 		//ImGui::StyleColorsDark();
 
 		//loadSceneFile("two_objects.glb");
-		//loadSceneFile("test.glb");
-		loadSceneFile("cs16_italy.glb");
+		loadSceneFile("test.glb");
+		//loadSceneFile("cs16_italy.glb");
 		//loadSceneFile("mc_fort.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_settings = m_renderer.getProceduralEnvironmentData();
