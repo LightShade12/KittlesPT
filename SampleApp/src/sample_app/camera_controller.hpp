@@ -29,7 +29,7 @@ namespace SampleApp
 		float getVerticalFOV_Radians() const { return m_fov_y_rad; };
 		void setVerticalFOV_Radians(float fov_y_rad) { m_fov_y_rad = fov_y_rad; };
 
-		float getAperture() const { return m_aperture_f_num; }
+		float getApertureF() const { return m_aperture_f_num; }
 		void setAperture(float f_num) { m_aperture_f_num = f_num; }
 		float getExposureCompensationEV() const { return m_exposure_compensation_ev; }
 		void setExposureCompensationEV(float exposure_ev) { m_exposure_compensation_ev = exposure_ev; }

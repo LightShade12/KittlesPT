@@ -26,9 +26,9 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		//ImGui::StyleColorsDark();
 
-		loadSceneFile("two_objects.glb");
+		//loadSceneFile("two_objects.glb");
 		//loadSceneFile("test.glb");
-		//loadSceneFile("cs16_dust.glb");
+		loadSceneFile("cs16_italy.glb");
 		//loadSceneFile("mc_fort.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_settings = m_renderer.getProceduralEnvironmentData();
@@ -40,7 +40,7 @@ namespace SampleApp
 		m_application_data.editable_mesh_object = m_meshes[m_application_data.editable_mesh_idx];
 		m_application_data.meshes_count = m_renderer.getMeshCount();
 
-		KittlesPT::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
+		KittlesPT::ExposureValues camera_values(m_camera.getApertureF(), m_camera.getISO(), m_camera.getShutterSecs(),
 			CameraController::ISO_MAX, CameraController::ISO_MIN,
 			1.0f / CameraController::SHUTTER_DENOM_MIN, 1.0f / CameraController::SHUTTER_DENOM_MAX);
 		//TODO: have to set these at start; not intuitive
@@ -137,7 +137,7 @@ namespace SampleApp
 					m_camera.setWhitePointEV(cm_val[4]);
 					m_camera.setBlackPointEV(cm_val[5]);
 
-					KittlesPT::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
+					KittlesPT::ExposureValues camera_values(m_camera.getApertureF(), m_camera.getISO(), m_camera.getShutterSecs(),
 						CameraController::ISO_MAX, CameraController::ISO_MIN,
 						1.0f / CameraController::SHUTTER_DENOM_MIN, 1.0f / CameraController::SHUTTER_DENOM_MAX);
 

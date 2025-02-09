@@ -326,7 +326,8 @@ namespace KittlesPT
 
 				float3 wo = -ray.getDirection();
 				BSDFSample bs = bsdf.sampleF(wo, sampler.get2D(), sampler.get2D());
-				if (bs.scatterTypeIs(BSDFSample::Absorbed)) {
+				//TODO:fix transmission NaNs
+				if (bs.scatterTypeIs(BSDFSample::Absorbed) || !bs.f) {
 					break;
 				}
 

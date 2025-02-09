@@ -82,7 +82,7 @@ namespace SampleApp
 		if (ImGui::CollapsingHeader("Camera Settings") && m_camera_handle != nullptr) {
 			float fov_y_radians = m_camera_handle->getVerticalFOV_Radians();
 			float move_speed = m_camera_handle->getMovementSpeed();
-			float aperture_f_num = m_camera_handle->getAperture();
+			float aperture_f_num = m_camera_handle->getApertureF();
 			float exp_comp = m_camera_handle->getExposureCompensationEV();
 			int ISO = m_camera_handle->getISO();
 			float shutter_secs = m_camera_handle->getShutterSecs();

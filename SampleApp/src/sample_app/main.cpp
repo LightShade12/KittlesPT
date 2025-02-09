@@ -1,6 +1,11 @@
 ﻿#include "sample_app.hpp"
 #include <iostream>
 
+/*
+* NOTE:
+* To change the loaded scene file,go to sample_app.cpp::onCreate()
+*/
+
 int main()
 {
 	fprintf(stdout, "Entry point\n");

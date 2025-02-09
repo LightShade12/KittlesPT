@@ -32,10 +32,10 @@ namespace KittlesPT
 		float MAX_SHUTTER_SECS = 0.0333f;//1/30s
 	};
 
+	//sun: 31831 nits; 100000 lx
+	//sky: 1910 nits; 6000 lx
 	struct ProceduralEnvironmentSettings
 	{
-		//sun: 31831 nits; 100000 lx
-		//sky: 1910 nits; 6000 lx
 		float sun_angular_diameter_rad = 0.0087f;
 		float sun_phi_rad = 4.18879f;//rotation
 		//float sun_theta_rad = 0.785f;
