@@ -307,17 +307,21 @@ namespace KittlesPT
 					bsdf.regularize();
 				}
 
-				if (depth++ == max_ray_depth) {
-					break;
-				}
-
 				//99fps
 
 				if (bsdf.isNonSpecular()) {
-					RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
-					light += Ld * throughput;
-					RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
-					light += Ld_sun * throughput;
+					if (sampler.get1D() > 0.5f) {
+						RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
+						light += Ld * throughput * 2.0f;
+					}
+					else {
+						RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
+						light += Ld_sun * throughput * 2.0f;
+					}
+				}
+
+				if (depth++ == max_ray_depth) {
+					break;
 				}
 
 				float3 wo = -ray.getDirection();

@@ -43,7 +43,8 @@ namespace KittlesPT
 		//normal map application
 		if (normal_texture_id >= 0) {
 			RGBSpectrum sampled = shader_data.texture_buffer.data[normal_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			float3 normal_encoded = powf(sampled, 2.2f).toFloat3();
+			//float3 normal_encoded = powf(sampled, 2.2f).toFloat3();
+			float3 normal_encoded = sampled.toFloat3();
 			float3 mapped_normal = (normal_encoded * 2.0f) - 1.0f;
 			mapped_normal.x *= normal_scale;
 			mapped_normal.y *= normal_scale;

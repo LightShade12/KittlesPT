@@ -26,7 +26,9 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		//ImGui::StyleColorsDark();
 
-		loadSceneFile("two_objects.glb");
+		loadSceneFile("test.glb");
+		//loadSceneFile("cs16_dust.glb");
+		//loadSceneFile("mc_fort.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_settings = m_renderer.getProceduralEnvironmentData();
 		m_application_data.renderer_settings = m_renderer.getRendererSettings();
@@ -71,6 +73,7 @@ namespace SampleApp
 		}
 
 		m_renderer.executeRendering(m_developer_window.getDeltaTS_ms());
+		//m_renderer.getDebugRenderTargetTexture(m_viewport_texture.m_GL_texture_name);
 		m_renderer.getRenderTargetTexture(m_viewport_texture.m_GL_texture_name);
 
 		m_viewport.draw(m_window_ctx_handle);

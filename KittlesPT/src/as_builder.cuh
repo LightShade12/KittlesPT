@@ -23,14 +23,14 @@ namespace KittlesPT
 			m_tris_buffer = tris;
 		}
 
-		__host__ BLAS build(const TriangleMesh& mesh, int32_t mesh_id)
+		__host__ BLAS build(const TriangleMesh& mesh, uint64_t mesh_id)
 		{
 			mesh_tris_count = mesh.prim_count;
 			mesh_tris_offset = mesh.prim_offset;
 			BLAS mesh_blas = buildBLAS();
 			mesh_blas.original_bounds = mesh_blas.bounds;
 			mesh_blas.inv_model_matrix = mesh.inv_model_matrix;
-			mesh_blas.mesh_id = mesh_id;
+			mesh_blas.mesh_id = static_cast<int32_t>(mesh_id);
 			return mesh_blas;
 		}
 
@@ -184,8 +184,12 @@ namespace KittlesPT
 			float split_cost = findBestSplitPlane(parent_node, &axis, &split_pos);
 
 			float nosplit_cost = parent_node.node_tris_idx_count * parent_node.surfaceArea();
-			if (nosplit_cost <= split_cost) {
-				return;//termination condition
+
+			//if (nosplit_cost <= split_cost) {
+			//	return;//termination condition
+			//}
+			if (parent_node.node_tris_idx_count <= 8) {
+				return;
 			}
 
 			//split grp---------

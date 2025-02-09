@@ -104,7 +104,7 @@ namespace SampleApp
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				if (ImGui::SliderFloat("###speed_control", &move_speed,
-					0.001, 10.0f, "%.3f unitless")) {
+					0.001f, 10.0f, "%.3f unitless")) {
 					m_event_dispatcher_handle->emitSignal(Event("movement_speed_changed"), move_speed);
 				};
 
