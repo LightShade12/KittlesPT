@@ -45,12 +45,12 @@ namespace KittlesPT
 
 	struct RendererSettings
 	{
-		int max_bounce_depth = 3;
-		bool generate_bloom = false;
-		bool use_karis_average = false;
-		float bloom_blend = 0.175f;
+		int integrator_max_ray_depth = 3;
+		bool bloom_generate_bloom = false;
+		bool bloom_use_karis_average = false;
+		float bloom_final_blend = 0.175f;
 		float bloom_internal_blend = 0.65f;
-		bool enable_auto_exposure = false;
+		bool tonemapper_enable_auto_exposure = false;
 	};
 
 	//Adheres to GLTF 2.0 specifications

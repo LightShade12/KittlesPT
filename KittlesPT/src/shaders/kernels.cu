@@ -174,9 +174,9 @@ __global__ void computePostProcess(const KittlesPT::ShaderData shader_data)
 
 	RGBSpectrum sensor_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
 
-	if (shader_data.renderer_settings.generate_bloom) {
+	if (shader_data.renderer_settings.bloom_generate_bloom) {
 		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));
-		sensor_radiance = lerp(sensor_radiance, bloom_radiance, shader_data.renderer_settings.bloom_blend);
+		sensor_radiance = lerp(sensor_radiance, bloom_radiance, shader_data.renderer_settings.bloom_final_blend);
 	}
 
 	float3 Yxy = sensor_radiance.toYxy();

@@ -90,12 +90,12 @@ namespace KittlesPT
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_data);
 		//generate bloom buffer
-		if (m_renderer_rsrc->shader_data.renderer_settings.generate_bloom) {
+		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
 			executeBloomGeneration();
 			m_renderer_rsrc->shader_data.bloom_texture = m_renderer_rsrc->bloom_mipchain.mip_textures[0].enableCudaAccess();
 		}
 		//auto exposure pipeline
-		if (m_renderer_rsrc->shader_data.renderer_settings.enable_auto_exposure) {
+		if (m_renderer_rsrc->shader_data.renderer_settings.tonemapper_enable_auto_exposure) {
 			launchHistogramComputeKernel(m_renderer_rsrc->shader_data);
 			launchHistogramAverageComputeKernel(m_renderer_rsrc->shader_data);
 			AutoExposureProgram& ae = m_renderer_rsrc->auto_exposure_program; float avg_lum = *m_renderer_rsrc->shader_data.scene_average_luminance;
@@ -105,7 +105,7 @@ namespace KittlesPT
 
 		launchPostProcessComputeKernel(m_renderer_rsrc->shader_data);
 
-		if (m_renderer_rsrc->shader_data.renderer_settings.generate_bloom) {
+		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
 			m_renderer_rsrc->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_rsrc->shader_data.bloom_texture);
 		}
 
@@ -364,7 +364,7 @@ namespace KittlesPT
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
 			launchBloomDownSampleComputeKernel(m_renderer_rsrc->shader_data, dsrc, ddst,
-				(m_renderer_rsrc->shader_data.renderer_settings.use_karis_average && miplevel == 0));
+				(m_renderer_rsrc->shader_data.renderer_settings.bloom_use_karis_average && miplevel == 0));
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);

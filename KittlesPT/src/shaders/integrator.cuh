@@ -233,7 +233,7 @@ namespace KittlesPT
 		inline __device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
 		{
 			//114fps
-			const int32_t max_ray_depth = shader_data.renderer_settings.max_bounce_depth;
+			const int32_t max_ray_depth = shader_data.renderer_settings.integrator_max_ray_depth;
 
 			//L and beta
 			RGBSpectrum light(0.0f), throughput(1.0f);

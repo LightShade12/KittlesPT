@@ -26,8 +26,8 @@ namespace SampleApp
 		//ImGuiThemes::Dark();
 		//ImGui::StyleColorsDark();
 
-		loadSceneFile("test.glb");
-		//loadSceneFile("cs16_dust.glb");
+		//loadSceneFile("test.glb");
+		loadSceneFile("cs16_dust.glb");
 		//loadSceneFile("mc_fort.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_settings = m_renderer.getProceduralEnvironmentData();
@@ -42,7 +42,7 @@ namespace SampleApp
 		KittlesPT::ExposureValues camera_values(m_camera.getAperture(), m_camera.getISO(), m_camera.getShutterSecs(),
 			CameraController::ISO_MAX, CameraController::ISO_MIN,
 			1.0f / CameraController::SHUTTER_DENOM_MIN, 1.0f / CameraController::SHUTTER_DENOM_MAX);
-
+		//TODO: have to set these at start; not intuitive
 		m_renderer.setExposure(camera_values, m_camera.getExposureCompensationEV(),
 			m_camera.getWhitePointEV(), m_camera.getBlackPointEV());
 
@@ -65,7 +65,7 @@ namespace SampleApp
 		m_renderer.resizeResolution(m_window_width, m_window_height);
 
 		//sync client camera with renderer;Assuming aperture priority
-		if (m_renderer.getRendererSettings().enable_auto_exposure)
+		if (m_renderer.getRendererSettings().tonemapper_enable_auto_exposure)
 		{
 			KittlesPT::ExposureValues cam_val = m_renderer.getExposure();
 			m_camera.setISO(static_cast<int>(cam_val.ISO));

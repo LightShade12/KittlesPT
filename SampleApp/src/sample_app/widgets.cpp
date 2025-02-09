@@ -217,14 +217,14 @@ namespace SampleApp
 				ImGui::Text("Max Path Depth");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				pt_settings_updated |= ImGui::SliderInt("###max_bounces", &pt_settings.max_bounce_depth, 0, 32);
+				pt_settings_updated |= ImGui::SliderInt("###max_bounces", &pt_settings.integrator_max_ray_depth, 0, 32);
 				ImGui::EndTable();
 
-				pt_settings_updated |= ImGui::Checkbox("Enable AutoExposure", &pt_settings.enable_auto_exposure);
+				pt_settings_updated |= ImGui::Checkbox("Enable AutoExposure", &pt_settings.tonemapper_enable_auto_exposure);
 
-				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.generate_bloom);
+				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.bloom_generate_bloom);
 				ImGui::Indent();
-				pt_settings_updated |= ImGui::Checkbox("Use Karis Average", &pt_settings.use_karis_average);
+				pt_settings_updated |= ImGui::Checkbox("Use Karis Average", &pt_settings.bloom_use_karis_average);
 				if (ImGui::BeginTable("bloomedittable", 2)) {
 					ImGui::TableSetupColumn("A0", 0, 0.8f);
 					ImGui::TableSetupColumn("A1", 0);
@@ -234,7 +234,7 @@ namespace SampleApp
 					ImGui::Text("Bloom Blend Factor");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					pt_settings_updated |= ImGui::SliderFloat("###bloomblendfac", &pt_settings.bloom_blend, 0.0f, 1.0f);
+					pt_settings_updated |= ImGui::SliderFloat("###bloomblendfac", &pt_settings.bloom_final_blend, 0.0f, 1.0f);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
