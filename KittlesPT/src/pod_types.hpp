@@ -61,18 +61,18 @@ namespace KittlesPT
 
 		MaterialSceneEntity(
 			std::string_view name,
-			int albedo_texture_id,
+			int32_t albedo_texture_id,
 			const glm::vec3& albedo,
-			int orm_texture_id,
+			int32_t orm_texture_id,
 			float metallicity,
 			float roughness,
-			int transmission_texture_id,
+			int32_t transmission_texture_id,
 			float transmission,
 			float ior,
-			int emission_texture_id,
+			int32_t emission_texture_id,
 			const glm::vec3& emission_factor,
 			float emission_scale_nits,
-			int normal_texture_id,
+			int32_t normal_texture_id,
 			float normal_scale)
 			:
 			name(name),
@@ -94,23 +94,23 @@ namespace KittlesPT
 
 		std::string name;
 
-		int albedo_texture_id = -1;//MUST be srgb; decode before filtering
+		int32_t albedo_texture_id = -1;//MUST be srgb; decode before filtering
 		glm::vec3 albedo_factor = { 1.0f,1.0f,1.0f };
 
-		int ORM_texture_id = -1;//MUST be linear encoded
+		int32_t ORM_texture_id = -1;//MUST be linear encoded
 		float metallic_factor = 0.0f;
 		float roughness_factor = 0.5f;
 
-		int transmission_texture_id = -1;
+		int32_t transmission_texture_id = -1;
 		float transmission_factor = 0.0f;
 
 		float ior = 1.45f;
 
-		int emission_texture_id = -1;//MUST be srgb encoded; decode before use
+		int32_t emission_texture_id = -1;//MUST be srgb encoded; decode before use
 		glm::vec3 emission_factor = { 1.0f,1.0f,1.0f };
 		float emission_scale_nits = 0.0f;
 
-		int normal_texture_id = -1;//MUST be linear; blue must be (0.5...1.0]=>(0.0f...1.0f); Tangent space
+		int32_t normal_texture_id = -1;//MUST be linear; blue must be (0.5...1.0]=>(0.0f...1.0f); Tangent space
 		float normal_scale = 1.0f;//scales X & Y
 
 		bool isEmissive() const
@@ -126,7 +126,7 @@ namespace KittlesPT
 			glm::vec3 p0, glm::vec3 p1, glm::vec3 p2,
 			glm::vec3 n0, glm::vec3 n1, glm::vec3 n2,
 			glm::vec2 t0, glm::vec2 t1, glm::vec2 t2,
-			int material_id) :
+			int32_t material_id) :
 			p0(p0), p1(p1), p2(p2),
 			n0(n0), n1(n1), n2(n2),
 			t0(t0), t1(t1), t2(t2),
@@ -136,7 +136,7 @@ namespace KittlesPT
 		glm::vec3 p0 = glm::vec3(0), p1 = glm::vec3(0), p2 = glm::vec3(0);
 		glm::vec3 n0 = glm::vec3(0), n1 = glm::vec3(0), n2 = glm::vec3(0);
 		glm::vec2 t0 = glm::vec2(0), t1 = glm::vec2(0), t2 = glm::vec2(0);
-		int material_id = -1;
+		int32_t material_id = -1;
 
 		float getArea() const
 		{
