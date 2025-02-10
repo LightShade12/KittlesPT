@@ -93,6 +93,15 @@ namespace KittlesPT
 		m_renderer_rsrc->updateTLAS();
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_data);
+		if (m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation)
+		{
+			m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
+			m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
+			m_renderer_rsrc->m_frame_textures["main_texture"].copyTo(m_renderer_rsrc->m_frame_textures["accumulation_texture"]);
+			m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
+			m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
+		}
+
 		//generate bloom buffer
 		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
 			executeBloomGeneration();
@@ -121,6 +130,12 @@ namespace KittlesPT
 		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.debug_texture);
 
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].copyTo(m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"]);
+
+		//updating camera matices per frame
+		{
+			const Camera& cam = m_renderer_rsrc->shader_data.scene_camera;
+			m_renderer_rsrc->shader_data.scene_camera.setView(cam.curr_inv_projection_matrix, cam.curr_inv_view_matrix);
+		}
 
 		m_renderer_rsrc->shader_data.frame_index++;//TODO:expose to host as readonly?
 	}

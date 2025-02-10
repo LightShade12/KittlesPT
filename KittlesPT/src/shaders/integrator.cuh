@@ -359,6 +359,7 @@ namespace KittlesPT
 			RGBSpectrum integral_estimate = new_accumulated_sample / float(shader_data.frame_index + 1);
 
 			return integral_estimate;
+			//return new_accumulated_sample;
 		}
 	}
 }/*KittlesPT*/
