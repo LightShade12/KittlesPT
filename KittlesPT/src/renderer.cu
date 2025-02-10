@@ -30,6 +30,7 @@ namespace KittlesPT
 
 		m_renderer_rsrc->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["vbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["debug_texture"] = TextureBuffer();
@@ -85,6 +86,7 @@ namespace KittlesPT
 		m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.prev_gbuffer_texture = m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.vbuffer_texture = m_renderer_rsrc->m_frame_textures["vbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
 
@@ -114,8 +116,11 @@ namespace KittlesPT
 		m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.gbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.prev_gbuffer_texture);
 		m_renderer_rsrc->m_frame_textures["vbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.vbuffer_texture);
 		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.debug_texture);
+
+		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].copyTo(m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"]);
 
 		m_renderer_rsrc->shader_data.frame_index++;//TODO:expose to host as readonly?
 	}
