@@ -235,6 +235,10 @@ namespace KittlesPT
 			return m_is_medium;
 		}
 
+		__device__ void demodulate() {
+			m_albedo = RGBSpectrum(1.0f);
+		}
+
 		__device__ RGBSpectrum getAlbedo() {
 			return m_albedo;
 		}

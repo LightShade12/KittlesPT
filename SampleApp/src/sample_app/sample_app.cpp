@@ -29,6 +29,7 @@ namespace SampleApp
 		//loadSceneFile("two_objects.glb");
 		loadSceneFile("temp.glb");
 		//loadSceneFile("cs16_italy.glb");
+		//loadSceneFile("cs16_dust.glb");
 		//loadSceneFile("mc_fort.glb");
 		//TODO: not robust to empty scenes
 		m_application_data.environment_settings = m_renderer.getProceduralEnvironmentData();

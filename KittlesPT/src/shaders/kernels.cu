@@ -200,7 +200,7 @@ namespace KittlesPT
 		const int32_t MAX_ACCUMULATION_FRAMES = 16;
 		float alpha = 1.f / fminf(float(color_history_length + 1), MAX_ACCUMULATION_FRAMES);
 
-		RGBSpectrum final_color = lerp(prev_color, curr_color, 0.15);
+		RGBSpectrum final_color = lerp(prev_color, curr_color, 0.015);
 
 		//out----
 		return final_color;
@@ -269,7 +269,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 		(make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
 
 	GBuffer prev = GBuffer::unpackGBuffer(shader_data.prev_gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
-	vb.velocity *= 10.0f;
+	//vb.velocity *= 10.0f;
 	shader_data.debug_texture.textureWriteUV(make_float4(vb.velocity.x, vb.velocity.y, 0.0f, 1.0f), shading_job.uv_coord);
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
@@ -286,6 +286,8 @@ __global__ void computePostProcess(const KittlesPT::ShaderData shader_data)
 	}
 
 	RGBSpectrum sensor_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearestUV(shading_job.uv_coord));
+	GBuffer gbuffer = GBuffer::unpackGBuffer(shader_data.gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
+	sensor_radiance *= RGBSpectrum(gbuffer.albedo);//Modulate
 
 	if (shader_data.renderer_settings.bloom_generate_bloom) {
 		RGBSpectrum bloom_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));

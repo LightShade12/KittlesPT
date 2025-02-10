@@ -267,40 +267,43 @@ namespace KittlesPT
 					/* MISS
 					* Sampling only one InfiniteLight with bsdf sampling here,
 					* without any explicit sky sampling elsewhere, so no MIS used here */
-					//RGBSpectrum sky_radiance = LeSun(shader_data, ray, atmosphere);
-					RGBSpectrum sky_radiance = atmosphere.sampleLe(Ray(atmosphere_observer_position, ray.getDirection())) *
-						LeSun(shader_data, ray, atmosphere);
+					RGBSpectrum sky_radiance = atmosphere.sampleLe(Ray(atmosphere_observer_position, ray.getDirection()));
+					if (first_surface) {
+						sky_radiance *= LeSun(shader_data, ray, atmosphere);//done here to prevent fireflies
+						*visible_surface = GBuffer(sky_radiance, SurfaceInteraction());
+					}
 
 					light += sky_radiance * throughput;
 					break;
 				}
 				//79fps => 105fps(90fps when looking through atmosphere)
 
-				SurfaceInteraction surfintr = intr.getSurfaceInteraction(shader_data, ray);
+				SurfaceInteraction surf_intr = intr.getSurfaceInteraction(shader_data, ray);
 
 				//101fps=>105fps(kernel root inlining)
 
 				//Sample Le from surface
-				if (RGBSpectrum Le = surfintr.Le(shader_data, ray); Le) {
+				if (RGBSpectrum Le = surf_intr.Le(shader_data, ray); Le) {
 					float w_l = 1.0f;
-					if (surfintr.arealight && !first_surface) {
-						float light_pdf = light_sampler.PMF(surfintr.arealight) * surfintr.arealight->pdf_Li(prev_intr_ctx,
-							LightLiSample(surfintr));
+					if (surf_intr.arealight && !first_surface) {
+						float light_pdf = light_sampler.PMF(surf_intr.arealight) * surf_intr.arealight->pdf_Li(prev_intr_ctx,
+							LightLiSample(surf_intr));
 						w_l = powerHeuristic(1, p_b, 1, light_pdf);
 					}
 					light += Le * w_l * throughput;
 				}
 				//102fps
 
-				BSDF bsdf = surfintr.getBSDF(shader_data);
+				BSDF bsdf = surf_intr.getBSDF(shader_data);
 				if (!bsdf) { //skip over medium boundaries
-					surfintr.skipInteraction(&ray);
+					surf_intr.skipInteraction(&ray);
 					continue;
 				}
 
 				if (first_surface) {
 					//using texture diffuse albedo for reflectance estimate
-					*visible_surface = GBuffer(bsdf.getAlbedo(), surfintr);
+					*visible_surface = GBuffer(bsdf.getAlbedo(), surf_intr);
+					bsdf.demodulate();
 				}
 
 				if (any_non_specular_bounces) {
@@ -311,11 +314,11 @@ namespace KittlesPT
 
 				if (bsdf.isNonSpecular()) {
 					if (sampler.get1D() > 0.5f) {
-						RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surfintr, light_sampler, sampler);
+						RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surf_intr, light_sampler, sampler);
 						light += Ld * throughput * 2.0f;
 					}
 					else {
-						RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surfintr, atmosphere, sampler);
+						RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surf_intr, atmosphere, sampler);
 						light += Ld_sun * throughput * 2.0f;
 					}
 				}
@@ -331,13 +334,13 @@ namespace KittlesPT
 					break;
 				}
 
-				throughput *= bs.f * AbsDot(surfintr.world_geometric_normal, bs.wi) / bs.pdf;//uses absdot for allowing refraction
+				throughput *= bs.f * AbsDot(surf_intr.world_geometric_normal, bs.wi) / bs.pdf;//uses absdot for allowing refraction
 				p_b = bsdf.pdf(wo, bs.wi);
 				specular_bounce = bs.scatterTypeIs(BSDFSample::Specular);
 				any_non_specular_bounces |= !specular_bounce;
-				prev_intr_ctx = LightSampleContext(surfintr);
+				prev_intr_ctx = LightSampleContext(surf_intr);
 
-				ray = surfintr.spawnRay(bs.wi, bs.scatter);
+				ray = surf_intr.spawnRay(bs.wi, bs.scatter);
 				if (russianRoulette(&throughput, eta_scale, depth, sampler)) {
 					break;
 				}
