@@ -80,7 +80,7 @@ namespace SampleApp
 		m_viewport.draw(m_window_ctx_handle);
 
 		if (g_custom_font)ImGui::PushFont(g_custom_font);
-		m_developer_window.draw(m_window_ctx_handle, "Developer Menu");
+		m_developer_window.draw(m_window_ctx_handle, "Sample App Developer Menu");
 		if (g_custom_font)ImGui::PopFont();
 	}
 

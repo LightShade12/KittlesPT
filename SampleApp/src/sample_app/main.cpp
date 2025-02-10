@@ -12,9 +12,11 @@ int main()
 
 	SampleAppGUI::GUIApplication application;
 	application.window_settings.window_title = "KittlesPT Sample App";
-	//application.window_settings.initial_window_width = 760;
-	application.window_settings.initial_window_width = 640;//960
-	application.window_settings.initial_window_height = 320;//540
+	application.window_settings.initial_window_width = 1920;
+	application.window_settings.initial_window_height = 1080;
+
+	application.window_settings.initial_window_width /= 3;
+	application.window_settings.initial_window_height /= 3;
 
 	application.init(std::make_shared<SampleApp::SampleAppWindow>());
 

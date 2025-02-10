@@ -46,7 +46,7 @@ namespace KittlesPT
 	struct RendererSettings
 	{
 		int32_t integrator_max_ray_depth = 3;
-		int32_t integrator_use_temporal_accumulation = true;
+		bool integrator_use_temporal_accumulation = false;
 		bool bloom_generate_bloom = false;
 		bool bloom_use_karis_average = false;
 		float bloom_final_blend = 0.175f;

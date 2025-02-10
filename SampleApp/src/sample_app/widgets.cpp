@@ -221,6 +221,7 @@ namespace SampleApp
 				ImGui::EndTable();
 
 				pt_settings_updated |= ImGui::Checkbox("Enable AutoExposure", &pt_settings.tonemapper_enable_auto_exposure);
+				pt_settings_updated |= ImGui::Checkbox("Enable TAA", &pt_settings.integrator_use_temporal_accumulation);
 
 				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.bloom_generate_bloom);
 				ImGui::Indent();
