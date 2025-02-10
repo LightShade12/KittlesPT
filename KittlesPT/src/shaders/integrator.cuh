@@ -73,7 +73,7 @@ namespace KittlesPT
 			for (int32_t instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
-				Ray transformed_ray = ray.transform(mesh.inv_model_matrix);
+				Ray transformed_ray = ray.transform(mesh.curr_inv_model_matrix);
 
 				for (int32_t primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
@@ -105,8 +105,8 @@ namespace KittlesPT
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
 				Ray object_ray = ray;
 				//TODO: ensure normality
-				object_ray.setDirection(make_float3(mesh.inv_model_matrix * make_float4(object_ray.getDirection(), 0)));
-				object_ray.setOrigin(make_float3(mesh.inv_model_matrix * make_float4(object_ray.getOrigin(), 1)));
+				object_ray.setDirection(make_float3(mesh.curr_inv_model_matrix * make_float4(object_ray.getDirection(), 0)));
+				object_ray.setOrigin(make_float3(mesh.curr_inv_model_matrix * make_float4(object_ray.getOrigin(), 1)));
 
 				for (int32_t primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{

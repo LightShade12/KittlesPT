@@ -30,6 +30,7 @@ namespace KittlesPT
 
 		m_renderer_rsrc->m_frame_textures["main_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["vbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["debug_texture"] = TextureBuffer();
 
@@ -58,10 +59,10 @@ namespace KittlesPT
 		m_renderer_rsrc->shader_data.frame_resolution = make_int2(m_output_width, m_output_height);
 
 		//recompute projection for new screen size
-		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.inv_projection_matrix.inverse().toGLM();
+		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix.inverse().toGLM();
 		float fov_rad = 2.0f * atan(1.0f / old_proj[1][1]);
 		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_output_width, (float)m_output_height, 0.1f, 100.0f);
-		m_renderer_rsrc->shader_data.scene_camera.inv_projection_matrix = Mat4(projection).inverse();
+		m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix = Mat4(projection).inverse();
 		resetAccumulation();
 
 		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_rsrc->m_frame_textures)
@@ -84,6 +85,7 @@ namespace KittlesPT
 		m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.vbuffer_texture = m_renderer_rsrc->m_frame_textures["vbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
 
 		m_renderer_rsrc->updateTLAS();
@@ -112,6 +114,7 @@ namespace KittlesPT
 		m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.gbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["vbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.vbuffer_texture);
 		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.debug_texture);
 
 		m_renderer_rsrc->shader_data.frame_index++;//TODO:expose to host as readonly?
@@ -177,9 +180,8 @@ namespace KittlesPT
 		}
 
 		TriangleMesh mesh = m_renderer_rsrc->scene_meshes[idx];
-		mesh.inv_model_matrix = Mat4(glm::inverse(model));
+		mesh.setTransform(Mat4(glm::inverse(model)));
 		m_renderer_rsrc->scene_meshes[idx] = mesh;
-
 		m_renderer_rsrc->blas_buffer[mesh.blas_id].setTransform(Mat4(model));
 
 		resetAccumulation();
@@ -192,7 +194,7 @@ namespace KittlesPT
 		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
 			assert("OUT OF BOUNDES ACCES[MESHES]");
 		}
-		glm::mat4 inv = m_renderer_rsrc->scene_meshes[idx].inv_model_matrix.toGLM();
+		glm::mat4 inv = m_renderer_rsrc->scene_meshes[idx].curr_inv_model_matrix.toGLM();
 		return glm::inverse(inv);
 	}
 
@@ -335,11 +337,11 @@ namespace KittlesPT
 		if (!parsed_scene.camera_entities.empty()) {
 			Camera new_camera;
 			const CameraSceneEntity& parsed_camera = parsed_scene.camera_entities[0];
-			new_camera.inv_view_matrix = Mat4(glm::inverse(parsed_camera.view_matrix));
-			new_camera.inv_view_matrix[2] *= -1.0f;
-			new_camera.inv_projection_matrix = Mat4(glm::inverse(glm::perspectiveFovLH(parsed_camera.y_fov_radians,
+			new_camera.curr_inv_view_matrix = Mat4(glm::inverse(parsed_camera.view_matrix));
+			new_camera.curr_inv_view_matrix[2] *= -1.0f;
+			new_camera.curr_inv_projection_matrix = Mat4(glm::inverse(glm::perspectiveFovLH(parsed_camera.y_fov_radians,
 				100.0f, 100.0f, 1.0f, 100.0f)));//Done to intialize reusable fovyrad in inv_proj_mat
-			new_camera.world_position = make_float3(new_camera.inv_view_matrix[3]);
+			new_camera.curr_world_position = make_float3(new_camera.curr_inv_view_matrix[3]);
 			m_renderer_rsrc->shader_data.scene_camera = new_camera;
 		}
 

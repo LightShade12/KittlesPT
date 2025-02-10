@@ -108,6 +108,40 @@ namespace KittlesPT
 		checkCudaErrors(cudaGetLastError());
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
+
+	__device__ float2 computeVelocity(const ShaderData& shader_data, const GBuffer& gbuffer, const VBuffer& vbuffer)
+	{
+		float2 velocity = make_float2(0.0f);
+		int32_t curr_mesh_id = vbuffer.instance_id;
+
+		if (curr_mesh_id < 0) {
+			return velocity;
+		}
+
+		Mat4 curr_viewprojection = shader_data.scene_camera.curr_inv_projection_matrix.inverse() * shader_data.scene_camera.curr_inv_view_matrix.inverse();
+		Mat4 prev_viewprojection = shader_data.scene_camera.prev_inv_projection_matrix.inverse() * shader_data.scene_camera.prev_inv_view_matrix.inverse();
+
+		const TriangleMesh& mesh = shader_data.meshes_buffer.data[curr_mesh_id];
+		Mat4 curr_model = mesh.curr_inv_model_matrix.inverse();
+		Mat4 prev_model = mesh.prev_inv_model_matrix.inverse();
+		float3 curr_local_pos = make_float3(mesh.curr_inv_model_matrix * make_float4(gbuffer.wpos, 1));
+
+		float4 curr_clip = curr_viewprojection * make_float4(gbuffer.wpos, 1);
+		float4 prev_clip = prev_viewprojection * prev_model * make_float4(curr_local_pos, 1);
+
+		float3 curr_ndc = make_float3(curr_clip) / curr_clip.w;
+		float3 prev_ndc = make_float3(prev_clip) / prev_clip.w;
+
+		float2 curr_uv = (make_float2(curr_ndc) + 1.0f) / 2.0f;//[-1,1]=>[0,1]
+		float2 prev_uv = (make_float2(prev_ndc) + 1.0f) / 2.0f;
+
+		velocity = curr_uv - prev_uv;
+
+		return velocity;
+	}
+
+	
+
 }/*KittlesPT*/
 
 /*
@@ -144,7 +178,11 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	RGBSpectrum sensor_radiance = RGBSpectrum(fs.weight) * camera_weight *
 		Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
 
+	VBuffer vb = VBuffer(visible_surface);
+	vb.velocity = computeVelocity(shader_data, visible_surface, vb);
+
 	shader_data.gbuffer_texture.textureWriteUV(visible_surface.packGBuffer(), shading_job.uv_coord);
+	shader_data.vbuffer_texture.textureWriteUV(vb.packVBuffer(), shading_job.uv_coord);
 
 	//Monte-Carlo estimation; static accumulation
 	sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
@@ -157,7 +195,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	float3 gas_heat_map = (make_float3(0, 1, 0) * visible_surface.blas_hits * 0.02f) +
 		(make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
 
-	shader_data.debug_texture.textureWriteUV(make_float4(gas_heat_map, 1.0f), shading_job.uv_coord);
+	shader_data.debug_texture.textureWriteUV(make_float4(vb.velocity.x, vb.velocity.y, 0.0, 1.0f), shading_job.uv_coord);
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 

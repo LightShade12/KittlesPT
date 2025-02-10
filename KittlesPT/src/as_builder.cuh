@@ -29,7 +29,7 @@ namespace KittlesPT
 			mesh_tris_offset = mesh.prim_offset;
 			BLAS mesh_blas = buildBLAS();
 			mesh_blas.original_bounds = mesh_blas.bounds;
-			mesh_blas.inv_model_matrix = mesh.inv_model_matrix;
+			mesh_blas.inv_model_matrix = mesh.curr_inv_model_matrix;
 			mesh_blas.mesh_id = static_cast<int32_t>(mesh_id);
 			return mesh_blas;
 		}

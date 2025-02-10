@@ -157,10 +157,13 @@ namespace KittlesPT
 	{
 		GBuffer() = default;
 
-		__device__ GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surf) :
+		__device__ GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surface) :
 			albedo(albedo.toFloat3()),
-			wgnorm(surf.world_geometric_normal),
-			depth(surf.distance)
+			wgnorm(surface.world_geometric_normal),
+			wpos(surface.world_position),
+			depth(surface.distance),
+			instance_id(surface.instance_id),
+			primitive_id(surface.primitive_id)
 		{}
 
 		__device__ float4 packGBuffer()
@@ -175,7 +178,7 @@ namespace KittlesPT
 			return uint4BitsToFloat4(out);
 		}
 
-		__device__ GBuffer unpackGBuffer(float4 data)
+		__device__ static GBuffer unpackGBuffer(float4 data)
 		{
 			GBuffer gb;
 			uint4 in = float4BitsToUint4(data);
@@ -192,12 +195,15 @@ namespace KittlesPT
 		float depth = INFINITY;
 
 		//Not included in packing:
+		float3 wpos{ 0.0f,0.0f,0.0f };
+		int32_t instance_id = -1;
+		int32_t primitive_id = -1;
+
 		int32_t blas_hits = 0;
 		int32_t tlas_hits = 0;
 
 		/*
 		* float3 wpos;
-		* int primitive_id = -1;
 		* float3 viewdir;
 		* PBRT:
 		* dzdx, dzdy
@@ -205,5 +211,39 @@ namespace KittlesPT
 		* wsnorm
 		* variance estimates
 		*/
+	};
+
+	struct VBuffer
+	{
+		VBuffer() = default;
+
+		__device__ VBuffer(const GBuffer& gbuff) :
+			instance_id(gbuff.instance_id),
+			primitive_id(gbuff.primitive_id)
+		{};
+
+		__device__ float4 packVBuffer()
+		{
+			float4 out;
+			out.x = velocity.x;
+			out.y = velocity.y;
+			out.z = primitive_id;
+			out.w = instance_id;
+			return out;
+		}
+
+		__device__ static VBuffer unpackVBuffer(float4 data)
+		{
+			VBuffer vb;
+			vb.velocity.x = data.x;
+			vb.velocity.y = data.y;
+			vb.primitive_id = data.z;
+			vb.instance_id = data.w;
+			return vb;
+		}
+
+		float2 velocity{};
+		int32_t instance_id = -1;
+		int32_t primitive_id = -1;
 	};
 }/*KittlesPT*/

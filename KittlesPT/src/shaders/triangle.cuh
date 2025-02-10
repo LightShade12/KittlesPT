@@ -117,19 +117,30 @@ namespace KittlesPT
 	public:
 		Vertex vertex0, vertex1, vertex2;
 		float3 local_geometric_normal{ 0.0f,0.0f,0.0f };
-		int material_id = -1;
-		int light_id = -1;
-		int primitive_id = -1;
+		int32_t material_id = -1;
+		int32_t light_id = -1;
+		int32_t primitive_id = -1;
 	};
 
 	class TriangleMesh
 	{
 	public:
 		TriangleMesh(int prim_offset, int prim_count, Mat4 inv_model) :
-			prim_offset(prim_offset), prim_count(prim_count), inv_model_matrix(inv_model)
+			prim_offset(prim_offset),
+			prim_count(prim_count),
+			curr_inv_model_matrix(inv_model),
+			prev_inv_model_matrix(inv_model)
 		{};
 
-		Mat4 inv_model_matrix;
+		void setTransform(const Mat4& inv_model)
+		{
+			prev_inv_model_matrix = curr_inv_model_matrix;
+			curr_inv_model_matrix = inv_model;
+		};
+
+		Mat4 curr_inv_model_matrix;
+		Mat4 prev_inv_model_matrix;
+
 		int32_t blas_id = -1;
 		uint32_t prim_count = 0;
 		int32_t prim_offset = -1;

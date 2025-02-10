@@ -53,6 +53,9 @@ namespace KittlesPT
 		}
 
 		//--------------------------------------------------
+		int32_t primitive_id = -1;
+		int32_t instance_id = -1;
+
 		float3 wo{ 0.0f,0.0f,0.0f };
 		const Light* arealight = nullptr;
 		int32_t material_id = -1;

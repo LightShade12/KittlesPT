@@ -11,20 +11,21 @@ namespace KittlesPT
 	__device__ SurfaceInteraction Intersection::getSurfaceInteraction(const ShaderData& shader_data, const Ray& ray)
 	{
 		SurfaceInteraction surfintr;
-		surfintr.wo = -ray.getDirection();
-		const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
-		Mat4 model_mat = shader_data.meshes_buffer.data[instance_id].inv_model_matrix.inverse();
-		float3 wo = -ray.getDirection();
-
+		surfintr.primitive_id = primitive_id;
+		surfintr.instance_id = instance_id;
 		surfintr.distance = distance;
+		surfintr.wo = -ray.getDirection();
+
+		const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
+		Mat4 model_mat = shader_data.meshes_buffer.data[instance_id].curr_inv_model_matrix.inverse();
+
 		surfintr.material_id = tri.material_id;
 
 		surfintr.world_position = ray.getPointAt(distance);
-
 		surfintr.world_geometric_normal = normalize(make_float3(model_mat * make_float4(tri.local_geometric_normal, 0)));
+		surfintr.uv = (bary_coords.x * tri.vertex0.tex_coords) + (bary_coords.y * tri.vertex1.tex_coords) + (bary_coords.z * tri.vertex2.tex_coords);
 
-		if (dot(surfintr.world_geometric_normal, wo) < 0.0f)
-		{
+		if (!sameHemisphere(surfintr.world_geometric_normal, surfintr.wo)) {
 			surfintr.world_geometric_normal *= -1.0f;
 			surfintr.backface = true;
 		}
@@ -32,8 +33,6 @@ namespace KittlesPT
 		if (tri.light_id >= 0) {
 			surfintr.arealight = &(shader_data.lights_buffer.data[tri.light_id]);
 		}
-
-		surfintr.uv = (bary_coords.x * tri.vertex0.tex_coords) + (bary_coords.y * tri.vertex1.tex_coords) + (bary_coords.z * tri.vertex2.tex_coords);
 
 		return surfintr;
 	}

@@ -82,4 +82,9 @@ namespace KittlesPT
 	{
 		return (dot(a, n) * dot(b, n)) > 0.0f;
 	}
+
+	inline __device__ bool sameHemisphere(const float3& a, const float3& b)
+	{
+		return dot(a, b) > 0.0f;
+	}
 }

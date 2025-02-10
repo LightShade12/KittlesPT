@@ -27,7 +27,7 @@ namespace SampleApp
 		//ImGui::StyleColorsDark();
 
 		//loadSceneFile("two_objects.glb");
-		loadSceneFile("test.glb");
+		loadSceneFile("temp.glb");
 		//loadSceneFile("cs16_italy.glb");
 		//loadSceneFile("mc_fort.glb");
 		//TODO: not robust to empty scenes
