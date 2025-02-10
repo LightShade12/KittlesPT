@@ -5,9 +5,9 @@
 
 namespace KittlesPT
 {
-	void TextureBuffer::init(uint32_t width, uint32_t height)
+	void TextureBuffer::initialize(uint32_t width, uint32_t height)
 	{
-		m_width = width; m_height = height;
+		m_dimensions = make_uint2(width, height);
 
 		glGenTextures(1, &m_GL_texture);
 		glBindTexture(GL_TEXTURE_2D, m_GL_texture);
@@ -40,13 +40,13 @@ namespace KittlesPT
 
 	void TextureBuffer::resize(uint32_t width, uint32_t height)
 	{
-		m_width = width; m_height = height;
-
+		m_dimensions = make_uint2(width, height);
 		cudaGraphicsUnregisterResource(m_graphics_resource);
 		glBindTexture(GL_TEXTURE_2D, m_GL_texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_dimensions.x, m_dimensions.y, 0, GL_RGBA, GL_FLOAT, NULL);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		cudaGraphicsGLRegisterImage(&m_graphics_resource, m_GL_texture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore);
+		cudaGraphicsGLRegisterImage(&m_graphics_resource, m_GL_texture, GL_TEXTURE_2D,
+			cudaGraphicsRegisterFlagsSurfaceLoadStore);
 	}
 
 	DeviceTextureBuffer TextureBuffer::enableCudaAccess()
@@ -58,7 +58,7 @@ namespace KittlesPT
 			0, 0);
 
 		DeviceTextureBuffer dev_tex_buf;
-		dev_tex_buf.dimensions = make_int2(m_width, m_height);
+		dev_tex_buf.dimensions = make_int2(m_dimensions);
 		cudaCreateSurfaceObject(&dev_tex_buf.m_surface_object, &resource_descriptor);
 
 		return dev_tex_buf;
@@ -80,7 +80,7 @@ namespace KittlesPT
 		glCopyImageSubData(
 			m_GL_texture, GL_TEXTURE_2D, 0, 0, 0, 0,
 			dst, GL_TEXTURE_2D, 0, 0, 0, 0,
-			m_width, m_height, 1);
+			m_dimensions.x, m_dimensions.y, 1);
 		glFinish();
 		GLenum err = glGetError();
 		if (err != GL_NO_ERROR) {
@@ -92,7 +92,7 @@ namespace KittlesPT
 		glCopyImageSubData(
 			m_GL_texture, GL_TEXTURE_2D, 0, 0, 0, 0,
 			dst.m_GL_texture, GL_TEXTURE_2D, 0, 0, 0, 0,
-			m_width, m_height, 1);
+			m_dimensions.x, m_dimensions.y, 1);
 		glFinish();
 		GLenum err = glGetError();
 		if (err != GL_NO_ERROR) {

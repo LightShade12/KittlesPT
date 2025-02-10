@@ -13,7 +13,7 @@
 
 namespace SampleApp
 {
-	ImFont* g_custom_font = nullptr;
+	static ImFont* g_custom_font = nullptr;
 
 	void SampleAppWindow::onCreate()
 	{
@@ -66,16 +66,15 @@ namespace SampleApp
 		m_renderer.resizeResolution(m_window_width, m_window_height);
 
 		//sync client camera with renderer;Assuming aperture priority
-		if (m_renderer.getRendererSettings().tonemapper_enable_auto_exposure)
-		{
+		if (m_renderer.getRendererSettings().tonemapper_enable_auto_exposure) {
 			KittlesPT::ExposureValues cam_val = m_renderer.getExposure();
-			m_camera.setISO(static_cast<int>(cam_val.ISO));
+			m_camera.setISO(static_cast<int32_t>(cam_val.ISO));
 			m_camera.setShutterSecs(cam_val.shutter_speed_secs);
 		}
 
 		m_renderer.executeRendering(m_developer_window.getDeltaTS_ms());
-		//m_renderer.getDebugRenderTargetTexture(m_viewport_texture.m_GL_texture_name);
-		m_renderer.getRenderTargetTexture(m_viewport_texture.m_GL_texture_name);
+		//m_renderer.getDebugRenderTargetTexture(m_viewport_texture.getGLTexture());
+		m_renderer.getRenderTargetTexture(m_viewport_texture.getGLTexture());
 
 		m_viewport.draw(m_window_ctx_handle);
 

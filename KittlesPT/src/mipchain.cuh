@@ -14,15 +14,15 @@ namespace KittlesPT
 			}
 		}
 
-		void resize(int base_width, int base_height)
+		void resize(int32_t base_width, int32_t base_height)
 		{
 			max_mip_level = getMaxValidMipLevels({ base_width, base_height });
 			max_mip_level = std::min(max_mip_level, max_mip_count - 1);
 
 			for (uint32_t miplevel = 0; miplevel <= max_mip_level; miplevel++)
 			{
-				int mip_width = base_width >> miplevel;
-				int	mip_height = base_height >> miplevel;
+				int32_t mip_width = base_width >> miplevel;
+				int32_t	mip_height = base_height >> miplevel;
 
 				TextureBuffer& mip_texture = mip_textures[miplevel];
 
@@ -30,7 +30,7 @@ namespace KittlesPT
 					mip_texture.resize(mip_width, mip_height);
 				}
 				else {
-					mip_texture.init(mip_width, mip_height);
+					mip_texture.initialize(mip_width, mip_height);
 				}
 			}
 		}
@@ -47,7 +47,8 @@ namespace KittlesPT
 		//excludes mip0
 		static int32_t getMaxValidMipLevels(int2 t_base_resolution)
 		{
-			int32_t mipx = static_cast<int32_t>(std::log2(t_base_resolution.x)), mipy = static_cast<int32_t>(std::log2(t_base_resolution.y));
+			int32_t mipx = static_cast<int32_t>(std::log2(t_base_resolution.x)),
+				mipy = static_cast<int32_t>(std::log2(t_base_resolution.y));
 			return std::min(mipx, mipy);
 		}
 

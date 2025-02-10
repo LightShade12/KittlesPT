@@ -45,6 +45,7 @@ namespace KittlesPT
 	public:
 		Mat4 curr_inv_view_matrix;
 		Mat4 curr_inv_projection_matrix;
+
 		Mat4 prev_inv_view_matrix;
 		Mat4 prev_inv_projection_matrix;
 

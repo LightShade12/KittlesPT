@@ -74,7 +74,7 @@ namespace KittlesPT
 				continue;
 			}
 			std::printf("[RENDERER] Initializing renderer texture:%s\n", tex.first.c_str());
-			tex.second.init(m_output_width, m_output_height);
+			tex.second.initialize(m_output_width, m_output_height);
 		}
 
 		m_renderer_rsrc->bloom_mipchain.resize(m_output_width, m_output_height);
@@ -184,12 +184,17 @@ namespace KittlesPT
 			return false;
 		}
 
-		TriangleMesh mesh = m_renderer_rsrc->scene_meshes[idx];
-		mesh.setTransform(Mat4(glm::inverse(model)));
-		m_renderer_rsrc->scene_meshes[idx] = mesh;
-		m_renderer_rsrc->blas_buffer[mesh.blas_id].setTransform(Mat4(model));
+		Mat4 model_mat(model);
+		Mat4 inv_model_mat(glm::inverse(model));
 
-		resetAccumulation();
+		TriangleMesh mesh = m_renderer_rsrc->scene_meshes[idx];
+		mesh.setTransform(inv_model_mat);
+		m_renderer_rsrc->scene_meshes[idx] = mesh;
+		m_renderer_rsrc->blas_buffer[mesh.blas_id].setTransform(model_mat);
+
+		if (!m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation) {
+			resetAccumulation();
+		}
 
 		return true;
 	}
@@ -199,8 +204,8 @@ namespace KittlesPT
 		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
 			assert("OUT OF BOUNDES ACCES[MESHES]");
 		}
-		glm::mat4 inv = m_renderer_rsrc->scene_meshes[idx].curr_inv_model_matrix.toGLM();
-		return glm::inverse(inv);
+		glm::mat4 inv_model = m_renderer_rsrc->scene_meshes[idx].curr_inv_model_matrix.toGLM();
+		return glm::inverse(inv_model);
 	}
 
 	size_t Renderer::getMaterialsCount() const
@@ -224,9 +229,9 @@ namespace KittlesPT
 		return m_renderer_rsrc->shader_data.procedural_environment_data;
 	}
 
-	void Renderer::setRendererSettings(const RendererSettings& cfg)
+	void Renderer::setRendererSettings(const RendererSettings& settings)
 	{
-		m_renderer_rsrc->shader_data.renderer_settings = cfg;
+		m_renderer_rsrc->shader_data.renderer_settings = settings;
 		resetAccumulation();
 	}
 
@@ -245,7 +250,8 @@ namespace KittlesPT
 		* q = 0.65
 		*/
 
-		m_renderer_rsrc->auto_exposure_program.recordValues(camera_values, ev_comp, white_point_ev, black_point_ev);
+		m_renderer_rsrc->auto_exposure_program.recordValues(camera_values, ev_comp,
+			white_point_ev, black_point_ev);
 
 		float luminance_exposure_scalar = AutoExposureProgram::getStandardOutputBasedExposure(camera_values.aperture_f_num,
 			camera_values.shutter_speed_secs, camera_values.ISO);
@@ -260,17 +266,22 @@ namespace KittlesPT
 
 	void Renderer::resetAccumulation()
 	{
-		glClearTexImage(m_renderer_rsrc->m_frame_textures["accumulation_texture"].m_GL_texture, 0, GL_RGBA, GL_FLOAT, NULL);
+		glClearTexImage(m_renderer_rsrc->m_frame_textures["accumulation_texture"].getGLTexture(), 0, GL_RGBA, GL_FLOAT, NULL);
 		m_renderer_rsrc->shader_data.frame_index = 0;
 	}
 
 	void Renderer::setView(const glm::mat4& projection_matrix, const glm::mat4& view_matrix)
 	{
-		Mat4 proj(projection_matrix);
+		Mat4 projection(projection_matrix);
 		Mat4 view(view_matrix);
-		m_renderer_rsrc->shader_data.scene_camera.setView(proj.inverse(), view.inverse());
+		Mat4 inv_projection(glm::inverse(projection_matrix));
+		Mat4 inv_view(glm::inverse(view_matrix));
 
-		resetAccumulation();
+		m_renderer_rsrc->shader_data.scene_camera.setView(inv_projection, inv_view);
+
+		if (!m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation) {
+			resetAccumulation();
+		}
 	}
 
 	void Renderer::loadScene(const BasicScene& parsed_scene)

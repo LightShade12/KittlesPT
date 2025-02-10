@@ -12,7 +12,7 @@ namespace KittlesPT
 	{
 	public:
 
-		void init(uint32_t width, uint32_t height);
+		void initialize(uint32_t width, uint32_t height);
 		void destroy();
 
 		void resize(uint32_t width, uint32_t height);
@@ -25,9 +25,18 @@ namespace KittlesPT
 		void copyTo(GLuint dst) const;
 		void copyTo(const TextureBuffer& dst) const;
 
-	public:
+		uint2 getDimensions() const { return m_dimensions; }
+		void setDimensions(uint2 size) { m_dimensions = size; }
 
-		uint32_t m_width = 0, m_height = 0;
+		GLuint getGLTexture() const { return m_GL_texture; }
+		void setTexture(GLuint name) { m_GL_texture = name; }
+
+		cudaGraphicsResource* getGraphicsResource() const { return m_graphics_resource; }
+		void setGraphicsResource(cudaGraphicsResource* ptr) { m_graphics_resource = ptr; }
+
+	private:
+		
+		uint2 m_dimensions{ 0u,0u };
 		GLuint m_GL_texture = NULL;//OpenGL texture name
 		cudaGraphicsResource* m_graphics_resource = nullptr;//handle to registered OpenGL object
 	};

@@ -163,7 +163,6 @@ namespace KittlesPT
 
 		float3 prev_camera_origin = make_float3(shader_data.scene_camera.prev_inv_view_matrix.inverse()[3]);
 		float3 prev_world_pos = make_float3(prev_model * make_float4(curr_local_pos, 1));//clipspace
-
 		float reprojected_prev_depth = length(prev_camera_origin - prev_world_pos);
 
 		return testReprojectedDepth(reprojected_prev_depth, prev_depth);
@@ -275,7 +274,9 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	float3 gas_heat_map = (make_float3(0, 1, 0) * visible_surface.blas_hits * 0.02f) +
 		(make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
 
-	shader_data.debug_texture.textureWriteUV(make_float4(vb.velocity.x, vb.velocity.y, 0.0, 1.0f), shading_job.uv_coord);
+	GBuffer prev = GBuffer::unpackGBuffer(shader_data.prev_gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
+
+	shader_data.debug_texture.textureWriteUV(make_float4(make_float3(prev.depth), 1.0f), shading_job.uv_coord);
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 

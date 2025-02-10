@@ -10,7 +10,7 @@ namespace SampleApp
 
 		void resize(int width, int  height);
 
-		bool isValid() {
+		bool isValid() const {
 			return m_GL_texture_name != NULL;
 		}
 
@@ -18,7 +18,12 @@ namespace SampleApp
 			glDeleteTextures(1, &m_GL_texture_name);
 		}
 
-		int m_width = 0, m_height = 0;
+		GLuint getGLTexture() const {
+			return m_GL_texture_name;
+		}
+
+	private:
+		int32_t m_width = 0, m_height = 0;
 		GLuint m_GL_texture_name = NULL;
 	};
 }

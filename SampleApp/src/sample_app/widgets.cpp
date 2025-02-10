@@ -37,7 +37,7 @@ namespace SampleApp
 			ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		if (m_background_texture.isValid())
 		{
-			ImGui::Image((ImTextureID*)(long long(m_background_texture.m_GL_texture_name)),
+			ImGui::Image((ImTextureID*)(int64_t(m_background_texture.getGLTexture())),
 				ImVec2((float)win_width, (float)win_height), { 0,1 }, { 1,0 });
 		}
 
@@ -392,7 +392,7 @@ namespace SampleApp
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				if (ImGui::SliderInt("###material_selection", &m_shared_data_handle->editable_material_idx,
-					0, int(m_shared_data_handle->materials_count - 1)))
+					0, int32_t(m_shared_data_handle->materials_count - 1)))
 				{
 					m_event_dispatcher_handle->emitSignal(Event("material_changed"), true);
 				};
