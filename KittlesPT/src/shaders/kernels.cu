@@ -168,12 +168,12 @@ namespace KittlesPT
 		return testReprojectedDepth(reprojected_prev_depth, prev_depth);
 	}
 
-	__device__ RGBSpectrum reprojectAccumulate(const ShaderData& shader_data, float2 curr_pixel_coord, const GBuffer& gb, float2 velocity, RGBSpectrum curr_color)
+	__device__ float4 reprojectAccumulate(const ShaderData& shader_data, float2 curr_pixel_coord, const GBuffer& gb, float2 velocity, RGBSpectrum curr_color)
 	{
 		int32_t curr_mesh_id = gb.instance_id;
 
 		if (curr_mesh_id < 0) {
-			return curr_color;
+			return make_float4(curr_color.toFloat3(), 0);
 		}
 
 		int2 frame_res = shader_data.frame_resolution;
@@ -185,25 +185,25 @@ namespace KittlesPT
 		if (prev_pixel_coord.x < 0 || prev_pixel_coord.x >= frame_res.x ||
 			prev_pixel_coord.y < 0 || prev_pixel_coord.y >= frame_res.y)
 		{
-			return curr_color;
+			return make_float4(curr_color.toFloat3(), 0);
 		}
 
 		//disocclusion/ reproj failure
 		if (!testReprojection(shader_data, gb, prev_pixel_coord))
 		{
-			return curr_color;
+			return make_float4(curr_color.toFloat3(), 0);
 		}
 
-		RGBSpectrum prev_color = RGBSpectrum(shader_data.accumulation_texture.textureReadBilinear(prev_pixel_coord, false));
+		float4 prev_color = shader_data.accumulation_texture.textureReadBilinear(prev_pixel_coord, false);
 
-		float color_history_length;// = prev_color.w;
 		const int32_t MAX_ACCUMULATION_FRAMES = 16;
-		float alpha = 1.f / fminf(float(color_history_length + 1), MAX_ACCUMULATION_FRAMES);
+		float color_history_length = prev_color.w;
+		float alpha = 1.0f / fminf(float(color_history_length + 1), MAX_ACCUMULATION_FRAMES);
 
-		RGBSpectrum final_color = lerp(prev_color, curr_color, 0.015);
+		RGBSpectrum final_color = lerp(RGBSpectrum(prev_color), curr_color, alpha);
 
 		//out----
-		return final_color;
+		return make_float4(final_color.toFloat3(), color_history_length + 1);
 	}
 }/*KittlesPT*/
 
@@ -247,11 +247,13 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 
 	shader_data.gbuffer_texture.textureWriteUV(visible_surface.packGBuffer(), shading_job.uv_coord);
 	shader_data.vbuffer_texture.textureWriteUV(vb.packVBuffer(), shading_job.uv_coord);
-
+	float alpha = 1.0f;
 	if (shader_data.renderer_settings.integrator_use_temporal_accumulation)
 	{
-		sensor_radiance = reprojectAccumulate(shader_data,
+		float4 temporal_color_data = reprojectAccumulate(shader_data,
 			make_float2(shading_job.pixel_coord), visible_surface, vb.velocity, sensor_radiance);
+		sensor_radiance = RGBSpectrum(temporal_color_data);
+		alpha = temporal_color_data.w;
 	}
 	else
 	{
@@ -259,7 +261,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 		sensor_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_radiance);
 	}
 
-	float4 frag_color = make_float4(sensor_radiance.toFloat3(), 1.0f);
+	float4 frag_color = make_float4(sensor_radiance.toFloat3(), alpha);
 
 	//float scale = centerMeteringWeight(frame_res, shading_job.pixel_coord, 1.0f);
 	//scale = ceilf(scale);
