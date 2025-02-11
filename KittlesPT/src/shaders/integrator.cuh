@@ -283,7 +283,8 @@ namespace KittlesPT
 				//101fps=>105fps(kernel root inlining)
 
 				//Sample Le from surface
-				if (RGBSpectrum Le = surf_intr.Le(shader_data, ray); Le) {
+				RGBSpectrum Le = surf_intr.Le(shader_data, ray);
+				if (Le) {
 					float w_l = 1.0f;
 					if (surf_intr.arealight && !first_surface) {
 						float light_pdf = light_sampler.PMF(surf_intr.arealight) * surf_intr.arealight->pdf_Li(prev_intr_ctx,
@@ -301,8 +302,9 @@ namespace KittlesPT
 				}
 
 				if (first_surface) {
-					//using texture diffuse albedo for reflectance estimate
-					*visible_surface = GBuffer(bsdf.getAlbedo(), surf_intr);
+					//using texture diffuse albedo/emission texture for reflectance estimate
+					RGBSpectrum albedo = (Le) ? Le : bsdf.getAlbedo();
+					*visible_surface = GBuffer(albedo, surf_intr);
 					bsdf.demodulate();
 				}
 

@@ -332,6 +332,8 @@ namespace KittlesPT
 		for (const MeshSceneEntity& mesh : parsed_scene.mesh_entities)
 		{
 			size_t mesh_prim_start_id = m_renderer_rsrc->scene_triangles.size();
+			int32_t mesh_id = m_renderer_rsrc->scene_meshes.size();
+
 			for (const TriangleSceneEntity& tri : mesh.shape_entities)
 			{
 				const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
@@ -348,7 +350,7 @@ namespace KittlesPT
 					Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
 					Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
 					Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
-					tri.material_id, light_id));
+					tri.material_id, light_id, mesh_id));
 			}
 
 			TriangleMesh tri_mesh(static_cast<int32_t>(mesh_prim_start_id),
@@ -356,7 +358,7 @@ namespace KittlesPT
 				Mat4(glm::inverse(mesh.model_matrix)));
 			tri_mesh.blas_id = static_cast<int32_t>(m_renderer_rsrc->blas_buffer.size());//TODO:move to constructor
 
-			m_renderer_rsrc->blas_buffer.push_back(m_renderer_rsrc->blas_builder.build(tri_mesh, m_renderer_rsrc->scene_meshes.size()));
+			m_renderer_rsrc->blas_buffer.push_back(m_renderer_rsrc->blas_builder.build(tri_mesh, mesh_id));
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
 

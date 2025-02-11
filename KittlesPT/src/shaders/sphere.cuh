@@ -49,6 +49,7 @@ namespace KittlesPT
 			return ss;
 		}
 
+		//TODO: UV is unset!
 		__device__ ShapeSample sample(float2 u2, ShapeSampleContext ctx) const
 		{
 			float sinThetaMax = radius / distance(ctx.wpos, world_position);
@@ -73,7 +74,7 @@ namespace KittlesPT
 			float3 p = world_position + radius * n;
 			float pdf = 1.0f / (2.0f * Constants::PI * oneMinusCosThetaMax);
 
-			return ShapeSample(p, n, pdf);
+			return ShapeSample(p, n, pdf, {});
 		}
 
 		__device__ float getArea() const

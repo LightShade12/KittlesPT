@@ -12,9 +12,10 @@ namespace KittlesPT
 	{
 		ShapeSample() = default;
 
-		__device__ ShapeSample(float3 wpos, float3 gwnorm, float pdf) :
-			wpos(wpos), wgnorm(gwnorm), pdf(pdf) {};
+		__device__ ShapeSample(float3 wpos, float3 gwnorm, float pdf, float2 uv) :
+			wpos(wpos), wgnorm(gwnorm), pdf(pdf), uv(uv) {};
 
+		float2 uv{};
 		float3 wgnorm{};
 		float3 wpos{};
 		float pdf = 0.0f;
@@ -47,8 +48,8 @@ namespace KittlesPT
 	class Triangle
 	{
 	public:
-		__host__ Triangle(Vertex v0, Vertex v1, Vertex v2, int material_id, int light_id) :
-			vertex0(v0), vertex1(v1), vertex2(v2), material_id(material_id), light_id(light_id)
+		__host__ Triangle(Vertex v0, Vertex v1, Vertex v2, int32_t material_id, int32_t light_id, int32_t mesh_id) :
+			vertex0(v0), vertex1(v1), vertex2(v2), material_id(material_id), light_id(light_id), mesh_id(mesh_id)
 		{
 			//geometric normal construction
 			float3 edge0 = vertex1.position - vertex0.position;
@@ -100,14 +101,20 @@ namespace KittlesPT
 			return;
 		}
 
-		__forceinline__ __device__ ShapeSample sample(float2 u2, ShapeSampleContext ctx) const {
+		__forceinline__ __device__ ShapeSample sample(const Mat4& model, float2 u2, ShapeSampleContext ctx) const {
 			float3 p0 = vertex0.position, p1 = vertex1.position, p2 = vertex2.position;
 			float3 bary = sampleUniformTriangle(u2);
-			float3 p = p0 * bary.x + p1 * bary.y + p2 * bary.z;
+
+			float2 uv = (bary.x * vertex0.tex_coords) + (bary.y * vertex1.tex_coords) + (bary.z * vertex2.tex_coords);
+			float3 p = (p0 * bary.x) + (p1 * bary.y) + (p2 * bary.z);
+			p = make_float3(model * make_float4(p, 1));
+			float3 geo_normal = make_float3(model * make_float4(local_geometric_normal, 0));
+
 			float pdf = 1.0f / getArea();
 			pdf *= Sqr(distance(p, ctx.wpos));
-			pdf /= AbsDot(normalize(p - ctx.wpos), local_geometric_normal);
-			return ShapeSample(p, local_geometric_normal, pdf);
+			pdf /= AbsDot(normalize(p - ctx.wpos), geo_normal);
+
+			return ShapeSample(p, geo_normal, pdf, uv);
 		};
 
 		__device__ float getArea() const {
@@ -119,7 +126,7 @@ namespace KittlesPT
 		float3 local_geometric_normal{ 0.0f,0.0f,0.0f };
 		int32_t material_id = -1;
 		int32_t light_id = -1;
-		int32_t primitive_id = -1;
+		int32_t mesh_id = -1;
 	};
 
 	class TriangleMesh

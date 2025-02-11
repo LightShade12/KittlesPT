@@ -32,17 +32,14 @@ namespace KittlesPT
 
 	__device__ LightLiSample Light::sampleLi(const ShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const
 	{
-		ShapeSample ss = shader_data.triangles_buffer.data[prim_id].sample(u2, ctx);
-
-		float3 p = ss.wgnorm;
-		float theta = acosf(-p.y); float phi = atan2(-p.z, p.x) + Constants::PI;
-		float2 uv = make_float2(phi / (2.0f * Constants::PI), theta / Constants::PI);
+		const Triangle& tri = shader_data.triangles_buffer.data[prim_id];
+		ShapeSample ss = tri.sample(shader_data.meshes_buffer.data[tri.mesh_id].curr_inv_model_matrix.inverse(), u2, ctx);
 
 		float3 wi = normalize(ss.wpos - ctx.w_pos);
 		//only for full sphere sampling
 		//ss.pdf /= (AbsDot(-wi, ss.wgnorm) / Sqr(length(ss.wpos - ctx.w_pos)));//conversion to solid angle
 
-		RGBSpectrum Le = L(shader_data, uv);
+		RGBSpectrum Le = L(shader_data, ss.uv);
 
 		return LightLiSample(Le, wi, ss.wpos, ss.wgnorm, ss.pdf);
 	}
