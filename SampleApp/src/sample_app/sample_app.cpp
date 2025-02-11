@@ -14,7 +14,7 @@
 namespace SampleApp
 {
 	static ImFont* g_custom_font = nullptr;
-
+	/*INFO: FSR2 is postponed*/
 	void SampleAppWindow::onCreate()
 	{
 		std::printf("[APP] initializing app\n");
