@@ -153,16 +153,16 @@ namespace KittlesPT
 
 	private:
 		//phase func Rayleigh
-		__device__ float phaseR(float mu) const
+		__device__ float phaseR(float cos_theta) const
 		{
-			const float phaseR = 3.0f / (16.0f * Constants::PI) * (1.0f + mu * mu);
+			const float phaseR = 3.0f / (16.0f * Constants::PI) * (1.0f + Sqr(cos_theta));
 			return phaseR;
 		}
-		//phase func Mie
-		__device__ float phaseM(float mu) const
+		//phase func Mie; variant of HGPhaseFunction; forward scattering in nature
+		__device__ float phaseM(float cos_theta) const
 		{
 			constexpr float g = 0.76f; // anisotropy
-			const float phaseM = 3.0f / (8.0f * Constants::PI) * ((1.0f - g * g) * (1.0f + mu * mu)) / ((2.0f + g * g) * pow(1.0f + g * g - 2.0f * g * mu, 1.5f));
+			const float phaseM = 3.0f / (8.0f * Constants::PI) * ((1.0f - Sqr(g)) * (1.0f + Sqr(cos_theta))) / ((2.0f + Sqr(g)) * pow(1.0f + Sqr(g) - 2.0f * g * cos_theta, 1.5f));
 			return phaseM;
 		}
 

@@ -261,6 +261,10 @@ namespace KittlesPT
 				Intersection intr = intersect(shader_data, ray, 0.0f, INFINITY, dbg);
 				//Sample participating media here--
 
+				{
+
+				}
+
 				//Handle interaction with a medium; else surface scatter--
 				//110fps
 				if (!intr) {
