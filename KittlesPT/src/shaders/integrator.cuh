@@ -230,6 +230,15 @@ namespace KittlesPT
 			));
 		}
 
+		__device__ float beerLambertTransmittance(float t, float sigma_t) {
+			return expf(-t * sigma_t);
+		}
+
+		__device__ float isotropicPhaseFunction(float cos_theta)
+		{
+			return 1.0f / (4.0f * Constants::PI);
+		}
+
 		inline __device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
 		{
 			//114fps
@@ -259,11 +268,47 @@ namespace KittlesPT
 				sampler.setSeed(sampler.getSeed() + depth); bool first_surface = (depth == 0);
 
 				Intersection intr = intersect(shader_data, ray, 0.0f, INFINITY, dbg);
+
+				/*
 				//Sample participating media here--
-
+				// Single-scattering volumetric approx
 				{
-
+					float t = fminf(intr.distance, 1.0e8f);
+					light += RGBSpectrum(0, 0.5, 1) * shader_data.procedural_environment_data.sun_emission_nits *
+						(1.0f - beerLambertTransmittance(t, 0.1)) * throughput;
 				}
+
+				if (intr && false)
+				{
+					float sigma_a = 0.25f;
+					float sigma_s = 0.25f;
+					float sigma_t = sigma_a + sigma_s;
+					sigma_t = 0.1;
+					RGBSpectrum Li_inscatter = LeSun(shader_data, Ray(make_float3(0), sun_direction), atmosphere);
+					float3 wi = atmosphere.getSunDirection();
+					float3 wo = -ray.getDirection();
+					RGBSpectrum L_volumetric(0.0f);
+
+					int32_t raymarch_samples = 8;
+					float delta_t = intr.distance / raymarch_samples;
+					float current_t = 0.0f;
+
+					float Tr = 1.0f;
+					float Tr_step = beerLambertTransmittance(delta_t, sigma_t);
+
+					for (int32_t i = 0; i < raymarch_samples; i++) {
+						current_t += delta_t;
+						Tr *= Tr_step;//multiplicative property
+
+						float single_scattering_albedo = (sigma_t > 0) ? sigma_s / sigma_t : 0.0f;
+						float phase = isotropicPhaseFunction(dot(wo, wi));
+
+						L_volumetric += (single_scattering_albedo * phase * (Tr * Li_inscatter)) * delta_t;
+					}
+
+					light += throughput * L_volumetric;
+				}
+				*/
 
 				//Handle interaction with a medium; else surface scatter--
 				//110fps
@@ -319,13 +364,14 @@ namespace KittlesPT
 				//99fps
 
 				if (bsdf.isNonSpecular()) {
-					if (sampler.get1D() > 0.5f) {
-						RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surf_intr, light_sampler, sampler);
-						light += Ld * throughput * 2.0f;
+					float sun_sampling_p = 0.5f;
+					if (sampler.get1D() < sun_sampling_p) {
+						RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surf_intr, atmosphere, sampler);
+						light += Ld_sun * throughput / sun_sampling_p;
 					}
 					else {
-						RGBSpectrum Ld_sun = sampleLdSun(shader_data, ray, bsdf, surf_intr, atmosphere, sampler);
-						light += Ld_sun * throughput * 2.0f;
+						RGBSpectrum Ld = sampleLd(shader_data, ray, bsdf, surf_intr, light_sampler, sampler);
+						light += Ld * throughput / (1.0f - sun_sampling_p);
 					}
 				}
 

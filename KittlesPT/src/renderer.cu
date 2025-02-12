@@ -94,7 +94,7 @@ namespace KittlesPT
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_data);
 		if (m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation)
-		{
+		{//update accumulation texture for next frame
 			m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
 			m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
 			m_renderer_rsrc->m_frame_textures["main_texture"].copyTo(m_renderer_rsrc->m_frame_textures["accumulation_texture"]);

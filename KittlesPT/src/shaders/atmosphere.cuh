@@ -143,6 +143,10 @@ namespace KittlesPT
 			return atmosphere_radiance;
 		}
 
+		__device__ float getAtmosphereLuminance() {
+			return m_sun_emission_scale_nits;
+		}
+
 		__device__ float getEarthRadiusMeters() const {
 			return m_earth_radius_meters;
 		}

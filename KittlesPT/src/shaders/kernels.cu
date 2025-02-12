@@ -109,10 +109,10 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	__device__ float2 computeVelocity(const ShaderData& shader_data, const GBuffer& gbuffer, const VBuffer& vbuffer)
+	__device__ float2 computeVelocity(const ShaderData& shader_data, const GBuffer& gbuffer)
 	{
 		float2 velocity = make_float2(0.0f);
-		int32_t curr_mesh_id = vbuffer.instance_id;
+		int32_t curr_mesh_id = gbuffer.instance_id;
 
 		if (curr_mesh_id < 0) {
 			return velocity;
@@ -142,7 +142,7 @@ namespace KittlesPT
 
 	//depth2 is sampled depth
 	__device__ bool testReprojectedDepth(float depth1, float depth2) {
-		const float TEMPORAL_DEPTH_REJECT_THRESHOLD = 0.045f;
+		const float TEMPORAL_DEPTH_REJECT_THRESHOLD = 0.045f; //TODO: put in a constants file
 
 		if (fabsf(depth1 - depth2) < (depth2 * TEMPORAL_DEPTH_REJECT_THRESHOLD)) {
 			return true;
@@ -150,11 +150,11 @@ namespace KittlesPT
 		return false;
 	}
 
-	__device__ bool testReprojection(const ShaderData& shader_data, const GBuffer& gb, float2 prev_pixel_coord)
+	__device__ bool testReprojection(const ShaderData& shader_data, const GBuffer& gbuffer, float2 prev_pixel_coord)
 	{
-		const TriangleMesh& mesh = shader_data.meshes_buffer.data[gb.instance_id];
+		const TriangleMesh& mesh = shader_data.meshes_buffer.data[gbuffer.instance_id];
 
-		float3 curr_local_pos = make_float3(mesh.curr_inv_model_matrix * make_float4(gb.wpos, 1));
+		float3 curr_local_pos = make_float3(mesh.curr_inv_model_matrix * make_float4(gbuffer.wpos, 1));
 		Mat4 prev_model = mesh.prev_inv_model_matrix.inverse();
 
 		//DEPTH HEURISTIC-------------
@@ -168,37 +168,37 @@ namespace KittlesPT
 		return testReprojectedDepth(reprojected_prev_depth, prev_depth);
 	}
 
-	__device__ float4 reprojectAccumulate(const ShaderData& shader_data, float2 curr_pixel_coord, const GBuffer& gb, float2 velocity, RGBSpectrum curr_color)
+	__constant__ constexpr int32_t MAX_ACCUMULATION_FRAMES = 16;//TODO: put in constants
+	__device__ float4 reprojectAccumulate(const ShaderData& shader_data, float2 curr_pixel_coord, const GBuffer& gbuffer, float2 velocity, RGBSpectrum curr_color)
 	{
-		int32_t curr_mesh_id = gb.instance_id;
-
+		int32_t curr_mesh_id = gbuffer.instance_id;
+		//no surface
 		if (curr_mesh_id < 0) {
 			return make_float4(curr_color.toFloat3(), 0);
 		}
 
 		int2 frame_res = shader_data.frame_resolution;
 		//reproject
-		float2 pixel_offset = velocity * make_float2(frame_res);//map UV value to frame_res(pixel coords)
-		float2 prev_pixel_coord = curr_pixel_coord - pixel_offset;
+		float2 delta_pixel_coord = velocity * make_float2(frame_res);//map UV value to frame_res(pixel coords)
+		float2 prev_pixel_coord = curr_pixel_coord - delta_pixel_coord;
 
-		//new fragment; out of screen
+		//new out of screen fragment;
 		if (prev_pixel_coord.x < 0 || prev_pixel_coord.x >= frame_res.x ||
 			prev_pixel_coord.y < 0 || prev_pixel_coord.y >= frame_res.y)
 		{
 			return make_float4(curr_color.toFloat3(), 0);
 		}
 
-		//disocclusion/ reproj failure
-		if (!testReprojection(shader_data, gb, prev_pixel_coord))
+		//disocclusion/ reprojection failure
+		if (!testReprojection(shader_data, gbuffer, prev_pixel_coord))
 		{
 			return make_float4(curr_color.toFloat3(), 0);
 		}
 
 		float4 prev_color = shader_data.accumulation_texture.textureReadBilinear(prev_pixel_coord, false);
 
-		const int32_t MAX_ACCUMULATION_FRAMES = 16;
 		float color_history_length = prev_color.w;
-		float alpha = 1.0f / fminf(float(color_history_length + 1), MAX_ACCUMULATION_FRAMES);
+		float alpha = 1.0f / fminf(color_history_length + 1, (float)MAX_ACCUMULATION_FRAMES);
 
 		RGBSpectrum final_color = lerp(RGBSpectrum(prev_color), curr_color, alpha);
 
@@ -242,16 +242,17 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	RGBSpectrum sensor_radiance = RGBSpectrum(fs.weight) * camera_weight *
 		Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
 
-	VBuffer vb = VBuffer(visible_surface);
-	vb.velocity = computeVelocity(shader_data, visible_surface, vb);
+	VBuffer vbuffer = VBuffer(visible_surface);
+	vbuffer.velocity = computeVelocity(shader_data, visible_surface);
 
 	shader_data.gbuffer_texture.textureWriteUV(visible_surface.packGBuffer(), shading_job.uv_coord);
-	shader_data.vbuffer_texture.textureWriteUV(vb.packVBuffer(), shading_job.uv_coord);
+	shader_data.vbuffer_texture.textureWriteUV(vbuffer.packVBuffer(), shading_job.uv_coord);
+
 	float alpha = 1.0f;
 	if (shader_data.renderer_settings.integrator_use_temporal_accumulation)
 	{
 		float4 temporal_color_data = reprojectAccumulate(shader_data,
-			make_float2(shading_job.pixel_coord), visible_surface, vb.velocity, sensor_radiance);
+			make_float2(shading_job.pixel_coord), visible_surface, vbuffer.velocity, sensor_radiance);
 		sensor_radiance = RGBSpectrum(temporal_color_data);
 		alpha = temporal_color_data.w;
 	}
@@ -267,12 +268,12 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	//scale = ceilf(scale);
 	//if (!scale) frag_color += make_float4(1.0f) * length(make_float3(frag_color));
 
-	float3 gas_heat_map = (make_float3(0, 1, 0) * visible_surface.blas_hits * 0.02f) +
-		(make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
+	//float3 gas_heat_map = (make_float3(0, 1, 0) * visible_surface.blas_hits * 0.02f) +
+	//	(make_float3(0, 0, 1) * visible_surface.tlas_hits * 0.05f);
 
-	GBuffer prev = GBuffer::unpackGBuffer(shader_data.prev_gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
-	//vb.velocity *= 10.0f;
-	shader_data.debug_texture.textureWriteUV(make_float4(vb.velocity.x, vb.velocity.y, 0.0f, 1.0f), shading_job.uv_coord);
+	//GBuffer prev = GBuffer::unpackGBuffer(shader_data.prev_gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
+	//vbuffer.velocity *= 10.0f;
+	shader_data.debug_texture.textureWriteUV(make_float4(vbuffer.velocity.x, vbuffer.velocity.y, 0.0f, 1.0f), shading_job.uv_coord);
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
