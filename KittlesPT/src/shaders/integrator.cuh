@@ -20,7 +20,7 @@
 //TODO:use *_t types
 
 //#define INTERSECT_DEBUG
-
+//INFO: Volumetrics is postponed
 namespace KittlesPT
 {
 	/*TODO:list of features below
