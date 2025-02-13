@@ -46,8 +46,8 @@
     <IntDir>$(SolutionDir)bin\int\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin\$(ProjectName)-$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\int\$(ProjectName)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\bin\$(ProjectName)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\bin\int\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

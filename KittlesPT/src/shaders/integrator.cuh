@@ -148,9 +148,9 @@ namespace KittlesPT
 		{
 			RGBSpectrum Ld(0.0f);
 			const float3& sun_direction = atmosphere.getSunDirection();
-			float3 sun_position = sun_direction * Atmosphere::Values::SUN_PHYSICAL_DISTANCE_METERS;
+			float3 sun_position = sun_direction * Atmosphere::Values::SOLAR_DISTANCE_EARTH_METERS;
 			float sun_radius_meters = Atmosphere::angularDiameterToPhysicalDiameter(shader_data.procedural_environment_data.sun_angular_diameter_rad,
-				Atmosphere::Values::SUN_PHYSICAL_DISTANCE_METERS) / 2.0f;
+				Atmosphere::Values::SOLAR_DISTANCE_EARTH_METERS) / 2.0f;
 			float3 sample_offset = make_float3(sampler.get2D() * 2.0f - 1.0f, sampler.get1D() * 2.0f - 1.0f);//TODO: fix sampling
 
 			float3 target = sun_position + (sample_offset * sun_radius_meters);
@@ -165,7 +165,7 @@ namespace KittlesPT
 				return Ld;
 			}
 
-			RGBSpectrum sun_radiance = atmosphere.sampleLe(Ray(atmosphere_observer_position, sun_direction));
+			RGBSpectrum sun_radiance = atmosphere.sampleLi(Ray(atmosphere_observer_position, sun_direction));
 
 			if (!sun_radiance) {
 				return Ld;
@@ -178,7 +178,7 @@ namespace KittlesPT
 			float sun_area = Constants::PI * Sqr(sun_radius_meters);
 			float3 sun_surf_nrm = normalize(target - sun_position), wi = normalize(target - surface.world_position);
 			float theta_sun = AbsDot(sun_surf_nrm, -wi);//cosine
-			float pdf = (1.0f / sun_area) / (theta_sun / Sqr(Atmosphere::Values::SUN_PHYSICAL_DISTANCE_METERS));
+			float pdf = (1.0f / sun_area) / (theta_sun / Sqr(Atmosphere::Values::SOLAR_DISTANCE_EARTH_METERS));
 			Ld = (fcos * sun_radiance * Atmosphere::Values::SUN_HORIZON_LUMINANCE_NITS) / pdf;
 
 			return Ld;
@@ -314,7 +314,7 @@ namespace KittlesPT
 					/* MISS
 					* Sampling only one InfiniteLight with bsdf sampling here,
 					* without any explicit sky sampling elsewhere, so no MIS used here */
-					RGBSpectrum sky_radiance = atmosphere.sampleLe(Ray(atmosphere_observer_position, ray.getDirection()));
+					RGBSpectrum sky_radiance = atmosphere.sampleLi(Ray(atmosphere_observer_position, ray.getDirection()));
 					if (first_surface) {
 						sky_radiance *= LeSun(shader_data, ray, atmosphere);//done here to prevent fireflies
 						*visible_surface = GBuffer(sky_radiance, SurfaceInteraction());

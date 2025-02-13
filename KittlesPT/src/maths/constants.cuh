@@ -25,4 +25,11 @@ namespace KittlesPT
 		__constant__ constexpr uint32_t HISTOGRAM_SIZE = 256;
 		__constant__ constexpr float PRIMARY_RAY_TMAX = 1.0e4f;
 	}
+	//km to m
+	__device__ inline float operator"" _km(long double x) {
+		return x * 1000.0f;
+	}
+	__device__ inline float operator"" _metres(long double x) {
+		return x;
+	}
 }
