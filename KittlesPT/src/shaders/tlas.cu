@@ -11,7 +11,7 @@ namespace KittlesPT
 			return false;
 		}
 		const TLASNode* tlas_nodes_buffer = shader_data.tlas_nodes_buffer.data;
-		const BLAS* blas_buffer = shader_data.blas_buffer.data;
+		const BLAS2* blas_buffer = shader_data.blas_buffer.data;
 
 		int32_t node_id_stack[TLAS_TRAVERSAL_MAX_STACK_DEPTH]{};
 		uint16_t stack_ptr = 0u;
@@ -70,7 +70,7 @@ namespace KittlesPT
 		child2_hitdist = INFINITY;
 
 		const TLASNode* tlas_nodes_buffer = shader_data.tlas_nodes_buffer.data;
-		const BLAS* blas_buffer = shader_data.blas_buffer.data;
+		const BLAS2* blas_buffer = shader_data.blas_buffer.data;
 
 		int32_t node_id_stack[TLAS_TRAVERSAL_MAX_STACK_DEPTH]{};
 		uint16_t stack_ptr = 0u;

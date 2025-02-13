@@ -6,9 +6,9 @@
 
 namespace KittlesPT
 {
-	class BVHNode;
+	class BVH2Node;
 	class TLASNode;
-	class BLAS;
+	class BLAS2;
 	struct Material;
 	class Triangle;
 	class TriangleMesh;
@@ -51,8 +51,8 @@ namespace KittlesPT
 		Buffer<Texture> texture_buffer;
 		Buffer<uint8_t> pixel_buffer;
 		Buffer<int32_t> triangle_index_buffer;
-		Buffer<BVHNode> bvh_nodes_buffer;
-		Buffer<BLAS> blas_buffer;
+		Buffer<BVH2Node> bvh_nodes_buffer;
+		Buffer<BLAS2> blas_buffer;
 		Buffer<TLASNode> tlas_nodes_buffer;
 		TLAS top_level_acceleration_structure;
 		Camera scene_camera;

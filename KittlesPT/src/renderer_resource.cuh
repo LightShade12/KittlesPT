@@ -28,8 +28,8 @@ namespace KittlesPT
 		void updateResource()
 		{
 			shader_data.tlas_nodes_buffer = Buffer<TLASNode>(thrust::raw_pointer_cast(tlasnodes_buffer.data()), tlasnodes_buffer.size());
-			shader_data.blas_buffer = Buffer<BLAS>(thrust::raw_pointer_cast(blas_buffer.data()), blas_buffer.size());
-			shader_data.bvh_nodes_buffer = Buffer<BVHNode>(thrust::raw_pointer_cast(bvhnodes_buffer.data()), bvhnodes_buffer.size());
+			shader_data.blas_buffer = Buffer<BLAS2>(thrust::raw_pointer_cast(blas_buffer.data()), blas_buffer.size());
+			shader_data.bvh_nodes_buffer = Buffer<BVH2Node>(thrust::raw_pointer_cast(bvhnodes_buffer.data()), bvhnodes_buffer.size());
 			shader_data.triangle_index_buffer = Buffer<int32_t>(thrust::raw_pointer_cast(triangle_index_buffer.data()), triangle_index_buffer.size());
 			shader_data.meshes_buffer = Buffer<TriangleMesh>(thrust::raw_pointer_cast(scene_meshes.data()), scene_meshes.size());
 			shader_data.lights_buffer = Buffer<Light>(thrust::raw_pointer_cast(scene_lights.data()), scene_lights.size());
@@ -78,8 +78,8 @@ namespace KittlesPT
 		AutoExposureProgram auto_exposure_program;
 
 		thrust::universal_vector<TLASNode> tlasnodes_buffer;
-		thrust::universal_vector<BLAS> blas_buffer;
-		thrust::universal_vector<BVHNode> bvhnodes_buffer;
+		thrust::universal_vector<BLAS2> blas_buffer;
+		thrust::universal_vector<BVH2Node> bvhnodes_buffer;
 		thrust::universal_vector<int32_t> triangle_index_buffer;
 		thrust::universal_vector<TriangleMesh> scene_meshes;
 		thrust::universal_vector<Light> scene_lights;

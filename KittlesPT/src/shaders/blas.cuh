@@ -6,10 +6,10 @@
 
 namespace KittlesPT
 {
-	class BVHNode
+	class BVH2Node
 	{
 	public:
-		BVHNode() = default;
+		BVH2Node() = default;
 
 		__host__ float surfaceArea() const
 		{
@@ -42,10 +42,10 @@ namespace KittlesPT
 	};
 
 	//One BLAS = One BVH Tree
-	class BLAS
+	class BLAS2
 	{
 	public:
-		BLAS() = default;
+		BLAS2() = default;
 
 		__forceinline__ __device__ bool intersectP(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax) const
 		{
@@ -53,7 +53,7 @@ namespace KittlesPT
 				return false;
 			}
 
-			const BVHNode* bvh_nodes_buffer = shader_data.bvh_nodes_buffer.data;//put actual buffer here
+			const BVH2Node* bvh_nodes_buffer = shader_data.bvh_nodes_buffer.data;//put actual buffer here
 			const int32_t* bvh_tri_ids_buffer = shader_data.triangle_index_buffer.data;//put actual buffer here
 
 			Ray object_ray = ray.transform(inv_model_matrix);
@@ -62,7 +62,7 @@ namespace KittlesPT
 			uint8_t stack_ptr = 0u;//max val=255
 			node_id_stack[stack_ptr++] = bvhnode_root_id;
 
-			const BVHNode* stack_top_node = &bvh_nodes_buffer[bvhnode_root_id];//load root node;unneded
+			const BVH2Node* stack_top_node = &bvh_nodes_buffer[bvhnode_root_id];//load root node;unneded
 
 			Intersection intr;
 
@@ -118,7 +118,7 @@ namespace KittlesPT
 			if (bvhnode_root_id < 0) {
 				return Intersection();
 			}
-			const BVHNode* bvh_nodes_buffer = shader_data.bvh_nodes_buffer.data;//put actual buffer here
+			const BVH2Node* bvh_nodes_buffer = shader_data.bvh_nodes_buffer.data;//put actual buffer here
 			const int32_t* bvh_tri_ids_buffer = shader_data.triangle_index_buffer.data;//put actual buffer here
 
 			Ray object_ray = ray.transform(inv_model_matrix);
@@ -127,7 +127,7 @@ namespace KittlesPT
 			uint8_t stack_ptr = 0u;//max val=255
 			node_id_stack[stack_ptr++] = bvhnode_root_id;
 
-			const BVHNode* stack_top_node = &bvh_nodes_buffer[bvhnode_root_id];//load root node;unneded
+			const BVH2Node* stack_top_node = &bvh_nodes_buffer[bvhnode_root_id];//load root node;unneded
 
 			Intersection intr;
 			Intersection closest;
