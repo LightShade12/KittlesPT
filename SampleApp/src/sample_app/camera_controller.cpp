@@ -7,7 +7,6 @@
 
 namespace SampleApp
 {
-	constexpr static glm::vec3 global_up(0, 1, 0);
 	static glm::vec2 last_mouse_pos;
 
 	bool CameraController::processInput(GLFWwindow* window_ctx, float delta_ts_ms)
@@ -83,9 +82,10 @@ namespace SampleApp
 		return m_moved;
 	}
 
-	glm::mat4 CameraController::getViewMatrix()
+	glm::mat4 CameraController::getViewMatrix() const
 	{
-		glm::mat4 view
+		//Y-up, Z- = forward
+		glm::mat4 inv_view
 		(
 			glm::vec4(right, 0),
 			glm::vec4(up, 0),
@@ -93,23 +93,6 @@ namespace SampleApp
 			glm::vec4(position, 1)
 		);
 
-		return view;
-	}
-
-	float CameraController::getVerticalFOV_Radians()
-	{
-		return m_fov_y_rad;
-	}
-	float CameraController::getExposure()
-	{
-		return m_exposure;
-	}
-	void CameraController::setExposure(float exposure)
-	{
-		m_exposure = exposure;
-	}
-	void CameraController::setVerticalFOV_Radians(float fov_y_rad)
-	{
-		m_fov_y_rad = fov_y_rad;
+		return glm::inverse(inv_view);
 	}
 }

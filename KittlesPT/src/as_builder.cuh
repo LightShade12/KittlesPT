@@ -1,0 +1,394 @@
+#pragma once
+#include "shaders/triangle.cuh"
+#include "shaders/blas.cuh"
+
+#include <thrust/universal_vector.h>
+#include <thrust/host_vector.h>
+#include <numeric>
+
+namespace KittlesPT
+{
+	class BLASBuilder
+	{
+	public:
+
+		struct BVHTriangleCache {
+			BVHTriangleCache(float3 centroid) :centroid(centroid) {};
+			float3 centroid;
+		};
+
+		__host__ BLASBuilder(const thrust::universal_vector<Triangle>* tris, thrust::universal_vector<int32_t>* trisid, thrust::universal_vector<BVH2Node>* bvhnodes) :
+			m_bvhnodes_buffer(bvhnodes), m_tris_index_buffer(trisid)
+		{
+			m_tris_buffer = tris;
+		}
+
+		__host__ BLAS2 build(const TriangleMesh& mesh, uint64_t mesh_id)
+		{
+			mesh_tris_count = mesh.prim_count;
+			mesh_tris_offset = mesh.prim_offset;
+			BLAS2 mesh_blas = buildBLAS();
+			mesh_blas.original_bounds = mesh_blas.bounds;
+			mesh_blas.inv_model_matrix = mesh.curr_inv_model_matrix;
+			mesh_blas.mesh_id = static_cast<int32_t>(mesh_id);
+			return mesh_blas;
+		}
+
+		__host__ void refit(const TriangleMesh& mesh, int32_t mesh_id)
+		{
+			mesh_tris_count = mesh.prim_count;
+			mesh_tris_offset = mesh.prim_offset;
+			refitBLAS();
+			//mesh_blas.inv_model_matrix = mesh.inv_model_matrix;
+			//mesh_blas.mesh_id = mesh_id;
+			//return mesh_blas;
+		}
+
+	private:
+
+		__host__ void updateNodeBounds(uint32_t node_idx)
+		{
+			BVH2Node& node = (*m_bvhnodes_buffer)[node_idx];
+			node.bounds.pmin = make_float3(FLT_MAX);
+			node.bounds.pmax = make_float3(-FLT_MAX);
+			for (uint32_t first = node.left_child_node_id_or_tris_index_start_id, i = 0; i < node.node_tris_idx_count; i++)
+			{
+				uint32_t tri_id = (*m_tris_index_buffer)[first + i];
+				const Triangle& leaf_tri = (*m_tris_buffer)[tri_id];
+				node.bounds.grow(leaf_tri.vertex0.position);
+				node.bounds.grow(leaf_tri.vertex1.position);
+				node.bounds.grow(leaf_tri.vertex2.position);
+			}
+		}
+
+		enum PlaneAxis {
+			X,
+			Y,
+			Z
+		};
+
+		__host__ float comp(float3 v, int32_t idx)
+		{
+			return(idx == 0) ? v.x : (idx == 1) ? v.y : v.z;
+		}
+
+		__host__ float evaluateSAH(const BVH2Node& node, PlaneAxis axis, float pos)
+		{
+			// determine triangle counts and bounds for this split candidate
+			Bounds3f leftBox{}, rightBox{};
+			int leftCount = 0, rightCount = 0;
+			for (uint i = 0; i < node.node_tris_idx_count; i++)
+			{
+				int32_t tri_id = (*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i];
+				const Triangle& triangle = (*m_tris_buffer)[tri_id];
+				const BVHTriangleCache& tri_cache = m_cache[tri_id];
+
+				if (comp(tri_cache.centroid, axis) < pos)
+				{
+					leftCount++;
+					leftBox.grow(triangle.vertex0.position);
+					leftBox.grow(triangle.vertex1.position);
+					leftBox.grow(triangle.vertex2.position);
+				}
+				else
+				{
+					rightCount++;
+					rightBox.grow(triangle.vertex0.position);
+					rightBox.grow(triangle.vertex1.position);
+					rightBox.grow(triangle.vertex2.position);
+				}
+			}
+			float cost = leftCount * leftBox.surfaceArea() + rightCount * rightBox.surfaceArea();
+			return (cost > 0.0f) ? cost : INFINITY;
+		}
+
+		struct Bin {
+			Bounds3f bounds;
+			uint32_t tris_count = 0;
+		};
+
+		__host__ float findBestSplitPlane(const BVH2Node& node, int32_t* axis, float* split_pos)
+		{
+			constexpr uint8_t BINS = 8;
+			float best_cost = INFINITY;
+			//TODO: try out longest axis SAH
+			for (int32_t candidate_axis = 0; candidate_axis < 3; candidate_axis++)
+			{
+				float boundsMin = INFINITY, boundsMax = -INFINITY;
+				for (int i = 0; i < node.node_tris_idx_count; i++)
+				{
+					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					boundsMin = min(boundsMin, comp(cache.centroid, candidate_axis));
+					boundsMax = max(boundsMax, comp(cache.centroid, candidate_axis));
+				}
+				//float boundsMin = comp(node.bounds.pmin, candidate_axis);
+				//float boundsMax = comp(node.bounds.pmax, candidate_axis);
+
+				if (boundsMin == boundsMax) {
+					continue;
+				}
+
+				//precompute bins (processing prims only once instead)--------------
+				Bin bin[BINS];
+				float scale = BINS / (boundsMax - boundsMin);
+
+				for (uint32_t i = 0; i < node.node_tris_idx_count; i++)
+				{
+					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					const Triangle& tri = (*m_tris_buffer)[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					int binIdx = min(BINS - 1,
+						(int32_t)((comp(cache.centroid, candidate_axis) - boundsMin) * scale));
+					bin[binIdx].tris_count++;
+					bin[binIdx].bounds.grow(tri.vertex0.position);
+					bin[binIdx].bounds.grow(tri.vertex1.position);
+					bin[binIdx].bounds.grow(tri.vertex2.position);
+				}
+
+				//initialise per plane data--------------
+				constexpr int32_t PLANES_COUNT = BINS - 1;
+				float leftArea[PLANES_COUNT], rightArea[PLANES_COUNT];
+				int32_t  leftCount[PLANES_COUNT], rightCount[PLANES_COUNT];
+				Bounds3f leftBox, rightBox;
+				int32_t leftSum = 0, rightSum = 0;
+				for (int32_t i = 0; i < PLANES_COUNT; i++)
+				{
+					leftSum += bin[i].tris_count;
+					leftCount[i] = leftSum;
+					leftBox.grow(bin[i].bounds);
+					leftArea[i] = leftBox.surfaceArea();
+					rightSum += bin[PLANES_COUNT - i].tris_count;
+					rightCount[PLANES_COUNT - 1 - i] = rightSum;
+					rightBox.grow(bin[PLANES_COUNT - i].bounds);
+					rightArea[PLANES_COUNT - 1 - i] = rightBox.surfaceArea();
+				}
+
+				//eval sah for per plane
+				scale = (boundsMax - boundsMin) / BINS;
+				for (int32_t i = 0; i < PLANES_COUNT; i++)
+				{
+					float planeCost = leftCount[i] * leftArea[i] + rightCount[i] * rightArea[i];
+					if (planeCost < best_cost) {
+						(*axis) = candidate_axis, (*split_pos) = boundsMin + scale * (i + 1), best_cost = planeCost;
+					}
+				}
+			}
+			return best_cost;
+		}
+
+		__host__ void subdivide(uint32_t node_id, uint32_t* node_index_ptr)
+		{
+			BVH2Node& parent_node = (*m_bvhnodes_buffer)[node_id];
+
+			int32_t axis = -1;
+			float split_pos = 0;
+			float split_cost = findBestSplitPlane(parent_node, &axis, &split_pos);
+
+			float nosplit_cost = parent_node.node_tris_idx_count * parent_node.surfaceArea();
+
+			//if (nosplit_cost <= split_cost) {
+			//	return;//termination condition
+			//}
+			if (parent_node.node_tris_idx_count <= 8) {
+				return;
+			}
+
+			//split grp---------
+			int32_t i = parent_node.left_child_node_id_or_tris_index_start_id;
+			int32_t j = i + parent_node.node_tris_idx_count - 1;
+			while (i <= j)
+			{
+				if (comp(m_cache[(*m_tris_index_buffer)[i]].centroid, axis) < split_pos) {
+					i++;
+				}
+				else {
+					std::swap((*m_tris_index_buffer)[i], (*m_tris_index_buffer)[j--]);
+				}
+			}
+			int32_t split_id = i;
+
+			//create children------------
+			BVH2Node left, right;
+			left.node_tris_idx_count = split_id - parent_node.left_child_node_id_or_tris_index_start_id;
+			if (left.node_tris_idx_count == 0 || left.node_tris_idx_count == parent_node.node_tris_idx_count) {
+				return;//full imbalanced split
+			}
+			int32_t left_child_id = (*node_index_ptr)++;
+			int32_t right_child_id = (*node_index_ptr)++;
+			left.left_child_node_id_or_tris_index_start_id = parent_node.left_child_node_id_or_tris_index_start_id;
+			right.left_child_node_id_or_tris_index_start_id = split_id;
+			right.node_tris_idx_count = parent_node.node_tris_idx_count - left.node_tris_idx_count;
+			parent_node.node_tris_idx_count = 0;//mark parent as interior
+			parent_node.left_child_node_id_or_tris_index_start_id = left_child_id;
+
+			(*m_bvhnodes_buffer)[left_child_id] = left;
+			(*m_bvhnodes_buffer)[right_child_id] = right;
+			updateNodeBounds(left_child_id);
+			updateNodeBounds(right_child_id);
+
+			subdivide(left_child_id, node_index_ptr);
+			subdivide(right_child_id, node_index_ptr);
+		}
+
+		__host__ BLAS2 buildBLAS()
+		{
+			//cache mesh tri data
+			for (int32_t i = 0; i < mesh_tris_count; i++) {
+				int32_t  tri_id = mesh_tris_offset + i;
+				const Triangle& tri = (*m_tris_buffer)[tri_id];
+				float3 centroid = (tri.vertex0.position + tri.vertex1.position + tri.vertex2.position) * 0.3333f;
+				m_cache.push_back(BVHTriangleCache(centroid));
+			}
+
+			int32_t bvh_root_id = m_bvhnodes_buffer->size();
+			m_bvhnodes_buffer->resize(m_bvhnodes_buffer->size() + (2 * mesh_tris_count - 1));
+			m_tris_index_buffer->resize(m_tris_index_buffer->size() + mesh_tris_count);
+			std::iota(m_tris_index_buffer->end() - mesh_tris_count, m_tris_index_buffer->end(), mesh_tris_offset);
+
+			BLAS2 blas;
+			blas.bvhnode_root_id = bvh_root_id;
+			BVH2Node& root = (*m_bvhnodes_buffer)[blas.bvhnode_root_id];
+			root.node_tris_idx_count = mesh_tris_count;
+			root.left_child_node_id_or_tris_index_start_id = mesh_tris_offset;
+			updateNodeBounds(blas.bvhnode_root_id);
+			blas.bounds = root.bounds;
+			uint32_t node_index_ptr = bvh_root_id + 1;
+			subdivide(blas.bvhnode_root_id, &node_index_ptr);
+			m_bvhnodes_buffer->shrink_to_fit();
+			return blas;
+		}
+
+		//wrong
+		__host__ void refitBLAS()
+		{
+			int32_t nodesUsed = m_bvhnodes_buffer->size();
+
+			for (int i = nodesUsed - 1; i >= 0; i--)
+			{
+				//if (i != 1)
+				{
+					BVH2Node* node = &(*m_bvhnodes_buffer)[i];
+					if (node->isLeaf())
+					{
+						// leaf node: adjust bounds to contained triangles
+						updateNodeBounds(i);
+						continue;
+					}
+					// interior node: adjust bounds to child node bounds
+					BVH2Node& leftChild = (*m_bvhnodes_buffer)[node->left_child_node_id_or_tris_index_start_id];
+					BVH2Node& rightChild = (*m_bvhnodes_buffer)[node->left_child_node_id_or_tris_index_start_id + 1];
+					node->bounds.pmin = fminf(leftChild.bounds.pmin, rightChild.bounds.pmin);
+					node->bounds.pmax = fmaxf(leftChild.bounds.pmax, rightChild.bounds.pmax);
+				}
+			}
+		}
+
+		int32_t mesh_tris_offset = -1;
+		uint32_t mesh_tris_count = 0;
+
+		std::vector<BVHTriangleCache>m_cache;
+		const thrust::universal_vector<Triangle>* m_tris_buffer = nullptr;
+		thrust::universal_vector<int32_t>* m_tris_index_buffer = nullptr;
+		thrust::universal_vector<BVH2Node>* m_bvhnodes_buffer = nullptr;
+	};
+
+	class TLASBuilder
+	{
+	public:
+
+		TLASBuilder(const thrust::universal_vector<BLAS2>* blas_buffer, thrust::universal_vector<TLASNode>* tlasnodes_buffer) :
+			m_blas_buffer(blas_buffer), m_tlasnodes_buffer(tlasnodes_buffer)
+		{}
+
+		__host__ TLAS build()
+		{
+			return buildTLAS();
+		}
+
+	private:
+
+		__host__ TLAS buildTLAS()
+		{
+			const uint32_t BLAS_COUNT = m_blas_buffer->size();
+
+			if (BLAS_COUNT == 0) {
+				printf("EMPTY TLAS EMITTED\n");
+				return TLAS();
+			}
+
+			m_tlasnodes_buffer->resize(2 * BLAS_COUNT);
+
+			// work list for agglomerative clustering
+			std::vector<int32_t> tlas_node_ids(BLAS_COUNT);
+			int32_t node_index_ptr = 1;
+			int32_t node_indices_left = BLAS_COUNT;
+
+			// initialize leaves
+			for (uint32_t i = 0; i < BLAS_COUNT; i++) {
+				tlas_node_ids[i] = node_index_ptr;
+				(*m_tlasnodes_buffer)[node_index_ptr].bounds = (*m_blas_buffer)[i].bounds;
+				(*m_tlasnodes_buffer)[node_index_ptr].blas_id = i;
+				(*m_tlasnodes_buffer)[node_index_ptr++].left_right_id = 0u; // Leaf marker
+			}
+
+			// agglomerative clustering to build TLAS
+			int A = 0, B = findBestMatch(tlas_node_ids.data(), node_indices_left, A);
+			while (node_indices_left > 1) {
+				int C = findBestMatch(tlas_node_ids.data(), node_indices_left, B);
+
+				if (A == C) {
+					int32_t node_id_A = tlas_node_ids[A], node_id_B = tlas_node_ids[B];
+
+					if (node_id_A <= 0 || node_id_B <= 0) {
+						printf("ERROR: Invalid node ID (A: %d, B: %d)\n", node_id_A, node_id_B);
+						return TLAS();
+					}
+
+					const TLASNode& nodeA = (*m_tlasnodes_buffer)[node_id_A];
+					const TLASNode& nodeB = (*m_tlasnodes_buffer)[node_id_B];
+
+					TLASNode& new_node = (*m_tlasnodes_buffer)[node_index_ptr];
+					new_node.left_right_id = node_id_A + (node_id_B << 16);
+					new_node.bounds.pmin = fminf(nodeA.bounds.pmin, nodeB.bounds.pmin);
+					new_node.bounds.pmax = fmaxf(nodeA.bounds.pmax, nodeB.bounds.pmax);
+
+					tlas_node_ids[A] = node_index_ptr++;
+					tlas_node_ids[B] = tlas_node_ids[node_indices_left - 1];
+					B = findBestMatch(tlas_node_ids.data(), --node_indices_left, A);
+				}
+				else {
+					A = B, B = C;
+				}
+			}
+
+			TLAS tlas;
+			tlas.tlasnode_root_id = 0;
+			(*m_tlasnodes_buffer)[tlas.tlasnode_root_id] = (*m_tlasnodes_buffer)[tlas_node_ids[A]];
+			tlas.bounds = (*m_tlasnodes_buffer)[tlas.tlasnode_root_id].bounds;
+
+			m_tlasnodes_buffer->resize(node_index_ptr);
+			return tlas;
+		}
+
+		__host__ int32_t findBestMatch(int32_t* nodes_indices, int32_t list_size, int32_t A)
+		{
+			float smallest = INFINITY;
+			int32_t bestB = -1;
+			for (int32_t B = 0; B < list_size; B++) {
+				if (B != A)//skip if same as arg
+				{
+					float3 bmax = fmaxf((*m_tlasnodes_buffer)[nodes_indices[A]].bounds.pmax, (*m_tlasnodes_buffer)[nodes_indices[B]].bounds.pmax);
+					float3 bmin = fminf((*m_tlasnodes_buffer)[nodes_indices[A]].bounds.pmin, (*m_tlasnodes_buffer)[nodes_indices[B]].bounds.pmin);
+					float3 e = bmax - bmin;
+					float surfaceArea = e.x * e.y + e.y * e.z + e.z * e.x;//half SA
+					if (surfaceArea < smallest) {
+						smallest = surfaceArea, bestB = B;
+					}
+				}
+			}
+			return bestB;
+		}
+
+		const thrust::universal_vector<BLAS2>* m_blas_buffer = nullptr;
+		thrust::universal_vector<TLASNode>* m_tlasnodes_buffer = nullptr;
+	};
+}

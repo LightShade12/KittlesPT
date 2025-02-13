@@ -1053,7 +1053,7 @@ inline __host__ __device__ float4 operator/(float b, float4 a)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// min
+// pmin
 ////////////////////////////////////////////////////////////////////////////////
 
 inline  __host__ __device__ float2 fminf(float2 a, float2 b)
@@ -1096,7 +1096,7 @@ inline __host__ __device__ uint4 min(uint4 a, uint4 b)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// max
+// pmax
 ////////////////////////////////////////////////////////////////////////////////
 
 inline __host__ __device__ float2 fmaxf(float2 a, float2 b)
@@ -1491,6 +1491,10 @@ inline __host__ __device__ bool operator==(int2 a, int2 b)
 inline __host__ __device__ bool operator==(float3 a, float3 b)
 {
 	return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
+}
+
+inline constexpr __host__ __device__ float3 constexpr_float3(float v) {
+	return { v, v, v };
 }
 
 inline constexpr __host__ __device__ float3 constexpr_float3(float x, float y, float z) {

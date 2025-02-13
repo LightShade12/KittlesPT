@@ -46,8 +46,8 @@
     <IntDir>$(SolutionDir)bin\int\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin\$(ProjectName)-$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\int\$(ProjectName)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\bin\$(ProjectName)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\bin\int\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -82,6 +82,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(ProjectDir)thirdparty\glad\include;$(ProjectDir)src;$(ProjectDir)thirdparty\</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -99,42 +101,44 @@
       <FastMath>true</FastMath>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
-      <AdditionalOptions>-diag-suppress 20012 --std=c++17 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-diag-suppress 20012 --std=c++17 -arch=lto_75 %(AdditionalOptions)</AdditionalOptions>
+      <ExtensibleWholeProgramCompilation>false</ExtensibleWholeProgramCompilation>
     </CudaCompile>
+    <CudaLink>
+      <PerformDeviceLinkTimeOptimization>true</PerformDeviceLinkTimeOptimization>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="src\error_check.cu" />
-    <CudaCompile Include="src\maths\matrix_maths.cu" />
     <CudaCompile Include="src\reference.cu" />
-    <CudaCompile Include="src\maths\linear_algebra.cu" />
-    <CudaCompile Include="src\maths\sampling.cu" />
-    <CudaCompile Include="src\maths\vector_maths.cu" />
     <CudaCompile Include="src\renderer.cu" />
-    <CudaCompile Include="src\shaders\atmosphere.cu" />
     <CudaCompile Include="src\shaders\bloom.cu" />
-    <CudaCompile Include="src\shaders\bsdf.cu" />
-    <CudaCompile Include="src\shaders\camera.cu" />
-    <CudaCompile Include="src\shaders\color.cu" />
-    <CudaCompile Include="src\shaders\device_texture_buffer.cu" />
+    <ClInclude Include="src\as_builder.cuh" />
+    <ClInclude Include="src\autoexposure_program.hpp" />
+    <ClInclude Include="src\helpers.cuh" />
+    <ClInclude Include="src\maths\bounds.cuh" />
+    <ClInclude Include="src\mipchain.cuh" />
     <ClInclude Include="src\pod_types.hpp" />
+    <ClInclude Include="src\renderer_resource.cuh" />
+    <ClInclude Include="src\shaders\blas.cuh" />
     <ClInclude Include="src\shaders\bloom.cuh" />
+    <ClInclude Include="src\shaders\film.cuh" />
     <ClInclude Include="src\shaders\filter.cuh" />
+    <ClInclude Include="src\shaders\histogram.cuh" />
     <ClInclude Include="src\shaders\interaction.cuh" />
     <ClInclude Include="src\shaders\light.cuh" />
+    <ClInclude Include="src\shaders\light_context.cuh" />
     <ClInclude Include="src\shaders\light_sampler.cuh" />
-    <CudaCompile Include="src\shaders\filter.cu" />
-    <CudaCompile Include="src\shaders\integrator.cu" />
+    <CudaCompile Include="src\shaders\histogram.cu" />
     <CudaCompile Include="src\shaders\interaction.cu" />
     <CudaCompile Include="src\shaders\light.cu" />
     <CudaCompile Include="src\shaders\material.cu" />
-    <CudaCompile Include="src\shaders\packing.cu" />
-    <CudaCompile Include="src\shaders\samplers.cu" />
-    <CudaCompile Include="src\shaders\shading_kernel.cu" />
-    <CudaCompile Include="src\shaders\sphere.cu" />
     <CudaCompile Include="src\shaders\texture.cu" />
+    <CudaCompile Include="src\shaders\tlas.cu" />
+    <CudaCompile Include="src\texture_buffer.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\kittles_pt\kittles_pt.hpp" />
+    <ClInclude Include="include\kittlesPT\kittlesPT.hpp" />
     <ClInclude Include="src\containers.cuh" />
     <ClInclude Include="src\error_check.cuh" />
     <ClInclude Include="src\maths\constants.cuh" />
@@ -162,6 +166,9 @@
     <ClInclude Include="src\shaders\shading_kernel.cuh" />
     <ClInclude Include="src\shaders\sphere.cuh" />
     <ClInclude Include="src\shaders\texture.cuh" />
+    <ClInclude Include="src\shaders\tlas.cuh" />
+    <ClInclude Include="src\shaders\triangle.cuh" />
+    <ClInclude Include="src\texture_buffer.cuh" />
     <ClInclude Include="thirdparty\glad\include\glad\glad.h" />
   </ItemGroup>
   <ItemGroup>

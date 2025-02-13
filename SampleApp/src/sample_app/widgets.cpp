@@ -1,10 +1,13 @@
 #include "widgets.hpp"
 
+#include "mesh_object.hpp"
 #include "shared_state.hpp"
 #include "glad/include/glad/glad.h"
 #define GLFW_INCLUDE_NONE //glad loader instead of local gl
 #include "glfw/include/GLFW/glfw3.h"
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 namespace SampleApp
 {
@@ -34,7 +37,7 @@ namespace SampleApp
 			ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		if (m_background_texture.isValid())
 		{
-			ImGui::Image((ImTextureID*)(long long(m_background_texture.m_GL_texture_name)),
+			ImGui::Image((ImTextureID*)(int64_t(m_background_texture.getGLTexture())),
 				ImVec2((float)win_width, (float)win_height), { 0,1 }, { 1,0 });
 		}
 
@@ -50,102 +53,212 @@ namespace SampleApp
 	void DeveloperWindow::updateUI()
 	{
 		std::chrono::time_point<std::chrono::steady_clock> current_frame_time_point = std::chrono::high_resolution_clock::now();
-		delta_time_secs = current_frame_time_point - last_frame_time_point;
+		m_delta_time_secs = current_frame_time_point - m_last_frame_time_point;
 
-		last_frame_time_point = current_frame_time_point;
+		m_last_frame_time_point = current_frame_time_point;
 	}
 
 	void DeveloperWindow::renderUI()
 	{
-		ImGui::Text("Delta ms(last frame): %.3f ms", delta_time_secs.count() * 1000.0f);
-		float fps = 1000.0f / (delta_time_secs.count() * 1000.0f);
+		ImGui::Text("Delta ms(last frame): %.3f ms", m_delta_time_secs.count() * 1000.0f);
+		float fps = 1000.0f / (m_delta_time_secs.count() * 1000.0f);
 		ImGui::Text("FPS(last frame): %.3f", fps);
 
 		//TODO: weird; idk
-		float avg = glm::mix(average_fps, fps, 0.01f);
+		float avg = glm::mix(m_average_fps, fps, 0.01f);
 		if (!isnan(avg) && !isinf(avg))
 		{
-			average_fps = avg;
+			m_average_fps = avg;
 		}
 
-		ImGui::Text("EMA FPS: %.3f", average_fps);
+		ImGui::Text("EMA FPS: %.3f", m_average_fps);
 		ImGui::Text("Runtime secs: %.3f s",
-			std::chrono::duration_cast<std::chrono::duration<float>>(last_frame_time_point.time_since_epoch()).count() - start_time_secs);
+			std::chrono::duration_cast<std::chrono::duration<float>>(m_last_frame_time_point.time_since_epoch()).count() - m_start_time_secs);
+
+		//ImGui::ShowDemoWindow();
 
 		//camera edit
-		{
-			ImGui::Separator();
-			ImGui::SeparatorText("Camera edit");
-			if (camera_controller_ref != nullptr)
-			{
-				float fov_y_rad = camera_controller_ref->getVerticalFOV_Radians();
-				float exposure = camera_controller_ref->getExposure();
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Camera Settings") && m_camera_handle != nullptr) {
+			float fov_y_radians = m_camera_handle->getVerticalFOV_Radians();
+			float move_speed = m_camera_handle->getMovementSpeed();
+			float aperture_f_num = m_camera_handle->getApertureF();
+			float exp_comp = m_camera_handle->getExposureCompensationEV();
+			int ISO = m_camera_handle->getISO();
+			float shutter_secs = m_camera_handle->getShutterSecs();
 
-				if (ImGui::BeginTable("cameraedittable", 2))
-				{
-					ImGui::TableSetupColumn("A0", 0, 0.4f);
-					ImGui::TableSetupColumn("A1", 0);
+			//TODO: make this into CameraSettings struct?
+			std::vector<float>camera_values = { aperture_f_num,exp_comp,static_cast<float>(ISO),shutter_secs,
+				m_camera_handle->getWhitePointEV(),m_camera_handle->getBlackPointEV() };
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("FOV");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					if (ImGui::SliderAngle("###fov_control", &fov_y_rad, 0.0, 120.0)) {
-						event_dispatcher_ref->emitSignal(Event("fov_changed"), fov_y_rad);
-					};
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Exposure");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					if (ImGui::SliderFloat("###exposure_control", &exposure, 0.0, 100.0,
-						"%.3f unitless", ImGuiSliderFlags_Logarithmic)) {
-						event_dispatcher_ref->emitSignal(Event("exposure_changed"), exposure);
-					};
+			bool exposure_updated = false;
 
-					ImGui::EndTable();
-				}
-			}
-		}
-
-		//integrator edit
-		{
-			ImGui::Separator();
-			ImGui::SeparatorText("Integrator edit");
-			KittlesPT::PathtracerSettings pt_settings = shared_data_ref->pathtracer_settings;
-			bool pt_settings_updated = false;
-
-			if (ImGui::BeginTable("integratoredittable", 2))
+			if (ImGui::BeginTable("cameraedittable", 2))
 			{
 				ImGui::TableSetupColumn("A0", 0, 0.4f);
 				ImGui::TableSetupColumn("A1", 0);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("MAX_BOUNCES");
+				ImGui::Text("Movement Speed");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				pt_settings_updated |= ImGui::SliderInt("###max_bounces", &pt_settings.max_bounce_depth, 0, 32);
+				if (ImGui::SliderFloat("###speed_control", &move_speed,
+					0.001f, 10.0f, "%.3f unitless")) {
+					m_event_dispatcher_handle->emitSignal(Event("movement_speed_changed"), move_speed);
+				};
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Vertical FOV");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				if (ImGui::SliderAngle("###fov_control", &fov_y_radians, 0.0, 120.0)) {
+					m_event_dispatcher_handle->emitSignal(Event("fov_changed"), fov_y_radians);
+				};
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("EV Compensation");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				exposure_updated |= ImGui::SliderFloat("###evcomp_control", &camera_values[1],
+					-3.0f, 3.0, "%.3f EV");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Aperture F-Stops");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				exposure_updated |= ImGui::SliderFloat("###aperture_control", &camera_values[0],
+					CameraController::AP_F_MIN, CameraController::AP_F_MAX, "f/%.3f");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("ISO");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				int factor = static_cast<int>(log2(ISO / 100));//keep it outside; mind the slider modifying ISO below
+				if (ImGui::InputInt("###iso_control", &ISO, 100, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
+					bool inc = (camera_values[2] < ISO);
+					factor = glm::max(factor - (!inc), 0);
+					ISO = static_cast<int>(camera_values[2]) + (((inc) ? 1 : -1) * 100 * static_cast<int>(pow(2, factor)));
+					camera_values[2] = static_cast<float>(glm::clamp(ISO,
+						CameraController::ISO_MIN, CameraController::ISO_MAX));
+					exposure_updated |= true;
+				};
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Shutter Speed");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				float denominator = 1.0f / shutter_secs;
+				if (ImGui::SliderFloat("###shutter_control", &denominator,
+					CameraController::SHUTTER_DENOM_MIN, CameraController::SHUTTER_DENOM_MAX, "1/%.1fs",
+					ImGuiSliderFlags_Logarithmic)) {
+					shutter_secs = 1.0f / denominator;
+					camera_values[3] = shutter_secs;
+					exposure_updated |= true;
+				};
 
 				ImGui::EndTable();
+			}
+			ImGui::SeparatorText("View Transform");
+			if (ImGui::BeginTable("cameracolortransformedittable", 2))
+			{
+				ImGui::TableSetupColumn("A0", 0, 0.4f);
+				ImGui::TableSetupColumn("A1", 0);
 
-				pt_settings_updated |= ImGui::Checkbox("Generate bloom", &pt_settings.generate_bloom);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Dynamic Range:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::Text("%.3f EV", camera_values[4] - camera_values[5]);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("White Point");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				exposure_updated |= ImGui::SliderFloat("###white_point_control", &camera_values[4],
+					5.0f, 20.0f, "%.3f EV");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Black Point");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				exposure_updated |= ImGui::SliderFloat("###black_point_control", &camera_values[5],
+					-15.0f, -3.0f, "%.3f EV");
+
+				ImGui::EndTable();
+			}
+
+			if (exposure_updated)
+			{
+				m_event_dispatcher_handle->emitSignal(Event("exposure_changed"), camera_values);
+			};
+		};
+
+		//integrator edit
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Integrator Edit")) {
+			KittlesPT::RendererSettings pt_settings = m_shared_data_handle->renderer_settings;
+			bool pt_settings_updated = false;
+
+			if (ImGui::BeginTable("integratoredittable", 2)) {
+				ImGui::TableSetupColumn("A0", 0, 0.4f);
+				ImGui::TableSetupColumn("A1", 0);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Max Path Depth");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				pt_settings_updated |= ImGui::SliderInt("###max_bounces", &pt_settings.integrator_max_ray_depth, 0, 32);
+				ImGui::EndTable();
+
+				pt_settings_updated |= ImGui::Checkbox("Enable AutoExposure", &pt_settings.tonemapper_enable_auto_exposure);
+				pt_settings_updated |= ImGui::Checkbox("Enable TAA", &pt_settings.integrator_use_temporal_accumulation);
+
+				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.bloom_generate_bloom);
 				ImGui::Indent();
-				pt_settings_updated |= ImGui::Checkbox("Use Karis average", &pt_settings.use_karis_average);
+				pt_settings_updated |= ImGui::Checkbox("Use Karis Average", &pt_settings.bloom_use_karis_average);
+				if (ImGui::BeginTable("bloomedittable", 2)) {
+					ImGui::TableSetupColumn("A0", 0, 0.8f);
+					ImGui::TableSetupColumn("A1", 0);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Bloom Blend Factor");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					pt_settings_updated |= ImGui::SliderFloat("###bloomblendfac", &pt_settings.bloom_final_blend, 0.0f, 1.0f);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Bloom Internal Blend Factor");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					pt_settings_updated |= ImGui::SliderFloat("###bloomintblendfac", &pt_settings.bloom_internal_blend, 0.0f, 1.0f);
+
+					ImGui::EndTable();
+				}
 				ImGui::Unindent();
 			}
 
 			if (pt_settings_updated) {
-				event_dispatcher_ref->emitSignal(Event("pathtracer_settings_changed"), pt_settings);
+				m_event_dispatcher_handle->emitSignal(Event("pathtracer_settings_changed"), pt_settings);
 			}
 		}
 
 		//environment edit
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Environment Edit"))
 		{
-			ImGui::Separator();
-			ImGui::SeparatorText("Environment edit");
-			KittlesPT::ProceduralEnvironmentData env_data = shared_data_ref->environment_data;
+			KittlesPT::ProceduralEnvironmentSettings env_settings = m_shared_data_handle->environment_settings;
 			bool env_updated = false;
 
 			if (ImGui::BeginTable("envedittable", 2))
@@ -155,48 +268,118 @@ namespace SampleApp
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Sun radiance intensity");
+				ImGui::Text("Sun Radiance");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderFloat("###sun_radiance_intensity", &env_data.sun_radiance_intensity, 0, 500,
-					"%.3f unitless", ImGuiSliderFlags_Logarithmic);
+				env_updated |= ImGui::SliderFloat("###sun_radiance", &env_settings.sun_emission_factor, 0, 6e5f,
+					"%.3f nits", ImGuiSliderFlags_Logarithmic);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Sun angular diameter");
+				ImGui::Text("Sun Angular Diameter");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderAngle("###sun_angular_diameter", &env_data.sun_angular_diameter_rad, 0, 90,
+				env_updated |= ImGui::SliderAngle("###sun_angular_diameter", &env_settings.sun_angular_diameter_rad, 0, 45,
 					"%.1f deg", ImGuiSliderFlags_Logarithmic);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Sun position theta");
+				ImGui::Text("Sun Altitude Theta");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderAngle("###sun_position_theta", &env_data.sun_theta_rad, -10, 90);
+				env_updated |= ImGui::SliderAngle("###sun_altitude_theta", &env_settings.sun_theta_rad, -20, 90);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Sun position phi");
+				ImGui::Text("Sun Position Phi");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderAngle("###sun_position_phi", &env_data.sun_phi_rad, 0, 360);
+				env_updated |= ImGui::SliderAngle("###sun_phi", &env_settings.sun_phi_rad, 0, 360);
 
 				ImGui::EndTable();
 			}
 
 			if (env_updated) {
-				event_dispatcher_ref->emitSignal(Event("environment_settings_changed"), env_data);
+				m_event_dispatcher_handle->emitSignal(Event("environment_settings_changed"), env_settings);
+			}
+		}
+
+		//geometry edit
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Geometry Edit")) {
+			bool transform_updated = false;
+			MeshObject editable_mesh;
+			if (ImGui::BeginTable("geometryedittable", 2))
+			{
+				ImGui::TableSetupColumn("A0", 0, 0.6f);
+				ImGui::TableSetupColumn("A1", 0);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Mesh Instance ID:");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				if (ImGui::SliderInt("###mesh_selection", &m_shared_data_handle->editable_mesh_idx,
+					0, static_cast<int32_t>(m_shared_data_handle->meshes_count - 1))) {
+					m_event_dispatcher_handle->emitSignal(Event("mesh_changed"), true);
+				};
+				editable_mesh = m_shared_data_handle->editable_mesh_object;
+
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Translation");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					transform_updated |= ImGui::DragFloat3("###translate", glm::value_ptr(editable_mesh.translation), 0.05f);
+				}
+				{
+					static bool uniform_scale = true;
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Use uniform scale");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Checkbox("###uniformscale", &uniform_scale);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Scale");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					if (uniform_scale) {
+						if (ImGui::DragFloat("###scale", &editable_mesh.scale.x, 0.05f)) {
+							transform_updated |= true;
+							editable_mesh.scale.z = editable_mesh.scale.y = editable_mesh.scale.x;
+						};
+					}
+					else {
+						transform_updated |= ImGui::DragFloat3("###scale", glm::value_ptr(editable_mesh.scale), 0.05f);
+					}
+				}
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Rotation");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					transform_updated |= ImGui::DragFloat3("###rotation", glm::value_ptr(editable_mesh.rotation), 1.0f);
+				}
+
+				ImGui::EndTable();
+			}
+			if (transform_updated)
+			{
+				//printf("%.3f | %.3f | %.3f\n", editable_mesh.translation.x, editable_mesh.translation.y, editable_mesh.translation.z);
+				m_event_dispatcher_handle->emitSignal(Event("mesh_updated"), editable_mesh);
 			}
 		}
 
 		//material edit
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Material Edit"))
 		{
-			ImGui::Separator();
-			ImGui::SeparatorText("Material edit");
 			bool material_updated = false;
-			Material material;
+			KittlesPT::MaterialSceneEntity material;
 
 			if (ImGui::BeginTable("materialedittable", 2))
 			{
@@ -205,58 +388,80 @@ namespace SampleApp
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("material selection ID");
+				ImGui::Text("Material ID:");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				if (ImGui::SliderInt("###material_selection:", &shared_data_ref->editable_material_idx,
-					0, shared_data_ref->materials_count - 1))
+				if (ImGui::SliderInt("###material_selection", &m_shared_data_handle->editable_material_idx,
+					0, int32_t(m_shared_data_handle->materials_count - 1)))
 				{
-					event_dispatcher_ref->emitSignal(Event("material_changed"), true);
+					m_event_dispatcher_handle->emitSignal(Event("material_changed"), true);
 				};
 
-				material = shared_data_ref->editable_material;
+				material = m_shared_data_handle->editable_material;
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("albedo factor");
+				ImGui::Text("Albedo Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::ColorEdit3("###albedo", &material.albedo.r);
+				material_updated |= ImGui::ColorEdit3("###albedo", &material.albedo_factor.r);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("metallicity factor");
+				ImGui::Text("Metallness Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::SliderFloat("###metallicity", &material.metallicity, 0, 1);
+				material_updated |= ImGui::SliderFloat("###metallicity", &material.metallic_factor, 0.0f, 1.0f);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("iso roughness factor");
+				ImGui::Text("Roughness Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::SliderFloat("###roughness", &material.roughness, 0, 1);
+				material_updated |= ImGui::SliderFloat("###roughness", &material.roughness_factor, 0.0f, 1.0f);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("transmission factor");
+				ImGui::Text("Transmission Factor");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				material_updated |= ImGui::SliderFloat("###transmission", &material.transmission, 0, 1);
+				material_updated |= ImGui::SliderFloat("###transmission", &material.transmission_factor, 0, 1);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("IOR factor");
+				ImGui::Text("IOR");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				material_updated |= ImGui::SliderFloat("###ior", &material.ior, 1, 3);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Emission color factor");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				material_updated |= ImGui::ColorEdit3("###emcol", &material.emission_factor.r);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Emission scalar");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				material_updated |= ImGui::SliderFloat("###emscale", &material.emission_scale_nits, 0.0f, 1.0e6f,
+					"%.3f nits", ImGuiSliderFlags_Logarithmic);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Normal map scalar");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				material_updated |= ImGui::SliderFloat("###nrmscale", &material.normal_scale, 0.0f, 1.0f);
 
 				ImGui::EndTable();
 			}
 
 			if (material_updated)
 			{
-				event_dispatcher_ref->emitSignal(Event("material_updated"), material);
+				m_event_dispatcher_handle->emitSignal(Event("material_updated"), material);
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 #pragma once
-#include <vector_types.h>
+#include "maths/vector_maths.cuh"
 
 namespace KittlesPT
 {
@@ -17,11 +17,22 @@ namespace KittlesPT
 		__device__ BoxFilter(float2 radius) :
 			m_radius(radius) {}
 
-		__device__ float evaluate(float2 p) const;
+		__device__ float evaluate(float2 p) const
+		{
+			return (fabsf(p.x) <= m_radius.x && fabsf(p.y) <= m_radius.y) ? 1.0f : 0.0f;
+		}
 
-		__device__ FilterSample sample(float2 u) const;
+		__device__ FilterSample sample(float2 u) const
+		{
+			float2 p = make_float2(::lerp(-m_radius.x, m_radius.x, u.x), ::lerp(-m_radius.y, m_radius.y, u.y));
+			float w = 1.0f;
+			return FilterSample(p, w);
+		}
 
-		__device__ float integral() const;
+		__device__ float integral() const
+		{
+			return 2.0f * m_radius.x * 2.0f * m_radius.y;
+		}
 
 	private:
 		float2 m_radius{ 1.0f,1.0f };

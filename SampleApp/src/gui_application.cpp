@@ -38,6 +38,7 @@ namespace SampleAppGUI
 
 		ImGui_ImplOpenGL3_Init(window_config.glsl_version_formatted);
 		ImGui_ImplGlfw_InitForOpenGL(m_window_ctx_handle, true);
+		glfwGetFramebufferSize(m_window_ctx_handle, &m_window_width, &m_window_height);
 
 		glClearColor(0.f, 0.24f, 0.3f, 1.f);
 		onCreate();
@@ -47,11 +48,12 @@ namespace SampleAppGUI
 
 	void GUIWindow::processAndDraw()
 	{
-		if (glfwGetWindowAttrib(m_window_ctx_handle, GLFW_ICONIFIED) != 0)
+		//This causes the minimized app to not open back on clicks
+		/*if (glfwGetWindowAttrib(m_window_ctx_handle, GLFW_ICONIFIED) != 0)
 		{
 			ImGui_ImplGlfw_Sleep(10);
 			return;
-		}
+		}*/
 
 		glClear(GL_COLOR_BUFFER_BIT);
 

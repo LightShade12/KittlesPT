@@ -1,9 +1,12 @@
 #pragma once
+#include "ray.cuh"
+#include "bsdf.cuh"
 #include <vector_types.h>
+#include <cstdint>
 
 namespace KittlesPT
 {
-	struct GlobalShaderData;
+	struct ShaderData;
 	class RGBSpectrum;
 	class Ray;
 	class BSDF;
@@ -11,38 +14,76 @@ namespace KittlesPT
 
 	struct SurfaceInteraction
 	{
-		__device__ RGBSpectrum Le(const GlobalShaderData& shader_data, const Ray& ray) const;
+		__device__ RGBSpectrum Le(const ShaderData& shader_data, const Ray& ray) const;
 
-		__device__ BSDF getBSDF(const GlobalShaderData& shader_data) const;
+		__device__ BSDF getBSDF(const ShaderData& shader_data) const;
 
-		__device__ void skipInteraction(Ray* ray);
+		__device__ void skipInteraction(Ray* ray)
+		{
+			float3 offset = world_geometric_normal * Constants::HIT_EPSILON;
+			if (dot(ray->getDirection(), world_geometric_normal) < 0) {
+				offset *= -1.0f;
+			}
+			float3 orig = world_position + offset;
+			*ray = Ray(orig, ray->getDirection());
+		}
 
-		__device__ Ray spawnRay(float3 wi, int scatter_flags) const;
+		__device__ Ray spawnRay(float3 wi, int scatter_flags) const
+		{
+			float3 ray_orig;
+			if (scatter_flags & BSDFSample::Transmitted) {
+				ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
+			}
+			else {
+				ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
+			}
+			return Ray(ray_orig, wi);
+		}
 
-		__device__ Ray spawnRayTo(float3 target) const;
+		__device__ Ray spawnRayTo(float3 target) const
+		{
+			float3 ray_orig;
+			if (backface) {
+				ray_orig = world_position - (world_geometric_normal * Constants::HIT_EPSILON);
+			}
+			else {
+				ray_orig = world_position + (world_geometric_normal * Constants::HIT_EPSILON);
+			}
+			return Ray(ray_orig, normalize(target - ray_orig));
+		}
 
 		//--------------------------------------------------
-		float distance = -1.0f;
+		int32_t primitive_id = -1;
+		int32_t instance_id = -1;
+
+		float3 wo{ 0.0f,0.0f,0.0f };
+		const Light* arealight = nullptr;
+		int32_t material_id = -1;
+		float distance = INFINITY;
 		float2 uv{ 0.0f,0.0f };
 		float3 world_position{ 0.0f,0.0f,0.0f };
 		float3 world_geometric_normal{ 0.0f,0.0f,0.0f };
-		int material_id = -1;
 		bool backface = false;
-		const Light* arealight = nullptr;
 	};
 
 	struct Intersection
 	{
-		//closest hit shader
-		__device__ SurfaceInteraction getSurfaceInteraction(const GlobalShaderData& shader_data, const Ray& ray);
+		//closest hit function
+		__device__ SurfaceInteraction getSurfaceInteraction(const ShaderData& shader_data, const Ray& ray);
 
 		__device__ bool operator!()
 		{
-			return (instance_id < 0);
+			return (primitive_id < 0);
+		}
+		__device__ operator bool()
+		{
+			return (primitive_id >= 0);
 		}
 
-		//--------------------------------------------------------
-		float distance = -1;
-		int instance_id = -1;
+		//-------------------------------------
+		float distance = INFINITY;
+		int32_t primitive_id = -1;
+		int32_t instance_id = -1;
+		float3 bary_coords{ 0.0f,0.0f,0.0f };
 	};
 }/*KittlesPT*/

@@ -3,7 +3,19 @@
 
 namespace KittlesPT
 {
-	__device__ float4 textureRead36Texels(const DeviceTextureBuffer& t_texture, float2 t_pixel_coord, bool karis_avg)
+	inline __device__ float4 karisAverage(float4 sp0, float4 sp1, float4 sp2, float4 sp3)
+	{
+		float w0 = 1.0f / RGBSpectrum(sp0).getLuminance();
+		float w1 = 1.0f / RGBSpectrum(sp1).getLuminance();
+		float w2 = 1.0f / RGBSpectrum(sp2).getLuminance();
+		float w3 = 1.0f / RGBSpectrum(sp3).getLuminance();
+
+		float net_w = 1.0f / (w0 + w1 + w2 + w3);
+
+		return (sp0 * w0 + sp1 * w1 + sp2 * w2 + sp3 * w3) * net_w;
+	}
+
+	inline __device__ float4 textureRead36Texels(const DeviceTextureBuffer& t_texture, float2 t_pixel_coord, bool karis_avg)
 	{
 		//Bilinear taps-------------------------
 		//top left
@@ -62,22 +74,10 @@ namespace KittlesPT
 		return filtered_color;
 	}
 
-	__device__ float4 textureRead36TexelsUV(const DeviceTextureBuffer& t_texture, float2 uv_coord, bool karis_avg)
+	inline __device__ float4 textureRead36TexelsUV(const DeviceTextureBuffer& t_texture, float2 uv_coord, bool karis_avg)
 	{
 		float2 pixel_coord = uv_coord * t_texture.dimensions;
 		return textureRead36Texels(t_texture, pixel_coord, karis_avg);
-	}
-
-	__device__ float4 karisAverage(float4 sp0, float4 sp1, float4 sp2, float4 sp3)
-	{
-		float w0 = 1.0f / RGBSpectrum(sp0).getLuminance();
-		float w1 = 1.0f / RGBSpectrum(sp1).getLuminance();
-		float w2 = 1.0f / RGBSpectrum(sp2).getLuminance();
-		float w3 = 1.0f / RGBSpectrum(sp3).getLuminance();
-
-		float net_w = 1.0f / (w0 + w1 + w2 + w3);
-
-		return (sp0 * w0 + sp1 * w1 + sp2 * w2 + sp3 * w3) * net_w;
 	}
 
 	__constant__ constexpr float GAUSSIAN_3x3_KERNEL[3][3] = {
@@ -87,7 +87,8 @@ namespace KittlesPT
 	};
 }/*KittlesPT*/
 
-__global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg)
+__global__ void downSample(const KittlesPT::ShaderData t_shader_data, KittlesPT::DeviceTextureBuffer t_src,
+	KittlesPT::DeviceTextureBuffer t_dst, bool karis_avg)
 {
 	using namespace KittlesPT;
 
@@ -97,6 +98,7 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 		return;
 	}
 
+	//TODO: use shading_job.uv_coord?
 	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
 	float2 src_pixel_coord = dst_uv * t_src.dimensions;
 
@@ -107,7 +109,8 @@ __global__ void downSample(const KittlesPT::GlobalShaderData t_shader_data, Kitt
 	t_dst.textureWrite(min_filtered_color, shading_job.pixel_coord);
 }
 
-__global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src, KittlesPT::DeviceTextureBuffer t_dst)
+__global__ void upSampleCombine(const KittlesPT::ShaderData shader_data, KittlesPT::DeviceTextureBuffer t_src,
+	KittlesPT::DeviceTextureBuffer t_dst)
 {
 	using namespace KittlesPT;
 
@@ -136,7 +139,7 @@ __global__ void upSampleCombine(const KittlesPT::GlobalShaderData shader_data, K
 
 	//combine prev mip
 	float4 dst_prev_color = t_dst.textureReadNearest(make_float2(shading_job.pixel_coord));
-	mag_filtered_color = lerp(dst_prev_color, mag_filtered_color, shader_data.pathtracer_settings.bloom_internal_blend);
+	mag_filtered_color = lerp(dst_prev_color, mag_filtered_color, shader_data.renderer_settings.bloom_internal_blend);
 	mag_filtered_color = make_float4(clampOutput(make_float3(mag_filtered_color)), 1.0f);
 
 	t_dst.textureWrite(mag_filtered_color, shading_job.pixel_coord);

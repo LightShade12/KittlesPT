@@ -2,15 +2,14 @@
 
 #include "maths/vector_maths.cuh"
 #include "containers.cuh"
+#include "as_builder.cuh"
 #include "shaders/kernels.cuh"
+#include "helpers.cuh"
+#include "renderer_resource.cuh"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#include <thrust/universal_vector.h>
-#include <thrust/device_vector.h>
-
-#include <unordered_map>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -19,405 +18,402 @@ namespace KittlesPT
 {
 	//TODO:Add proper logging
 
-	class MipChain
-	{
-	public:
-
-		void init()
-		{
-			for (int mip_level = 0; mip_level < max_mip_count; mip_level++)
-			{
-				mip_textures.push_back(TextureBuffer());
-			}
-		}
-
-		void resize(int base_width, int base_height)
-		{
-			max_mip_level = getMaxValidMipLevels({ base_width, base_height });
-			max_mip_level = std::min(max_mip_level, max_mip_count - 1);
-
-			for (int miplevel = 0; miplevel <= max_mip_level; miplevel++)
-			{
-				int mip_width = base_width >> miplevel;
-				int	mip_height = base_height >> miplevel;
-
-				TextureBuffer& mip_texture = mip_textures[miplevel];
-
-				if (mip_texture.isInitialised()) {
-					mip_texture.resize(mip_width, mip_height);
-				}
-				else {
-					mip_texture.init(mip_width, mip_height);
-				}
-			}
-		}
-
-		void destroy()
-		{
-			for (TextureBuffer& tex : mip_textures)
-			{
-				tex.destroy();
-			}
-			mip_textures.clear();
-		}
-
-		//excludes mip0
-		static int getMaxValidMipLevels(int2 t_base_resolution)
-		{
-			int mipx = static_cast<int>(std::log2(t_base_resolution.x)), mipy = static_cast<int>(std::log2(t_base_resolution.y));
-			return std::min(mipx, mipy);
-		}
-
-	public:
-		const int max_mip_count = 7;
-		int max_mip_level = 0;
-		std::vector<TextureBuffer> mip_textures;
-	};
-
-	struct RendererData
-	{
-		thrust::universal_vector<Sphere> scene_spheres;
-		thrust::universal_vector<Light> scene_lights;
-		thrust::universal_vector<Material> scene_materials;
-		thrust::universal_vector<Texture> scene_textures;
-		thrust::device_vector<unsigned char> pixel_buffer;
-		GlobalShaderData shader_global_data;
-		std::unordered_map< std::string, TextureBuffer>m_frame_textures;
-		MipChain bloom_mipchain;
-
-		void destroy()
-		{
-			bloom_mipchain.destroy();
-
-			for (std::pair<const std::string, TextureBuffer>& tex : m_frame_textures)
-			{
-				tex.second.destroy();
-			}
-
-			scene_spheres.clear();
-			scene_lights.clear();
-			scene_materials.clear();
-			scene_textures.clear();
-			pixel_buffer.clear();
-			m_frame_textures.clear();
-		}
-
-		~RendererData()
-		{
-			destroy();
-		}
-	};
-
-	void Renderer::init()
+	void Renderer::initialize()
 	{
 		int cuda_driver_version, cuda_runtime_version;
 		cudaDriverGetVersion(&cuda_driver_version); cudaRuntimeGetVersion(&cuda_runtime_version);
-		printf("[RENDERER] CUDA driver version: %d.%d\n[RENDERER] CUDA toolkit runtime version: %d.%d\n",
+		std::printf("[RENDERER] CUDA driver version: %d.%d\n[RENDERER] CUDA toolkit runtime version: %d.%d\n",
 			cuda_driver_version / 1000, cuda_driver_version % 100, cuda_runtime_version / 1000, cuda_runtime_version % 100);
-		m_renderer_data = new RendererData();
-		m_renderer_data->m_frame_textures["main_texture"] = TextureBuffer();
-		m_renderer_data->m_frame_textures["gbuffer_texture"] = TextureBuffer();
-		m_renderer_data->m_frame_textures["accumulation_texture"] = TextureBuffer();
-		m_renderer_data->bloom_mipchain.init();
-		submitScene();
 
-		//-------------------------
+		m_renderer_rsrc = new RendererResource();
+		m_renderer_rsrc->bloom_mipchain.init();
 
-		m_renderer_data->shader_global_data.scene_camera = Camera(make_float3(0));
+		m_renderer_rsrc->m_frame_textures["main_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["gbuffer_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["vbuffer_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["accumulation_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["debug_texture"] = TextureBuffer();
+
+		m_renderer_rsrc->histogram_buffer = thrust::device_vector<float>(Constants::HISTOGRAM_SIZE, 0.0f);
+		m_renderer_rsrc->shader_data.histogram_buffer = Buffer<float>(thrust::raw_pointer_cast(m_renderer_rsrc->histogram_buffer.data()), Constants::HISTOGRAM_SIZE);
+		cudaMallocManaged(&m_renderer_rsrc->shader_data.scene_average_luminance, sizeof(float));
+
+		m_renderer_rsrc->updateResource();
 	}
+
 	void Renderer::shutdown()
 	{
-		m_renderer_data->destroy();
-		delete m_renderer_data;
-		m_renderer_data = nullptr;
+		m_renderer_rsrc->destroy();
+		delete m_renderer_rsrc;
+		m_renderer_rsrc = nullptr;
 	}
 
-	void Renderer::resizeFrame(int width, int height)
+	void Renderer::resizeResolution(uint32_t width, uint32_t height)
 	{
-		if (m_width == width && m_height == height)
+		if (m_output_width == width && m_output_height == height)
 		{
 			return;
 		}
-		m_width = width; m_height = height;
-		m_renderer_data->shader_global_data.frame_resolution = make_int2(m_width, m_height);
-		glm::mat4 view = glm::mat4
-		(1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, -1, 0,
-			0, 0, 0, 1);
 
-		//TODO: fix view
-		setView(glm::perspectiveFovLH(glm::radians(90.0f),
-			float(m_width), float(m_height), 1.f, 100.f),
-			glm::inverse(view));
+		m_output_width = width; m_output_height = height;
+		m_renderer_rsrc->shader_data.frame_resolution = make_int2(m_output_width, m_output_height);
 
-		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_data->m_frame_textures)
+		//recompute projection for new screen size
+		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix.inverse().toGLM();
+		float fov_rad = 2.0f * atan(1.0f / old_proj[1][1]);
+		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_output_width, (float)m_output_height, 0.1f, 100.0f);
+		m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix = Mat4(projection).inverse();
+		resetAccumulation();
+
+		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_rsrc->m_frame_textures)
 		{
 			if (tex.second.isInitialised())
 			{
-				tex.second.resize(m_width, m_height);
+				tex.second.resize(m_output_width, m_output_height);
 				continue;
 			}
-			printf("Initializing texture:%s\n", tex.first.c_str());
-			tex.second.init(m_width, m_height);
+			std::printf("[RENDERER] Initializing renderer texture:%s\n", tex.first.c_str());
+			tex.second.initialize(m_output_width, m_output_height);
 		}
 
-		m_renderer_data->bloom_mipchain.resize(m_width, m_height);
+		m_renderer_rsrc->bloom_mipchain.resize(m_output_width, m_output_height);
 	}
-	void Renderer::executeRendering()
-	{
-		m_renderer_data->shader_global_data.main_texture = m_renderer_data->m_frame_textures["main_texture"].enableCudaAccess();
-		m_renderer_data->shader_global_data.accumulation_texture = m_renderer_data->m_frame_textures["accumulation_texture"].enableCudaAccess();
-		m_renderer_data->shader_global_data.gbuffer_texture = m_renderer_data->m_frame_textures["gbuffer_texture"].enableCudaAccess();
 
-		launchPathTraceComputeKernel(m_renderer_data->shader_global_data);
+	void Renderer::executeRendering(float delta_time_ms)
+	{
+		m_renderer_rsrc->shader_data.frame_delta_ms = delta_time_ms;
+		m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.prev_gbuffer_texture = m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.vbuffer_texture = m_renderer_rsrc->m_frame_textures["vbuffer_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
+
+		m_renderer_rsrc->updateTLAS();
+
+		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_data);
+		if (m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation)
+		{//update accumulation texture for next frame
+			m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
+			m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
+			m_renderer_rsrc->m_frame_textures["main_texture"].copyTo(m_renderer_rsrc->m_frame_textures["accumulation_texture"]);
+			m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
+			m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
+		}
 
 		//generate bloom buffer
-		if (m_renderer_data->shader_global_data.pathtracer_settings.generate_bloom)
-		{
+		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
 			executeBloomGeneration();
-			m_renderer_data->shader_global_data.bloom_texture = m_renderer_data->bloom_mipchain.mip_textures[0].enableCudaAccess();
+			m_renderer_rsrc->shader_data.bloom_texture = m_renderer_rsrc->bloom_mipchain.mip_textures[0].enableCudaAccess();
+		}
+		//auto exposure pipeline
+		if (m_renderer_rsrc->shader_data.renderer_settings.tonemapper_enable_auto_exposure) {
+			launchHistogramComputeKernel(m_renderer_rsrc->shader_data);
+			launchHistogramAverageComputeKernel(m_renderer_rsrc->shader_data);
+			AutoExposureProgram& ae = m_renderer_rsrc->auto_exposure_program; float avg_lum = *m_renderer_rsrc->shader_data.scene_average_luminance;
+			ae.computeExposure(avg_lum);
+			setExposure(ae.getExposureValues(), ae.getEVComp(), ae.getWhitePoint(), ae.getBlackPoint());
 		}
 
-		launchPostProcessComputeKernel(m_renderer_data->shader_global_data);
+		launchPostProcessComputeKernel(m_renderer_rsrc->shader_data);
 
-		if (m_renderer_data->shader_global_data.pathtracer_settings.generate_bloom) {
-			m_renderer_data->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_data->shader_global_data.bloom_texture);
+		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
+			m_renderer_rsrc->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_rsrc->shader_data.bloom_texture);
 		}
 
-		m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
-		m_renderer_data->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_data->shader_global_data.accumulation_texture);
-		m_renderer_data->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_data->shader_global_data.gbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
+		m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
+		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.gbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.prev_gbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["vbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.vbuffer_texture);
+		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.debug_texture);
 
-		m_renderer_data->shader_global_data.frame_index++;//TODO:expose to host as readonly?
-	}
+		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].copyTo(m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"]);
 
-	void Renderer::getRenderTargetTexture(GLuint r_texture)
-	{
-		m_renderer_data->m_frame_textures["main_texture"].copyTo(r_texture);
-	}
-
-	void Renderer::getDebugRenderTargetTexture(GLuint r_texture)
-	{
-		m_renderer_data->bloom_mipchain.mip_textures[0].copyTo(r_texture);
-	}
-
-	bool Renderer::setMaterial(int idx, glm::vec3 albedo_factor, float metallicity, float roughness,
-		float transmission, float ior)
-	{
-		if (idx >= m_renderer_data->scene_materials.size())
+		//updating camera matices per frame
 		{
+			const Camera& cam = m_renderer_rsrc->shader_data.scene_camera;
+			m_renderer_rsrc->shader_data.scene_camera.setView(cam.curr_inv_projection_matrix, cam.curr_inv_view_matrix);
+		}
+
+		m_renderer_rsrc->shader_data.frame_index++;//TODO:expose to host as readonly?
+	}
+
+	void Renderer::getRenderTargetTexture(GLuint r_texture) const
+	{
+		m_renderer_rsrc->m_frame_textures["main_texture"].copyTo(r_texture);
+	}
+
+	void Renderer::getDebugRenderTargetTexture(GLuint r_texture) const
+	{
+		m_renderer_rsrc->m_frame_textures["debug_texture"].copyTo(r_texture);
+	}
+
+	bool Renderer::setMaterial(uint32_t idx, const MaterialSceneEntity& material)
+	{
+		if (idx >= m_renderer_rsrc->scene_materials.size()) {
 			return false;
 		}
 
-		Material old_mat = m_renderer_data->scene_materials[idx];
-		Material material(
-			make_float3(albedo_factor.r, albedo_factor.g, albedo_factor.b),
-			metallicity,
-			roughness,
-			transmission,
-			ior,
-			old_mat.emissive_factor,
-			old_mat.emission_scale,
-			old_mat.albedo_texture_id);
-		m_renderer_data->scene_materials[idx] = material;
+		Material new_material(
+			material.albedo_texture_id, glm3_2f3(material.albedo_factor),
+			material.ORM_texture_id, material.metallic_factor, material.roughness_factor,
+			material.transmission_texture_id, material.transmission_factor,
+			material.ior,
+			material.emission_texture_id, glm3_2f3(material.emission_factor), material.emission_scale_nits,
+			material.normal_texture_id, material.normal_scale
+		);
+		m_renderer_rsrc->scene_materials[idx] = new_material;
 
 		resetAccumulation();
 
 		return true;
 	}
 
-	bool Renderer::getMaterial(int idx, glm::vec3* albedo_factor, float* metallicity, float* roughness, float* transmission, float* ior)
+	MaterialSceneEntity Renderer::getMaterial(uint32_t idx) const
 	{
-		if (idx >= m_renderer_data->scene_materials.size())
+		if (idx >= m_renderer_rsrc->scene_materials.size())
 		{
+			assert("OUT OF BOUNDS MATERIAL ACCESS");
+		}
+
+		Material mat = m_renderer_rsrc->scene_materials[idx];
+
+		MaterialSceneEntity ret_mat(
+			"unpreserved_name",
+			mat.albedo_texture_id, f3_2glm3(mat.albedo),
+			mat.ORM_texture_id, mat.metallic_factor, mat.roughness_factor,
+			mat.transmission_texture_id, mat.transmission_factor,
+			mat.ior,
+			mat.emission_texture_id, f3_2glm3(mat.emissive_factor), mat.emission_scale_nits,
+			mat.normal_texture_id, mat.normal_scale
+		);
+
+		return ret_mat;
+	}
+
+	bool Renderer::setMeshTransform(uint32_t idx, const glm::mat4& model)
+	{
+		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
 			return false;
 		}
-		Material mat = m_renderer_data->scene_materials[idx];
-		*albedo_factor = glm::vec3(mat.albedo.x, mat.albedo.y, mat.albedo.z);
-		*metallicity = mat.metallicity;
-		*roughness = mat.roughness;
-		*transmission = mat.transmission;
-		*ior = mat.ior;
+
+		Mat4 model_mat(model);
+		Mat4 inv_model_mat(glm::inverse(model));
+
+		TriangleMesh mesh = m_renderer_rsrc->scene_meshes[idx];
+		mesh.setTransform(inv_model_mat);
+		m_renderer_rsrc->scene_meshes[idx] = mesh;
+		m_renderer_rsrc->blas_buffer[mesh.blas_id].setTransform(model_mat);
+
+		if (!m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation) {
+			resetAccumulation();
+		}
 
 		return true;
 	}
 
-	int Renderer::getMaterialsCount()
+	glm::mat4 Renderer::getMeshTransform(uint32_t idx) const
 	{
-		return (int)m_renderer_data->scene_materials.size();
+		if (idx >= m_renderer_rsrc->scene_meshes.size()) {
+			assert("OUT OF BOUNDES ACCES[MESHES]");
+		}
+		glm::mat4 inv_model = m_renderer_rsrc->scene_meshes[idx].curr_inv_model_matrix.toGLM();
+		return glm::inverse(inv_model);
 	}
 
-	void Renderer::setProceduralEnvironmentData(ProceduralEnvironmentData data)
+	size_t Renderer::getMaterialsCount() const
 	{
-		m_renderer_data->shader_global_data.procedural_environment_data = data;
+		return m_renderer_rsrc->scene_materials.size();
+	}
+
+	size_t Renderer::getMeshCount() const
+	{
+		return m_renderer_rsrc->scene_meshes.size();
+	}
+
+	void Renderer::setProceduralEnvironmentData(const ProceduralEnvironmentSettings& data)
+	{
+		m_renderer_rsrc->shader_data.procedural_environment_data = data;
 		resetAccumulation();
 	}
 
-	ProceduralEnvironmentData Renderer::getProceduralEnvironmentData()
+	ProceduralEnvironmentSettings Renderer::getProceduralEnvironmentData() const
 	{
-		return m_renderer_data->shader_global_data.procedural_environment_data;
+		return m_renderer_rsrc->shader_data.procedural_environment_data;
 	}
 
-	void Renderer::setPathTracerSettings(PathtracerSettings cfg)
+	void Renderer::setRendererSettings(const RendererSettings& settings)
 	{
-		m_renderer_data->shader_global_data.pathtracer_settings = cfg;
+		m_renderer_rsrc->shader_data.renderer_settings = settings;
 		resetAccumulation();
 	}
 
-	PathtracerSettings Renderer::getPathTracerSettings()
+	RendererSettings Renderer::getRendererSettings() const
 	{
-		return m_renderer_data->shader_global_data.pathtracer_settings;
+		return m_renderer_rsrc->shader_data.renderer_settings;
 	}
 
-	void Renderer::setExposure(float exposure)
+	void Renderer::setExposure(const ExposureValues& camera_values, float ev_comp, float white_point_ev, float black_point_ev)
 	{
-		m_renderer_data->shader_global_data.scene_camera.film.exposure = exposure;
-		resetAccumulation();
+		/*
+		* lens properties:
+		* lens transmission(T)=0.9
+		* vignettefactor(v(theta))=0.98(constant)
+		* theta=10deg(angle from lens axis)
+		* q = 0.65
+		*/
+
+		m_renderer_rsrc->auto_exposure_program.recordValues(camera_values, ev_comp,
+			white_point_ev, black_point_ev);
+
+		float luminance_exposure_scalar = AutoExposureProgram::getStandardOutputBasedExposure(camera_values.aperture_f_num,
+			camera_values.shutter_speed_secs, camera_values.ISO);
+		m_renderer_rsrc->shader_data.scene_camera.setExposure(luminance_exposure_scalar,
+			white_point_ev, black_point_ev);
+	}
+
+	ExposureValues Renderer::getExposure() const
+	{
+		return m_renderer_rsrc->auto_exposure_program.getExposureValues();
 	}
 
 	void Renderer::resetAccumulation()
 	{
-		glClearTexImage(m_renderer_data->m_frame_textures["accumulation_texture"].m_GL_texture, 0, GL_RGBA, GL_FLOAT, NULL);
-		m_renderer_data->shader_global_data.frame_index = 0;
+		glClearTexImage(m_renderer_rsrc->m_frame_textures["accumulation_texture"].getGLTexture(), 0, GL_RGBA, GL_FLOAT, NULL);
+		m_renderer_rsrc->shader_data.frame_index = 0;
 	}
 
-	void Renderer::setView(glm::mat4 projection_mat, glm::mat4 view_mat)
+	void Renderer::setView(const glm::mat4& projection_matrix, const glm::mat4& view_matrix)
 	{
-		//TODO: skip inversion
-		Mat4 proj = Mat4(projection_mat);
-		Mat4 view = Mat4(view_mat);
-		m_renderer_data->shader_global_data.scene_camera.setView(proj.inverse(), view.inverse());
+		Mat4 projection(projection_matrix);
+		Mat4 view(view_matrix);
+		Mat4 inv_projection(glm::inverse(projection_matrix));
+		Mat4 inv_view(glm::inverse(view_matrix));
 
-		resetAccumulation();
+		m_renderer_rsrc->shader_data.scene_camera.setView(inv_projection, inv_view);
+
+		if (!m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation) {
+			resetAccumulation();
+		}
 	}
 
 	void Renderer::loadScene(const BasicScene& parsed_scene)
 	{
 		printf("starting textures\n");
 
+		int32_t bit_depth = 8;
 		for (const TextureSceneEntity& tex : parsed_scene.texture_entities)
 		{
 			printf("tex: %d x %d | ch:%d\n", tex.width, tex.height, tex.channels_count);
-			int bit_depth = 8;
-			m_renderer_data->scene_textures.push_back(
-				Texture(tex.width, tex.height, tex.channels_count, bit_depth,
-					(int)m_renderer_data->pixel_buffer.size()));
-
-			m_renderer_data->pixel_buffer.insert(m_renderer_data->pixel_buffer.end(),
+			m_renderer_rsrc->scene_textures.push_back(Texture(tex.width, tex.height, tex.channels_count, bit_depth,
+				static_cast<int32_t>(m_renderer_rsrc->pixel_buffer.size())));
+			m_renderer_rsrc->pixel_buffer.insert(m_renderer_rsrc->pixel_buffer.end(),
 				tex.pixels_data.begin(), tex.pixels_data.end());
 		}
 
-		printf("loaded %zu textures\nstarting materials\n", m_renderer_data->scene_textures.size());
+		printf("loaded %zu textures\nstarting materials\n", m_renderer_rsrc->scene_textures.size());
 
 		for (const MaterialSceneEntity& mat : parsed_scene.material_entities)
 		{
-			m_renderer_data->scene_materials.push_back(Material(
-				make_float3(mat.albedo_factor.r, mat.albedo_factor.g, mat.albedo_factor.b),
-				mat.metallicity,
-				mat.roughness,
-				mat.transmission,
+			m_renderer_rsrc->scene_materials.push_back(Material(
+				mat.albedo_texture_id, glm3_2f3(mat.albedo_factor),
+				mat.ORM_texture_id, mat.metallic_factor, mat.roughness_factor,
+				mat.transmission_texture_id, mat.transmission_factor,
 				mat.ior,
-				make_float3(mat.emission_factor.r, mat.emission_factor.g, mat.emission_factor.b),
-				mat.emission_scale,
-				mat.albedo_tex_id
+				mat.emission_texture_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits,
+				mat.normal_texture_id, mat.normal_scale
 			));
 		}
 
-		printf("loaded %zu materials\nstarting geometry\n", m_renderer_data->scene_materials.size());
+		printf("loaded %zu materials\nstarting geometry\n", m_renderer_rsrc->scene_materials.size());
 
-		for (const SphereSceneEntity& sphere : parsed_scene.shape_entities)
+		for (const MeshSceneEntity& mesh : parsed_scene.mesh_entities)
 		{
-			const MaterialSceneEntity& sphere_mat = parsed_scene.material_entities[sphere.material_id];
-			bool is_light = sphere_mat.isEmissive();
-			int light_id = -1;
+			size_t mesh_prim_start_id = m_renderer_rsrc->scene_triangles.size();
+			int32_t mesh_id = m_renderer_rsrc->scene_meshes.size();
 
-			if (is_light)
+			for (const TriangleSceneEntity& tri : mesh.shape_entities)
 			{
-				m_renderer_data->scene_lights.push_back(
-					Light(sphere.getArea(),
-						(int)(m_renderer_data->scene_spheres.size()),
-						make_float3(sphere_mat.emission_factor.r, sphere_mat.emission_factor.g, sphere_mat.emission_factor.b),
-						sphere_mat.emission_scale)
-				);
-				light_id = (int)(m_renderer_data->scene_lights.size() - 1);
+				const MaterialSceneEntity& mat = parsed_scene.material_entities[tri.material_id];
+				int32_t light_id = -1;
+
+				if (mat.isEmissive())
+				{
+					int32_t prim_id = static_cast<int32_t>(m_renderer_rsrc->scene_triangles.size());
+					m_renderer_rsrc->scene_lights.push_back(Light(tri.getArea(), prim_id, glm3_2f3(mat.emission_factor), mat.emission_scale_nits));
+					light_id = static_cast<int32_t>(m_renderer_rsrc->scene_lights.size() - 1);
+				}
+
+				m_renderer_rsrc->scene_triangles.push_back(Triangle(
+					Vertex(glm3_2f3(tri.p0), glm3_2f3(tri.n0), glm2_2f2(tri.t0)),
+					Vertex(glm3_2f3(tri.p1), glm3_2f3(tri.n1), glm2_2f2(tri.t1)),
+					Vertex(glm3_2f3(tri.p2), glm3_2f3(tri.n2), glm2_2f2(tri.t2)),
+					tri.material_id, light_id, mesh_id));
 			}
 
-			m_renderer_data->scene_spheres.push_back(
-				Sphere(sphere.radius,
-					make_float3(sphere.position.x, sphere.position.y, sphere.position.z),
-					sphere.material_id,
-					light_id)
-			);
+			TriangleMesh tri_mesh(static_cast<int32_t>(mesh_prim_start_id),
+				static_cast<int32_t>(mesh.shape_entities.size()),
+				Mat4(glm::inverse(mesh.model_matrix)));
+			tri_mesh.blas_id = static_cast<int32_t>(m_renderer_rsrc->blas_buffer.size());//TODO:move to constructor
+
+			m_renderer_rsrc->blas_buffer.push_back(m_renderer_rsrc->blas_builder.build(tri_mesh, mesh_id));
+			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);
 		}
-		printf("loaded %zu shapes : %zu lights\n",
-			m_renderer_data->scene_spheres.size(),
-			m_renderer_data->scene_lights.size());
 
-		submitScene();
-	}
+		m_renderer_rsrc->updateTLAS();
 
-	void Renderer::submitScene()
-	{
-		m_renderer_data->shader_global_data.geometry_buffer =
-			Buffer<Sphere>(
-				thrust::raw_pointer_cast(m_renderer_data->scene_spheres.data()),
-				m_renderer_data->scene_spheres.size());
+		std::printf("[RENDERER] loaded %zu shapes : %zu lights\n",
+			m_renderer_rsrc->scene_triangles.size(), m_renderer_rsrc->scene_lights.size());
 
-		m_renderer_data->shader_global_data.materials_buffer =
-			Buffer<Material>(
-				thrust::raw_pointer_cast(m_renderer_data->scene_materials.data()),
-				m_renderer_data->scene_materials.size());
+		if (!parsed_scene.camera_entities.empty()) {
+			Camera new_camera;
+			const CameraSceneEntity& parsed_camera = parsed_scene.camera_entities[0];
+			new_camera.curr_inv_view_matrix = Mat4(glm::inverse(parsed_camera.view_matrix));
+			new_camera.curr_inv_view_matrix[2] *= -1.0f;
+			new_camera.curr_inv_projection_matrix = Mat4(glm::inverse(glm::perspectiveFovLH(parsed_camera.y_fov_radians,
+				100.0f, 100.0f, 1.0f, 100.0f)));//Done to intialize reusable fovyrad in inv_proj_mat
+			new_camera.curr_world_position = make_float3(new_camera.curr_inv_view_matrix[3]);
+			m_renderer_rsrc->shader_data.scene_camera = new_camera;
+		}
 
-		m_renderer_data->shader_global_data.lights_buffer =
-			Buffer<Light>(
-				thrust::raw_pointer_cast(m_renderer_data->scene_lights.data()),
-				m_renderer_data->scene_lights.size());
-
-		m_renderer_data->shader_global_data.pixel_buffer =
-			Buffer<unsigned char>(
-				thrust::raw_pointer_cast(m_renderer_data->pixel_buffer.data()),
-				m_renderer_data->pixel_buffer.size());
-
-		m_renderer_data->shader_global_data.texture_buffer =
-			Buffer<Texture>(
-				thrust::raw_pointer_cast(m_renderer_data->scene_textures.data()),
-				m_renderer_data->scene_textures.size());
+		m_renderer_rsrc->updateResource();
 	}
 
 	void Renderer::executeBloomGeneration()
 	{
 		//downscale
-		for (int miplevel = 0; miplevel < m_renderer_data->bloom_mipchain.max_mip_level; miplevel++)
+		for (uint32_t miplevel = 0; miplevel < m_renderer_rsrc->bloom_mipchain.max_mip_level; miplevel++)
 		{
-			TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
-			TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel + 1];
+			TextureBuffer& src = m_renderer_rsrc->bloom_mipchain.mip_textures[miplevel];
+			TextureBuffer& dst = m_renderer_rsrc->bloom_mipchain.mip_textures[miplevel + 1];
 
 			if (miplevel == 0)
 			{
-				m_renderer_data->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_data->shader_global_data.main_texture);
-				m_renderer_data->m_frame_textures["main_texture"].copyTo(src);
-				m_renderer_data->shader_global_data.main_texture = m_renderer_data->m_frame_textures["main_texture"].enableCudaAccess();
+				m_renderer_rsrc->m_frame_textures["main_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.main_texture);
+				m_renderer_rsrc->m_frame_textures["main_texture"].copyTo(src);
+				m_renderer_rsrc->shader_data.main_texture = m_renderer_rsrc->m_frame_textures["main_texture"].enableCudaAccess();
 			}
 			DeviceTextureBuffer dsrc = src.enableCudaAccess();
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
-			launchBloomDownSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst,
-				(m_renderer_data->shader_global_data.pathtracer_settings.use_karis_average) ? (miplevel == 0) : false);
+			launchBloomDownSampleComputeKernel(m_renderer_rsrc->shader_data, dsrc, ddst,
+				(m_renderer_rsrc->shader_data.renderer_settings.bloom_use_karis_average && miplevel == 0));
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);
 		}
 		//upscale
-		for (int miplevel = m_renderer_data->bloom_mipchain.max_mip_level; miplevel > 0; miplevel--)
+		for (int miplevel = m_renderer_rsrc->bloom_mipchain.max_mip_level; miplevel > 0; miplevel--)
 		{
-			TextureBuffer& src = m_renderer_data->bloom_mipchain.mip_textures[miplevel];
-			TextureBuffer& dst = m_renderer_data->bloom_mipchain.mip_textures[miplevel - 1];
+			TextureBuffer& src = m_renderer_rsrc->bloom_mipchain.mip_textures[miplevel];
+			TextureBuffer& dst = m_renderer_rsrc->bloom_mipchain.mip_textures[miplevel - 1];
 
 			DeviceTextureBuffer dsrc = src.enableCudaAccess();
 			DeviceTextureBuffer ddst = dst.enableCudaAccess();
 
-			launchBloomUpSampleComputeKernel(m_renderer_data->shader_global_data, dsrc, ddst);
+			launchBloomUpSampleComputeKernel(m_renderer_rsrc->shader_data, dsrc, ddst);
 
 			src.disableCudaAccess(dsrc);
 			dst.disableCudaAccess(ddst);

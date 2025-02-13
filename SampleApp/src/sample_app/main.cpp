@@ -1,15 +1,22 @@
 ﻿#include "sample_app.hpp"
 #include <iostream>
 
+/*
+* NOTE:
+* To change the loaded scene file,go to sample_app.cpp::onCreate()
+*/
+
 int main()
 {
-	fprintf(stdout, "Initializing app\n");
+	fprintf(stdout, "Entry point\n");
 
 	SampleAppGUI::GUIApplication application;
-	application.window_settings.window_title = "KittlesPT";
-	//application.window_settings.initial_window_width = 760;
-	application.window_settings.initial_window_width = 960;
-	application.window_settings.initial_window_height = 540;
+	application.window_settings.window_title = "KittlesPT Sample App";
+	application.window_settings.initial_window_width = 1920;
+	application.window_settings.initial_window_height = 1080;
+
+	application.window_settings.initial_window_width /= 3;
+	application.window_settings.initial_window_height /= 3;
 
 	application.init(std::make_shared<SampleApp::SampleAppWindow>());
 
@@ -34,7 +41,7 @@ int main()
 
 	//===========================================
 
-	fprintf(stdout, "starting mainloop..\n");
+	fprintf(stdout, "starting mainloop...\n");
 
 	application.run();
 

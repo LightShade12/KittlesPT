@@ -2,11 +2,13 @@
 
 namespace KittlesPT
 {
-	struct GlobalShaderData;
+	struct ShaderData;
 	struct DeviceTextureBuffer;
 
-	void launchPathTraceComputeKernel(const GlobalShaderData& shader_data);
-	void launchPostProcessComputeKernel(const GlobalShaderData& shader_data);
-	void launchBloomDownSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst, bool karis_avg);
-	void launchBloomUpSampleComputeKernel(const GlobalShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst);
+	void launchPathTraceComputeMegaKernel(const ShaderData& shader_data);
+	void launchPostProcessComputeKernel(const ShaderData& shader_data);
+	void launchHistogramComputeKernel(const ShaderData& shader_data);
+	void launchHistogramAverageComputeKernel(const ShaderData& shader_data);
+	void launchBloomDownSampleComputeKernel(const ShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst, bool karis_avg);
+	void launchBloomUpSampleComputeKernel(const ShaderData& shader_data, const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst);
 }/*KittlesPT*/

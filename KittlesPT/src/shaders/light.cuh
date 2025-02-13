@@ -2,15 +2,15 @@
 #include "color.cuh"
 #include "interaction.cuh"
 #include "maths/constants.cuh"
+#include "material.cuh"
+#include "texture.cuh"
 
 #include <vector_types.h>
 #include <cuda_runtime.h>
 
 namespace KittlesPT
 {
-	class Sphere;
-	struct GlobalShaderData;
-
+	struct ShaderData;
 	//Surface data type; passed to sampler
 	struct LightSampleContext
 	{
@@ -68,32 +68,29 @@ namespace KittlesPT
 	class Light
 	{
 	public:
-		__host__ __device__ Light(float area, int prim_id, float3 color, float power) :
-			L_emit(color), emission_scale(power), prim_id(prim_id), area(area) {};
+		__host__ Light(float area, int prim_id, float3 emission_color, float emission_nits) :
+			emission_spectrum_rgb(emission_color), emission_nits(emission_nits), prim_id(prim_id), area(area) {};
 
 		//----------------------------------------------------------------------------
 
-		__device__ RGBSpectrum L(float3 p, float3 n, float3 wi) const
-		{
-			return L_emit * emission_scale;
-		};
+		__device__ RGBSpectrum L(const ShaderData& shader_data, float2 uv) const;
 
-		__device__ LightLiSample sampleLi(const GlobalShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
+		__device__ LightLiSample sampleLi(const ShaderData& shader_data, const LightSampleContext& ctx, float2 u2) const;
 
 		//TODO: maybe consider allowing this method to test intersection on its shape for bug free, reliable operation
 		__device__ float pdf_Li(const LightSampleContext& ctx, const LightLiSample& confirmed_ls) const;
 
+		//Net power
 		__device__ float phi()
 		{
-			return (Constants::PI * 2.0f * area * L_emit * emission_scale);
+			return (Constants::PI * 2.0f * area * emission_spectrum_rgb * emission_nits);
 		}
 
-		//-----------------------------------------------------------------------------
-
+	public:
 		int prim_id = -1;
 	private:
-		RGBSpectrum L_emit;
-		float emission_scale = 0.0f;
+		RGBSpectrum emission_spectrum_rgb;
+		float emission_nits = 0.0f;
 		float area = 0.0f;
 	};
 }/*KittlesPT*/

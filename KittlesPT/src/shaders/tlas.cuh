@@ -1,0 +1,24 @@
+#pragma once
+#include "maths/bounds.cuh"
+#include <cuda_runtime.h>
+
+namespace KittlesPT
+{
+	struct ShaderData;
+	struct Intersection;
+	struct DebugData;
+	__constant__ constexpr uint8_t TLAS_TRAVERSAL_MAX_STACK_DEPTH = 16;//can handle max 65535 blases
+	class TLAS
+	{
+	public:
+		TLAS() = default;
+
+		__device__ bool intersectP(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax) const;
+
+		__device__ Intersection intersect(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg) const;
+
+	public:
+		Bounds3f bounds;
+		int32_t tlasnode_root_id = -1;
+	};
+}
