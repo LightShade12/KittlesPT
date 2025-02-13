@@ -271,7 +271,7 @@ namespace SampleApp
 				ImGui::Text("Sun Radiance");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				env_updated |= ImGui::SliderFloat("###sun_radiance", &env_settings.sun_emission_nits, 0, 6e5f,
+				env_updated |= ImGui::SliderFloat("###sun_radiance", &env_settings.sun_emission_factor, 0, 6e5f,
 					"%.3f nits", ImGuiSliderFlags_Logarithmic);
 
 				ImGui::TableNextRow();

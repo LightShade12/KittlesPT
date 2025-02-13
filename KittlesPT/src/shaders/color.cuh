@@ -59,6 +59,22 @@ namespace KittlesPT
 		return convertXYZ2RGB(convertYxy2XYZ(_Yxy));
 	}
 
+	inline __device__ float3 plancks(float t, float3 lambda) {
+		const float h = 6.63e-16;
+		const float c = 3.0e17;
+		const float k = 1.38e-5;
+		float3 p1 = (2.0 * h * pow(c, 2.0)) / powf(lambda, make_float3(5.0));
+		float3 p2 = expf(h * c / (lambda * k * t)) - make_float3(1.0f);
+		return (p1 / p2) * pow(1e9, 2.0);
+	}
+
+	inline __device__ float3 blackbody(float t) {
+		float3 rgb = plancks(t, make_float3(660.0, 550.0, 440.0));
+		rgb = rgb / max(rgb.x, max(rgb.y, rgb.z));
+
+		return rgb;
+	}
+
 	class RGBSpectrum
 	{
 	public:
@@ -367,5 +383,10 @@ namespace KittlesPT
 	inline __device__ RGBSpectrum powf(RGBSpectrum x, float y)
 	{
 		return RGBSpectrum(::powf(x.r, y), ::powf(x.g, y), ::powf(x.b, y));
+	}
+
+	inline __device__ RGBSpectrum exp(RGBSpectrum x)
+	{
+		return RGBSpectrum(::expf(x.r), ::expf(x.g), ::expf(x.b));
 	}
 }/*KittlesPT*/

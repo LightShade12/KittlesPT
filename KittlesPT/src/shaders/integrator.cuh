@@ -133,26 +133,24 @@ namespace KittlesPT
 
 		//----------------------------------------------------------------
 
-		inline __device__ RGBSpectrum LeSun(const ShaderData& shader_data, const Ray& ray, const Atmosphere& atmosphere)
+		inline __device__ RGBSpectrum LeSun(const ShaderData& shader_data, const Ray& ray, const Atmosphere::NishitaAtmosphereModel& atmosphere)
 		{
-			float3 atmosphere_observer_position = make_float3(0.0f, atmosphere.getEarthRadiusMeters() + 1.0f, 0.0f);
-
 			float min_similarity_threshold = cosf(shader_data.procedural_environment_data.sun_angular_diameter_rad / 2.0f);
 			float similarity = dot(ray.getDirection(), atmosphere.getSunDirection());
 			bool sun_surface = similarity > min_similarity_threshold;//step
 			//TODO:fucked sun emission
-			float sun_nits = shader_data.procedural_environment_data.sun_emission_nits;
+			float sun_nits = shader_data.procedural_environment_data.sun_emission_factor * Atmosphere::Values::SUN_HORIZON_LUMINANCE_NITS;
 			return RGBSpectrum(sun_nits * ::powf(1.0f / sun_nits, !sun_surface));//branchless
 		}
-
+		__constant__ constexpr float SUN_VISIBILITY_TEST_DISTANCE_METERS = 100.0f;
 		inline __device__ RGBSpectrum sampleLdSun(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
-			const SurfaceInteraction& surface, const Atmosphere& atmosphere, IndependentSampler& sampler)
+			const SurfaceInteraction& surface, const Atmosphere::NishitaAtmosphereModel& atmosphere, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0.0f);
 			const float3& sun_direction = atmosphere.getSunDirection();
-			float3 sun_position = sun_direction * SUN_PHYSICAL_DISTANCE_METERS;
-			float sun_radius_meters = angularDiameterToPhysicalDiameter(shader_data.procedural_environment_data.sun_angular_diameter_rad,
-				SUN_PHYSICAL_DISTANCE_METERS) / 2.0f;
+			float3 sun_position = sun_direction * Atmosphere::Values::SUN_PHYSICAL_DISTANCE_METERS;
+			float sun_radius_meters = Atmosphere::angularDiameterToPhysicalDiameter(shader_data.procedural_environment_data.sun_angular_diameter_rad,
+				Atmosphere::Values::SUN_PHYSICAL_DISTANCE_METERS) / 2.0f;
 			float3 sample_offset = make_float3(sampler.get2D() * 2.0f - 1.0f, sampler.get1D() * 2.0f - 1.0f);//TODO: fix sampling
 
 			float3 target = sun_position + (sample_offset * sun_radius_meters);
@@ -180,8 +178,8 @@ namespace KittlesPT
 			float sun_area = Constants::PI * Sqr(sun_radius_meters);
 			float3 sun_surf_nrm = normalize(target - sun_position), wi = normalize(target - surface.world_position);
 			float theta_sun = AbsDot(sun_surf_nrm, -wi);//cosine
-			float pdf = (1.0f / sun_area) / (theta_sun / Sqr(SUN_PHYSICAL_DISTANCE_METERS));
-			Ld = (fcos * sun_radiance * shader_data.procedural_environment_data.sun_emission_nits) / pdf;
+			float pdf = (1.0f / sun_area) / (theta_sun / Sqr(Atmosphere::Values::SUN_PHYSICAL_DISTANCE_METERS));
+			Ld = (fcos * sun_radiance * Atmosphere::Values::SUN_HORIZON_LUMINANCE_NITS) / pdf;
 
 			return Ld;
 		}
@@ -231,7 +229,7 @@ namespace KittlesPT
 		}
 
 		__device__ float beerLambertTransmittance(float t, float sigma_t) {
-			return expf(-t * sigma_t);
+			return ::expf(-t * sigma_t);
 		}
 
 		__device__ float isotropicPhaseFunction(float cos_theta)
@@ -255,7 +253,7 @@ namespace KittlesPT
 
 			//TODO:store in heap
 			float3 sun_direction = getSunDirection(shader_data);
-			Atmosphere atmosphere(sun_direction, shader_data.procedural_environment_data.sun_emission_nits);
+			Atmosphere::NishitaAtmosphereModel atmosphere(sun_direction, shader_data.procedural_environment_data.sun_emission_factor);
 			float3 atmosphere_observer_position = make_float3(0, atmosphere.getEarthRadiusMeters() + 1, 0);
 			UniformLightSampler light_sampler(shader_data.lights_buffer.data, shader_data.lights_buffer.num);
 
@@ -274,7 +272,7 @@ namespace KittlesPT
 				// Single-scattering volumetric approx
 				{
 					float t = fminf(intr.distance, 1.0e8f);
-					light += RGBSpectrum(0, 0.5, 1) * shader_data.procedural_environment_data.sun_emission_nits *
+					light += RGBSpectrum(0, 0.5, 1) * shader_data.procedural_environment_data.sun_emission_factor *
 						(1.0f - beerLambertTransmittance(t, 0.1)) * throughput;
 				}
 

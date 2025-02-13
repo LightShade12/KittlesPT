@@ -40,7 +40,7 @@ namespace KittlesPT
 		float sun_phi_rad = 4.18879f;//rotation
 		//float sun_theta_rad = 0.785f;
 		float sun_theta_rad = 0.0872665f;//altitude
-		float sun_emission_nits = 6.0e5f;
+		float sun_emission_factor = 1.0f;
 	};
 
 	struct RendererSettings

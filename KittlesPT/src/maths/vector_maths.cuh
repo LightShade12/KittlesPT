@@ -9,6 +9,10 @@ namespace KittlesPT
 		return (vec.x == 0.f && vec.y == 0.f && vec.z == 0.f);
 	}
 
+	inline __device__ float3 expf(const float3& v) {
+		return make_float3(::expf(v.x), ::expf(v.y), ::expf(v.z));
+	}
+
 	inline __device__ float AbsDot(const float3& a, const float3& b)
 	{
 		return fabsf(dot(a, b));
