@@ -42,11 +42,6 @@ namespace KittlesPT
 		return make_float3(::log2f(a.x), ::log2f(a.y), ::log2f(a.z));
 	}
 
-	inline __device__ float3 powf(const float3 a, const float3 b)
-	{
-		return make_float3(::powf(a.x, b.x), ::powf(a.y, b.y), ::powf(a.z, b.z));
-	}
-
 	//TODO: is Z-up only for tangent space; fix inconsistency
 	inline __device__ float3 sphericalToCartesian(float theta, float phi)
 	{
@@ -91,4 +86,9 @@ namespace KittlesPT
 	{
 		return dot(a, b) > 0.0f;
 	}
+}
+
+inline __device__ float3 powf(const float3 a, const float3 b)
+{
+	return make_float3(powf(a.x, b.x), powf(a.y, b.y), powf(a.z, b.z));
 }

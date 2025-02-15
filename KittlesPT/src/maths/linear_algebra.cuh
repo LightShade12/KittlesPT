@@ -85,6 +85,18 @@ namespace KittlesPT
 		return length(p0 - p1);
 	}
 
+	__host__ __device__ inline float cube(float v) {
+		return v * v * v;
+	}
+
+	__host__ __device__ inline float pow4(float v) {
+		return v * v * v * v;
+	}
+
+	__host__ __device__ inline float pow5(float v) {
+		return v * v * v * v * v;
+	}
+
 	/*
 	__device__ float Gaussian(float x, float mu, float sigma)
 	{

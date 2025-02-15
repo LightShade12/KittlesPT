@@ -75,6 +75,11 @@ namespace KittlesPT
 		return rgb;
 	}
 
+	//---------------------
+
+	// Rec. 709 luminance coefficients for linear RGB
+	__constant__ constexpr float3 rec709_luminance_coeffs{ 0.2126f,0.7152f,0.0722f };
+
 	class RGBSpectrum
 	{
 	public:
@@ -270,8 +275,7 @@ namespace KittlesPT
 		//Y value
 		__device__ float getLuminance() const
 		{
-			// Rec. 709 luminance coefficients for linear RGB
-			return (0.2126f * r) + (0.7152f * g) + (0.0722f * b);
+			return (rec709_luminance_coeffs.x * r) + (rec709_luminance_coeffs.y * g) + (rec709_luminance_coeffs.z * b);
 		}
 
 		__device__ float Y() const
@@ -301,22 +305,22 @@ namespace KittlesPT
 
 		__device__ RGBSpectrum linearToGamma2_2() const {
 			const float i = 1.0f / 2.2f;
-			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+			return RGBSpectrum(powf(r, i), powf(g, i), powf(b, i));
 		}
 
 		__device__ RGBSpectrum gamma2_2ToLinear() const {
 			const float i = 2.2f;
-			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+			return RGBSpectrum(powf(r, i), powf(g, i), powf(b, i));
 		}
 
 		__device__ RGBSpectrum linearToGamma2_4() const {
 			const float i = 1.0f / 2.4f;
-			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+			return RGBSpectrum(powf(r, i), powf(g, i), powf(b, i));
 		}
 
 		__device__ RGBSpectrum gamma2_4ToLinear() const {
 			const float i = 2.4f;
-			return RGBSpectrum(::powf(r, i), ::powf(g, i), ::powf(b, i));
+			return RGBSpectrum(powf(r, i), powf(g, i), powf(b, i));
 		}
 
 		//Same primaries and white-point as ITU-R BT.709
@@ -328,7 +332,7 @@ namespace KittlesPT
 			constexpr float C = 0.055f;
 			constexpr float T = 2.4f;
 
-			return (v <= V) ? (A * v) : ((1 + C) * ::powf(v, 1.0f / T) - C);
+			return (v <= V) ? (A * v) : ((1 + C) * powf(v, 1.0f / T) - C);
 		}
 
 		__device__ float sRGBDecoding(float v) {
@@ -337,7 +341,7 @@ namespace KittlesPT
 			constexpr float C = 0.055f;
 			constexpr float T = 2.4f;
 
-			return (v <= U) ? (v / A) : ::powf((v + C) / (1 + C), T);
+			return (v <= U) ? (v / A) : powf((v + C) / (1 + C), T);
 		}
 
 		// linear RGB to sRGB (normalized [0,1])
@@ -374,19 +378,24 @@ namespace KittlesPT
 	{
 		return RGBSpectrum(b / a.r, b / a.g, b / a.b);
 	};
-
-	inline __device__ RGBSpectrum lerp(RGBSpectrum a, RGBSpectrum b, float t)
-	{
-		return a + t * (b - a);
-	}
-
-	inline __device__ RGBSpectrum powf(RGBSpectrum x, float y)
-	{
-		return RGBSpectrum(::powf(x.r, y), ::powf(x.g, y), ::powf(x.b, y));
-	}
-
-	inline __device__ RGBSpectrum exp(RGBSpectrum x)
-	{
-		return RGBSpectrum(::expf(x.r), ::expf(x.g), ::expf(x.b));
-	}
 }/*KittlesPT*/
+
+inline __device__ KittlesPT::RGBSpectrum lerp(KittlesPT::RGBSpectrum a, KittlesPT::RGBSpectrum b, float t)
+{
+	return a + t * (b - a);
+}
+
+inline __device__ KittlesPT::RGBSpectrum clamp(KittlesPT::RGBSpectrum v, KittlesPT::RGBSpectrum a, KittlesPT::RGBSpectrum b)
+{
+	return KittlesPT::RGBSpectrum(clamp(v.r, a.r, b.r), clamp(v.g, a.g, b.g), clamp(v.b, a.b, b.b));
+}
+
+inline __device__ KittlesPT::RGBSpectrum powf(KittlesPT::RGBSpectrum x, float y)
+{
+	return KittlesPT::RGBSpectrum(powf(x.r, y), powf(x.g, y), powf(x.b, y));
+}
+
+inline __device__ KittlesPT::RGBSpectrum  exp(KittlesPT::RGBSpectrum  x)
+{
+	return KittlesPT::RGBSpectrum(expf(x.r), expf(x.g), expf(x.b));
+}

@@ -10,6 +10,13 @@ namespace KittlesPT
 	* TODO: GGX distrib class
 	* -More flags utility
 	*/
+	__constant__ constexpr float GGX_ROUGHNESS_EPSILON = 0.045f;
+
+	inline __device__ float computeF0(float ior) {
+		return Sqr((ior - 1.0f) / (ior + 1.0f));
+	}
+
+
 
 	struct BSDFSample
 	{
@@ -42,24 +49,30 @@ namespace KittlesPT
 
 	//===================================================================================================================================================
 
-	//SmithGGXMaskingShadowing
-	inline __device__ float G2_Smith(float3 wo, float3 wi, float roughness)
+	//Heitz 2014
+	inline __device__ float G1(float theta, float alpha) {
+		return 2.0f / (1.0f + sqrtf(1.0f + Sqr(alpha * tanf(theta))));
+	}
+
+	//SmithGGXMaskingShadowing; using closed form approximation for G1 terms
+	inline __device__ float G2SmithGGXMaskingShadowing(float3 wo, float3 wi, float alpha)
 	{
-		float a2 = ::powf(roughness, 4.0f);
-
+		float dotNV = fmaxf(wo.z, 0.0f);
 		float dotNL = fabsf(wi.z);
-		float dotNV = fmaxf(0.0f, wo.z);
 
-		float denomA = dotNV * sqrtf(a2 + (1.0f - a2) * Sqr(dotNL));
-		float denomB = dotNL * sqrtf(a2 + (1.0f - a2) * Sqr(dotNV));
+		float sqrtTermNV = sqrtf(Sqr(alpha) + (1.0f - Sqr(alpha)) * Sqr(dotNV));
+		float sqrtTermNL = sqrtf(Sqr(alpha) + (1.0f - Sqr(alpha)) * Sqr(dotNL));
 
-		return (2.0f * dotNL * dotNV) / (denomA + denomB);
+		float G1_NV = (2.0f * dotNV) / (dotNV + sqrtTermNV);
+		float G1_NL = (2.0f * dotNL) / (dotNL + sqrtTermNL);
+
+		return G1_NV * G1_NL;
 	}
 
 	//GGX NDF; clamps roughness
 	inline __device__ float D_GGX(float NoH, float roughness)
 	{
-		roughness = fmaxf(roughness, Constants::GGX_ROUGHNESS_EPSILON);//needed TODO: switch to delta specular brdf below this threshold
+		roughness = fmaxf(roughness, GGX_ROUGHNESS_EPSILON);//needed TODO: switch to delta specular brdf below this threshold
 		float alpha = Sqr(roughness);
 		float alpha2 = Sqr(alpha);
 		float NoH2 = Sqr(NoH);
@@ -67,10 +80,10 @@ namespace KittlesPT
 		return alpha2 / (Constants::PI * Sqr(b));
 	}
 
-	//FrDielectric
+	//FrDielectric; costheta = wo dot wm
 	inline __device__ float fresnelDielectric(float cosTheta, float ior)
 	{
-		cosTheta = ::clamp(cosTheta, -1.0f, 1.0f);
+		cosTheta = clamp(cosTheta, -1.0f, 1.0f);
 		if (cosTheta < 0.0f) {
 			ior = 1.0f / ior;
 			cosTheta = -cosTheta;
@@ -90,28 +103,27 @@ namespace KittlesPT
 	}
 
 	//FrSchlick approximation
-	inline __device__ RGBSpectrum fresnelSchlick(float VoH, RGBSpectrum F0)
+	inline __device__ RGBSpectrum fresnelSchlick(float wi_dot_wm, RGBSpectrum F0)
 	{
-		RGBSpectrum F = F0 + (1.0f - F0) * ::powf(1.0f - VoH, 5.0f);
-		return RGBSpectrum(clamp(F.toFloat3(), 0.0f, 1.0f));
+		RGBSpectrum F = F0 + (1.0f - F0) * pow5(1.0f - wi_dot_wm);
+		return clamp(F, RGBSpectrum(0.0f), RGBSpectrum(1.0f));
 	}
 
-	//Cook-Torrance microfacet BRDF equation
+	//Cook-Torrance Microfacet BRDF equation
 	inline __device__ float microFacetBRDF(float3 wo, float3 wi, float3 wm, float roughness)
 	{
-		float NoH = ::clamp(wm.z, 0.0f, 1.0f);
-		float NoV = ::clamp(wo.z, 0.0f, 1.0f);
-		float NoL = ::clamp(wi.z, 0.0f, 1.0f);
+		float NoH = clamp(wm.z, 0.0f, 1.0f);
+		float NoV = clamp(wo.z, 0.0f, 1.0f);
+		float NoL = clamp(wi.z, 0.0f, 1.0f);
 
 		//below expects squared roughness(alpha)
-		float D = D_GGX(NoH, roughness);
-		float G = G2_Smith(wo, wi, roughness);
-		float out = (D * G) / (4.0f * fmaxf(NoV, 0.0001f) * NoL);
-		if (wi.z <= 0.0f || dot(wi, wm) <= 0.0f)
-		{
-			out = 0.0f;
+		float D = D_GGX(NoH, roughness);//The NDF
+		float G = G2SmithGGXMaskingShadowing(wo, wi, Sqr(roughness));//Geometry term(Shadowing-Masking)
+		float f = (D * G) / (4.0f * fmaxf(NoV, 0.0001f) * NoL);
+		if (wi.z <= 0.0f || dot(wi, wm) <= 0.0f) {
+			f = 0.0f;
 		}
-		return out;
+		return f;
 	}
 
 	class BSDF
@@ -228,7 +240,7 @@ namespace KittlesPT
 		}
 
 		__device__ bool isNonSpecular() {
-			return(m_roughness > Constants::GGX_ROUGHNESS_EPSILON);
+			return(m_roughness > GGX_ROUGHNESS_EPSILON);
 		}
 
 		__device__ bool operator! () {
@@ -318,14 +330,14 @@ namespace KittlesPT
 		__device__ RGBSpectrum fConductor(float3 wo, float3 wi) const
 		{
 			float3 wm = normalize(wo + wi);
-			float NoV = ::clamp(wo.z, 0.0f, 1.0f);
-			float NoL = ::clamp(wi.z, 0.0f, 1.0f);
+			float NoV = clamp(wo.z, 0.0f, 1.0f);
+			float NoL = clamp(wi.z, 0.0f, 1.0f);
 			if (NoV == 0.0f || NoL == 0.0f)
 			{
 				return RGBSpectrum(0.0f);
 			}
 
-			float VoH = ::clamp(dot(wo, wm), 0.0f, 1.0f);
+			float VoH = clamp(dot(wo, wm), 0.0f, 1.0f);
 			RGBSpectrum M{ 0.0f,0.0f,0.0f };
 			if (NoL > 0.0f && VoH > 0.0f)
 			{
@@ -437,7 +449,7 @@ namespace KittlesPT
 			const float dwm_dwi = fabs(dot(wi, wm)) * fabs(dot(wo, wm)) / (temp * temp);
 
 			// Single-scattering term
-			const float Tss = D_GGX(wm.z, m_roughness) * G2_Smith(wo, wi, m_roughness) * dwm_dwi /
+			const float Tss = D_GGX(wm.z, m_roughness) * G2SmithGGXMaskingShadowing(wo, wi, m_roughness) * dwm_dwi /
 				(fabs(cos_theta_i * cos_theta_o));
 
 			return RGBSpectrum(T * m_albedo * Tss);
@@ -563,7 +575,7 @@ namespace KittlesPT
 			const float temp = dot(wi, ht) * ior + dot(wo, ht);
 			float Fss = fresnelDielectric(AbsDot(wo, ht), ior);
 			const float Tss =
-				D_GGX(NoH, m_roughness) * G2_Smith(wo, wi, m_roughness) *
+				D_GGX(NoH, m_roughness) * G2SmithGGXMaskingShadowing(wo, wi, m_roughness) *
 				fabs(dot(wi, ht) * dot(wo, ht) / (wi.z * wo.z * temp * temp));
 
 			return m_albedo * (1.0f - Fss) * Tss;

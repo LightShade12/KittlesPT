@@ -111,7 +111,10 @@ namespace KittlesPT
 		{
 			constexpr uint8_t BINS = 8;
 			float best_cost = INFINITY;
-			//TODO: try out longest axis SAH
+			/*
+			* NOTE:
+			* If there is a need for even faster build times, we can try out "Longest Axis SAH"
+			*/
 			for (int32_t candidate_axis = 0; candidate_axis < 3; candidate_axis++)
 			{
 				float boundsMin = INFINITY, boundsMax = -INFINITY;
