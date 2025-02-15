@@ -109,10 +109,10 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	__device__ float2 computeVelocity(const ShaderData& shader_data, const GBuffer& gbuffer)
+	__device__ float2 computeVelocity(const ShaderData& shader_data, const VisibleSurface& vs)
 	{
 		float2 velocity = make_float2(0.0f);
-		int32_t curr_mesh_id = gbuffer.instance_id;
+		int32_t curr_mesh_id = vs.instance_id;
 
 		if (curr_mesh_id < 0) {
 			return velocity;
@@ -124,9 +124,9 @@ namespace KittlesPT
 		const TriangleMesh& mesh = shader_data.meshes_buffer.data[curr_mesh_id];
 		Mat4 curr_model = mesh.curr_inv_model_matrix.inverse();
 		Mat4 prev_model = mesh.prev_inv_model_matrix.inverse();
-		float3 curr_local_pos = make_float3(mesh.curr_inv_model_matrix * make_float4(gbuffer.wpos, 1));
+		float3 curr_local_pos = make_float3(mesh.curr_inv_model_matrix * make_float4(vs.position, 1));
 
-		float4 curr_clip = curr_viewprojection * make_float4(gbuffer.wpos, 1);
+		float4 curr_clip = curr_viewprojection * make_float4(vs.position, 1);
 		float4 prev_clip = prev_viewprojection * prev_model * make_float4(curr_local_pos, 1);
 
 		float3 curr_ndc = make_float3(curr_clip) / curr_clip.w;
@@ -150,11 +150,11 @@ namespace KittlesPT
 		return false;
 	}
 
-	__device__ bool testReprojection(const ShaderData& shader_data, const GBuffer& gbuffer, float2 prev_pixel_coord)
+	__device__ bool testReprojection(const ShaderData& shader_data, const VisibleSurface& vs, float2 prev_pixel_coord)
 	{
-		const TriangleMesh& mesh = shader_data.meshes_buffer.data[gbuffer.instance_id];
+		const TriangleMesh& mesh = shader_data.meshes_buffer.data[vs.instance_id];
 
-		float3 curr_local_pos = make_float3(mesh.curr_inv_model_matrix * make_float4(gbuffer.wpos, 1));
+		float3 curr_local_pos = make_float3(mesh.curr_inv_model_matrix * make_float4(vs.position, 1));
 		Mat4 prev_model = mesh.prev_inv_model_matrix.inverse();
 
 		//DEPTH HEURISTIC-------------
@@ -169,9 +169,10 @@ namespace KittlesPT
 	}
 
 	__constant__ constexpr int32_t MAX_ACCUMULATION_FRAMES = 16;//TODO: put in constants
-	__device__ float4 reprojectAccumulate(const ShaderData& shader_data, float2 curr_pixel_coord, const GBuffer& gbuffer, float2 velocity, RGBSpectrum curr_color)
+	__device__ float4 reprojectAccumulate(const ShaderData& shader_data, float2 curr_pixel_coord, const VisibleSurface& vs,
+		float2 velocity, RGBSpectrum curr_color)
 	{
-		int32_t curr_mesh_id = gbuffer.instance_id;
+		int32_t curr_mesh_id = vs.instance_id;
 		//no surface
 		if (curr_mesh_id < 0) {
 			return make_float4(curr_color.toFloat3(), 0);
@@ -190,7 +191,7 @@ namespace KittlesPT
 		}
 
 		//disocclusion/ reprojection failure
-		if (!testReprojection(shader_data, gbuffer, prev_pixel_coord))
+		if (!testReprojection(shader_data, vs, prev_pixel_coord))
 		{
 			return make_float4(curr_color.toFloat3(), 0);
 		}
@@ -234,18 +235,19 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	float2 jittered_ndc = ndc_coord + fs.p / (frame_res * 2.0f);
 	jittered_ndc = ndc_coord;
 
+	DebugData debugdata;
 	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc);
-	GBuffer visible_surface;
+	VisibleSurface visible_surface;
 	float camera_weight = 1.0f;
 	//We estimate radiance directly as RGB triplets
 	//evaluate integral(f(x)/p(x)) at Xi
 	RGBSpectrum sensor_radiance = RGBSpectrum(fs.weight) * camera_weight *
-		Integrator::Li(shader_data, primary_ray, sampler, &visible_surface);
+		Integrator::Li(shader_data, primary_ray, sampler, &visible_surface, &debugdata);
 
+	GBuffer gbuffer = GBuffer(visible_surface);
+	shader_data.gbuffer_texture.textureWriteUV(gbuffer.packGBuffer(), shading_job.uv_coord);
 	VBuffer vbuffer = VBuffer(visible_surface);
 	vbuffer.velocity = computeVelocity(shader_data, visible_surface);
-
-	shader_data.gbuffer_texture.textureWriteUV(visible_surface.packGBuffer(), shading_job.uv_coord);
 	shader_data.vbuffer_texture.textureWriteUV(vbuffer.packVBuffer(), shading_job.uv_coord);
 
 	float alpha = 1.0f;
@@ -273,7 +275,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 
 	//GBuffer prev = GBuffer::unpackGBuffer(shader_data.prev_gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
 	//vbuffer.velocity *= 10.0f;
-	shader_data.debug_texture.textureWriteUV(make_float4(vbuffer.velocity.x, vbuffer.velocity.y, 0.0f, 1.0f), shading_job.uv_coord);
+	//shader_data.debug_texture.textureWriteUV(make_float4(vbuffer.velocity.x, vbuffer.velocity.y, 0.0f, 1.0f), shading_job.uv_coord);
 	shader_data.main_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 

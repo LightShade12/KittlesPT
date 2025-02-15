@@ -205,7 +205,7 @@ namespace KittlesPT
 		TriangleMesh mesh = m_renderer_rsrc->scene_meshes[idx];
 		mesh.setTransform(inv_model_mat);
 		m_renderer_rsrc->scene_meshes[idx] = mesh;
-		m_renderer_rsrc->blas_buffer[mesh.blas_id].setTransform(model_mat);
+		m_renderer_rsrc->blas_buffer[mesh.blas_index].setTransform(model_mat);
 
 		if (!m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation) {
 			resetAccumulation();
@@ -356,7 +356,7 @@ namespace KittlesPT
 			TriangleMesh tri_mesh(static_cast<int32_t>(mesh_prim_start_id),
 				static_cast<int32_t>(mesh.shape_entities.size()),
 				Mat4(glm::inverse(mesh.model_matrix)));
-			tri_mesh.blas_id = static_cast<int32_t>(m_renderer_rsrc->blas_buffer.size());//TODO:move to constructor
+			tri_mesh.blas_index = static_cast<int32_t>(m_renderer_rsrc->blas_buffer.size());//TODO:move to constructor
 
 			m_renderer_rsrc->blas_buffer.push_back(m_renderer_rsrc->blas_builder.build(tri_mesh, mesh_id));
 			m_renderer_rsrc->scene_meshes.push_back(tri_mesh);

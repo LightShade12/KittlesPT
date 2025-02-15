@@ -14,7 +14,7 @@ namespace KittlesPT
 		wpos(surface.world_position),
 		wo(surface.wo)
 	{}
-	__device__ BSDF Material::getBSDF(const ShaderData& shader_data, MaterialEvalContext ctx) const
+	__device__ UnifiedBSDF Material::getBSDF(const ShaderData& shader_data, MaterialEvalContext ctx) const
 	{
 		RGBSpectrum eval_albedo = RGBSpectrum(albedo);
 		float eval_roughness = roughness_factor;
@@ -53,7 +53,7 @@ namespace KittlesPT
 		}
 
 		//TODO: consider moving basis generation to BSDF constructor
-		BSDF bsdf = BSDF(generateONBFrisvad(ctx.wgnorm),
+		UnifiedBSDF bsdf = UnifiedBSDF(generateONBFrisvad(ctx.wgnorm),
 			eval_albedo,
 			eval_metalness,
 			eval_roughness,

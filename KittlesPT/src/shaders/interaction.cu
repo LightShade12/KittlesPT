@@ -44,11 +44,11 @@ namespace KittlesPT
 		return(arealight) ? arealight->L(shader_data, uv) : RGBSpectrum(0.0f);
 	}
 
-	__device__ BSDF SurfaceInteraction::getBSDF(const ShaderData& shader_data) const
+	__device__ UnifiedBSDF SurfaceInteraction::getBSDF(const ShaderData& shader_data) const
 	{
 		const Material& mat = shader_data.materials_buffer.data[material_id];
 
-		BSDF bsdf = mat.getBSDF(shader_data, MaterialEvalContext(*this));
+		UnifiedBSDF bsdf = mat.getBSDF(shader_data, MaterialEvalContext(*this));
 
 		return bsdf;
 	}

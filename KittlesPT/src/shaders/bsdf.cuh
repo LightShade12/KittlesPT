@@ -6,17 +6,86 @@
 
 namespace KittlesPT
 {
-	/*
-	* TODO: GGX distrib class
-	* -More flags utility
-	*/
-	__constant__ constexpr float GGX_ROUGHNESS_EPSILON = 0.045f;
+	//__constant__ constexpr float GGX_ROUGHNESS_EPSILON = 0.045f;
 
 	inline __device__ float computeF0(float ior) {
 		return Sqr((ior - 1.0f) / (ior + 1.0f));
 	}
 
+	/// <summary>
+	/// Trowbridge-Reitz Normal Distribution Model
+	/// </summary>
+	class GGX
+	{
+	public:
+		__device__ GGX() = default;
+		__device__ GGX(float roughness) :
+			m_alpha(Sqr(roughness))
+		{}
 
+		__device__ float D(const float3& wm) const
+		{
+			//roughness = fmaxf(roughness, GGX_ROUGHNESS_EPSILON);//needed TODO: switch to delta specular brdf below this threshold
+			float alpha = m_alpha;
+			if (isEffectivelySmooth()) {
+				alpha = fmaxf(alpha, 1.0e-3f);//TODO: switch to specular
+			}
+			float alpha2 = Sqr(alpha);
+			float N_dot_H = Sqr(saturate(wm.z));
+			float b = (N_dot_H * (alpha2 - 1.0) + 1.0);
+			return alpha2 / (Constants::PI * Sqr(b));
+		}
+
+		//TODO: use GGX G1
+		//Heitz 2014
+		inline __device__ float G1(float theta) {
+			return 2.0f / (1.0f + sqrtf(1.0f + Sqr(m_alpha * tanf(theta))));
+		}
+
+		__device__ float G(const float3& wo, const float3& wi) const
+		{
+			float dotNV = fmaxf(wo.z, 0.0f);
+			float dotNL = fabsf(wi.z);
+
+			float sqrtTermNV = sqrtf(Sqr(m_alpha) + (1.0f - Sqr(m_alpha)) * Sqr(dotNV));
+			float sqrtTermNL = sqrtf(Sqr(m_alpha) + (1.0f - Sqr(m_alpha)) * Sqr(dotNL));
+
+			float G1_NV = (2.0f * dotNV) / (dotNV + sqrtTermNV);
+			float G1_NL = (2.0f * dotNL) / (dotNL + sqrtTermNL);
+
+			return G1_NV * G1_NL;
+		}
+
+		__device__ float3 sampleWm(float3 w, float2 u2) const
+		{
+			float a2 = Sqr(m_alpha);
+
+			float e0 = u2.x;
+			float e1 = u2.y;
+
+			float theta = acosf(sqrtf((1.0f - e0) / ((a2 - 1.0f) * e0 + 1.0f)));
+			//float theta = atanf(a * sqrtf(e0 / (1.0f - e0)));//chatgpt
+			//float theta = acosf(sqrtf(a2 / e0 * (a2 - 1.0f) + 1.0f));//Q2RTX github
+			float phi = 2.0f * Constants::PI * e1;
+
+			float3 wm = sphericalToCartesian(theta, phi);
+
+			return normalize(wm);
+		};
+
+		__device__ bool isEffectivelySmooth() const {
+			return m_alpha < 0.001f;
+		}
+
+		__device__ void regularize() {
+			if (m_alpha < 0.3f) {
+				m_alpha = clamp(2.0f * m_alpha, 0.1f, 0.3f);
+			}
+		}
+
+	private:
+		float m_alpha = 0.25f;
+	};
 
 	struct BSDFSample
 	{
@@ -33,12 +102,12 @@ namespace KittlesPT
 		enum Scatter
 		{
 			Absorbed = 0,
-			Emitted = 1,
-			Reflected = 2,
-			Transmitted = 4,
-			Diffuse = 8,
-			Glossy = 16,
-			Specular = 32
+			Emitted = 1 << 0,
+			Reflected = 1 << 1,
+			Transmitted = 1 << 2,
+			Diffuse = 1 << 3,
+			Glossy = 1 << 4,
+			Specular = 1 << 5
 		};
 
 		int scatter = Absorbed;
@@ -48,37 +117,6 @@ namespace KittlesPT
 	};
 
 	//===================================================================================================================================================
-
-	//Heitz 2014
-	inline __device__ float G1(float theta, float alpha) {
-		return 2.0f / (1.0f + sqrtf(1.0f + Sqr(alpha * tanf(theta))));
-	}
-
-	//SmithGGXMaskingShadowing; using closed form approximation for G1 terms
-	inline __device__ float G2SmithGGXMaskingShadowing(float3 wo, float3 wi, float alpha)
-	{
-		float dotNV = fmaxf(wo.z, 0.0f);
-		float dotNL = fabsf(wi.z);
-
-		float sqrtTermNV = sqrtf(Sqr(alpha) + (1.0f - Sqr(alpha)) * Sqr(dotNV));
-		float sqrtTermNL = sqrtf(Sqr(alpha) + (1.0f - Sqr(alpha)) * Sqr(dotNL));
-
-		float G1_NV = (2.0f * dotNV) / (dotNV + sqrtTermNV);
-		float G1_NL = (2.0f * dotNL) / (dotNL + sqrtTermNL);
-
-		return G1_NV * G1_NL;
-	}
-
-	//GGX NDF; clamps roughness
-	inline __device__ float D_GGX(float NoH, float roughness)
-	{
-		roughness = fmaxf(roughness, GGX_ROUGHNESS_EPSILON);//needed TODO: switch to delta specular brdf below this threshold
-		float alpha = Sqr(roughness);
-		float alpha2 = Sqr(alpha);
-		float NoH2 = Sqr(NoH);
-		float b = (NoH2 * (alpha2 - 1.0) + 1.0);
-		return alpha2 / (Constants::PI * Sqr(b));
-	}
 
 	//FrDielectric; costheta = wo dot wm
 	inline __device__ float fresnelDielectric(float cosTheta, float ior)
@@ -103,36 +141,35 @@ namespace KittlesPT
 	}
 
 	//FrSchlick approximation
-	inline __device__ RGBSpectrum fresnelSchlick(float wi_dot_wm, RGBSpectrum F0)
+	inline __device__ RGBSpectrum fresnelSchlick(float cos_theta, RGBSpectrum F0)
 	{
-		RGBSpectrum F = F0 + (1.0f - F0) * pow5(1.0f - wi_dot_wm);
+		RGBSpectrum F = F0 + (1.0f - F0) * pow5(1.0f - cos_theta);
 		return clamp(F, RGBSpectrum(0.0f), RGBSpectrum(1.0f));
 	}
 
 	//Cook-Torrance Microfacet BRDF equation
-	inline __device__ float microFacetBRDF(float3 wo, float3 wi, float3 wm, float roughness)
+	inline __device__ float microfacetBRDF(float3 wo, float3 wi, float3 wm, const GGX& ggx)
 	{
-		float NoH = clamp(wm.z, 0.0f, 1.0f);
-		float NoV = clamp(wo.z, 0.0f, 1.0f);
-		float NoL = clamp(wi.z, 0.0f, 1.0f);
+		float NdotV = saturate(wo.z);
+		float NdotL = saturate(wi.z);
 
 		//below expects squared roughness(alpha)
-		float D = D_GGX(NoH, roughness);//The NDF
-		float G = G2SmithGGXMaskingShadowing(wo, wi, Sqr(roughness));//Geometry term(Shadowing-Masking)
-		float f = (D * G) / (4.0f * fmaxf(NoV, 0.0001f) * NoL);
+		float D = ggx.D(wm);//The NDF
+		float G = ggx.G(wo, wi);//Geometry term(Shadowing-Masking)
+		float f = (D * G) / (4.0f * fmaxf(NdotV, 1.0e-3f) * NdotL);
 		if (wi.z <= 0.0f || dot(wi, wm) <= 0.0f) {
 			f = 0.0f;
 		}
 		return f;
 	}
 
-	class BSDF
+	class UnifiedBSDF
 	{
 	public:
 
-		__device__ BSDF(float3 t, float3 b, float3 n) :m_tangent_basis(Mat3(t, b, n)) {};
+		__device__ UnifiedBSDF(float3 t, float3 b, float3 n) :m_tangent_basis(Mat3(t, b, n)) {};
 
-		__device__ BSDF(const Mat3& tangent_basis,
+		__device__ UnifiedBSDF(const Mat3& tangent_basis,
 			RGBSpectrum albedo,
 			float metallicity,
 			float roughness,
@@ -145,7 +182,8 @@ namespace KittlesPT
 			m_roughness(roughness),
 			m_transmission(transmission),
 			m_IOR(ior),
-			m_is_backface(is_backface)
+			m_is_backface(is_backface),
+			m_GGX_mf(roughness)
 		{}
 
 		//------------------------------------
@@ -212,16 +250,13 @@ namespace KittlesPT
 
 			BSDFSample bs;
 
-			if (path_probability < prob_metallic)
-			{
+			if (path_probability < prob_metallic) {
 				bs = sampleConductor(wo, u2, X2.y);
 			}
-			else if (path_probability < prob_trans)
-			{
+			else if (path_probability < prob_trans) {
 				bs = sampleTransparentDielectric(wo, u2, X2.y);
 			}
-			else
-			{
+			else {
 				bs = sampleOpaqueDielectric(wo, u2, X2.y);
 			}
 
@@ -237,10 +272,11 @@ namespace KittlesPT
 			if (m_roughness < 0.3f) {
 				m_roughness = clamp(2.0f * m_roughness, 0.1f, 0.3f);
 			}
+			m_GGX_mf.regularize();
 		}
 
 		__device__ bool isNonSpecular() {
-			return(m_roughness > GGX_ROUGHNESS_EPSILON);
+			return !m_GGX_mf.isEffectivelySmooth();
 		}
 
 		__device__ bool operator! () {
@@ -251,6 +287,7 @@ namespace KittlesPT
 			m_albedo = RGBSpectrum(1.0f);
 		}
 
+		//basically low quality Rho estimate
 		__device__ RGBSpectrum getAlbedo() {
 			return m_albedo;
 		}
@@ -268,7 +305,7 @@ namespace KittlesPT
 			{
 				//Glossy scatter path----------------------
 
-				float3 wm = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
+				float3 wm = m_GGX_mf.sampleWm(wo, u2);
 				float3 wi = reflect(-wo, wm);
 
 				RGBSpectrum f = fGlossyMicrofacetBRDF(wo, wi, wm);
@@ -319,7 +356,7 @@ namespace KittlesPT
 		{
 			//float path_probability = X;
 
-			float3 wm = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
+			float3 wm = m_GGX_mf.sampleWm(wo, u2);
 			float3 wi = reflect(-wo, wm);
 			RGBSpectrum f = fConductor(wo, wi);
 			float pdf = pdfGlossyMicrofacetBRDF(wo, wi, wm);
@@ -342,7 +379,7 @@ namespace KittlesPT
 			if (NoL > 0.0f && VoH > 0.0f)
 			{
 				RGBSpectrum F = RGBSpectrum(fresnelSchlick(VoH, m_albedo));
-				M = F * microFacetBRDF(wo, wi, wm, m_roughness);
+				M = F * microfacetBRDF(wo, wi, wm, m_GGX_mf);
 			}
 			return M;
 		}
@@ -362,7 +399,7 @@ namespace KittlesPT
 
 			float ior = (inside_volume) ? (1.0f / m_IOR) : m_IOR;
 
-			float3 ht = sampleGlossyMicrofacetBRDF_VNDF(wo, u2);
+			float3 ht = m_GGX_mf.sampleWm(wo, u2);
 
 			float3 wi;
 			bool tir = !refract(wo, ht, ior, wi);
@@ -380,7 +417,7 @@ namespace KittlesPT
 					return BSDFSample(BSDFSample::Absorbed, { 0,0,0 }, { 0,0,0 }, 0);
 				}
 
-				float Mss = microFacetBRDF(wo, wi, ht, m_roughness);
+				float Mss = microfacetBRDF(wo, wi, ht, m_GGX_mf);
 				float Fss = fresnelDielectric(dot(wo, ht), ior);
 				RGBSpectrum f = RGBSpectrum(Fss * Mss);
 
@@ -438,7 +475,7 @@ namespace KittlesPT
 			if (is_reflection)
 			{
 				// Single-scattering term
-				const float Mss = microFacetBRDF(wo, wi, wm, m_roughness);
+				const float Mss = microfacetBRDF(wo, wi, wm, m_GGX_mf);
 
 				return RGBSpectrum(Fss * Mss);
 			}
@@ -449,7 +486,7 @@ namespace KittlesPT
 			const float dwm_dwi = fabs(dot(wi, wm)) * fabs(dot(wo, wm)) / (temp * temp);
 
 			// Single-scattering term
-			const float Tss = D_GGX(wm.z, m_roughness) * G2SmithGGXMaskingShadowing(wo, wi, m_roughness) * dwm_dwi /
+			const float Tss = m_GGX_mf.D(wm) * m_GGX_mf.G(wo, wi) * dwm_dwi /
 				(fabs(cos_theta_i * cos_theta_o));
 
 			return RGBSpectrum(T * m_albedo * Tss);
@@ -488,7 +525,7 @@ namespace KittlesPT
 				const float temp = dot(wi, wm) + dot(wo, wm) / ior;
 				const float dwm_dwi = fabs(dot(wo, wm)) / (temp * temp);
 				float NoH = fmaxf(wm.z, 0.0f);
-				float D = D_GGX(NoH, m_roughness);
+				float D = m_GGX_mf.D(wm);
 				pdf = D * NoH * dwm_dwi * T;
 			}
 			//if (!backface)
@@ -500,82 +537,73 @@ namespace KittlesPT
 		}
 
 		//BxDFs========================================================
+
 		//Diffuse BRDF
 		__device__ float3 sampleDiffuseBRDF(float2 u2) const
 		{
 			return sampleCosineWeightedHemisphere(u2);
 		}
-
 		__device__ float fDiffuseBRDF(float3 wo, float3 wi) const
 		{
 			float scalar_switch = (wo.z * wi.z > 0) ? 1.0f : 0.0f;//same as sameHemisphere()
 			float out = scalar_switch * Constants::INV_PI;
 			return out;
 		}
-
 		__device__ float pdfDiffuseBRDF(float3 wo, float3 wi) const
 		{
 			return wi.z * Constants::INV_PI;
 		}
 
-		//microfacet glossy BRDF
+		//Specular BRDF
+		__device__ float3 sampleSpecularBRDF(float3 wo)
+		{
+			return reflect(-wo, make_float3(0, 0, 1));
+		}
+		__device__ float fSpecularBRDF(float3 wo, float3 wi) {
+			return 0.0f;
+		}
+		__device__ float pdfSpecularBRDF(float3 wo, float3 wi) {
+			return 0.0f;
+		}
+
+		//Microfacet glossy BRDF
 		__device__ RGBSpectrum fGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 wm) const
 		{
-			float Mss = microFacetBRDF(wo, wi, wm, m_roughness);
+			float Mss = microfacetBRDF(wo, wi, wm, m_GGX_mf);
 			float Fss = fresnelDielectric(dot(wo, wm), m_IOR);
 
 			return RGBSpectrum(Fss * Mss);
 		}
-
-		__device__ float BSDF::pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 wm) const
+		__device__ float pdfGlossyMicrofacetBRDF(float3 wo, float3 wi, float3 wm) const
 		{
 			float VoH = fmaxf(dot(wo, wm), 0.0f);
 			float NoH = fmaxf(wm.z, 0.0f);
-			float D = D_GGX(NoH, m_roughness);
+			float D = m_GGX_mf.D(wm);
 			float pdf = (VoH > 0.0f) ? (D * NoH) / (4.0f * VoH) : 0.0f;
 			pdf = (D * NoH) / (4.0f * VoH);
 			return pdf;
 		}
 
-		__device__ float3 sampleGlossyMicrofacetBRDF_VNDF(float3 wo, float2 u2) const
-		{
-			float a = Sqr(m_roughness);
-			float a2 = a * a;
-
-			float e0 = u2.x;
-			float e1 = u2.y;
-
-			float theta = acosf(sqrtf((1.0f - e0) / ((a2 - 1.0f) * e0 + 1.0f)));
-			//float theta = atanf(a * sqrtf(e0 / (1.0f - e0)));//chatgpt
-			//float theta = acosf(sqrtf(a2 / e0 * (a2 - 1.0f) + 1.0f));//Q2RTX github
-			float phi = 2.0f * Constants::PI * e1;
-
-			float3 wm = sphericalToCartesian(theta, phi);
-
-			return normalize(wm);
-		};
-
-		//microfacet glossy BTDF
+		//Microfacet glossy BTDF
 		__device__ float pdfGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
 		{
 			const float temp = dot(wi, ht) * ior + dot(wo, ht);
 			const float dwm_dwi = AbsDot(wi, ht) / (temp * temp);
 
 			const float NoH = fabsf(ht.z);
-			const float D = D_GGX(NoH, m_roughness);
+			const float D = m_GGX_mf.D(ht);
 			float Fss = fresnelDielectric(AbsDot(wo, ht), ior);
 			const float pdf = (D * NoH) * dwm_dwi * (1.0f - Fss);
 
 			return pdf;
 		}
-
 		__device__ RGBSpectrum fGlossyMicrofacetBTDF(float3 wo, float3 wi, float3 ht, float ior) const
 		{
 			const float NoH = fabsf(ht.z);
 			const float temp = dot(wi, ht) * ior + dot(wo, ht);
 			float Fss = fresnelDielectric(AbsDot(wo, ht), ior);
 			const float Tss =
-				D_GGX(NoH, m_roughness) * G2SmithGGXMaskingShadowing(wo, wi, m_roughness) *
+				m_GGX_mf.D(ht) * m_GGX_mf.G(wo, wi) *
 				fabs(dot(wi, ht) * dot(wo, ht) / (wi.z * wo.z * temp * temp));
 
 			return m_albedo * (1.0f - Fss) * Tss;
@@ -584,6 +612,7 @@ namespace KittlesPT
 		//---------------------------------------------------------------------------------------------------
 
 	private:
+		GGX m_GGX_mf;
 		Mat3 m_tangent_basis;
 		RGBSpectrum m_albedo{ 1.0f,0.0f,1.0f };//reflectance spectrum
 		float m_roughness = 0.5f;//alpha_x alpha_y TODO: anisotropy

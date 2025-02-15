@@ -19,6 +19,6 @@ namespace KittlesPT
 
 	public:
 		Bounds3f bounds;
-		int32_t tlasnode_root_id = -1;
+		int32_t tlasnode_root_index = -1;
 	};
 }
