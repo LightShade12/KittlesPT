@@ -28,6 +28,7 @@ namespace SampleApp
 
 		//loadSceneFile("two_objects.glb");
 		//loadSceneFile("test.glb");
+		//loadSceneFile("mc_village_med.glb");
 		//loadSceneFile("temp.glb");
 		loadSceneFile("cs16_italy.glb");
 		//loadSceneFile("cs16_dust.glb");

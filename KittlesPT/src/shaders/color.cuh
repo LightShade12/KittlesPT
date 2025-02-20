@@ -1,3 +1,10 @@
+/*=========================================================================================
+* color.cuh
+* References:
+* https://pbr-book.org/4ed/Radiometry,_Spectra,_and_Color
+* Aggregates wavelengths of the spectrum into 3 broad channels,implicitly assuming integration with CMFs; loses spectral nature due to aggregation
+=========================================================================================*/
+
 #pragma once
 #include "maths/vector_maths.cuh"
 #include <cuda_runtime.h>
@@ -80,6 +87,13 @@ namespace KittlesPT
 	// Rec. 709 luminance coefficients for linear RGB
 	__constant__ constexpr float3 rec709_luminance_coeffs{ 0.2126f,0.7152f,0.0722f };
 
+	/// <summary>
+	/// 3 - float component type.
+	/// <para/>Using sRGB primaries definition.
+	/// <para/>R: 612nm
+	/// <para/>G: 535nm
+	/// <para/>B: 465nm
+	/// </summary>
 	class RGBSpectrum
 	{
 	public:
@@ -344,7 +358,7 @@ namespace KittlesPT
 			return (v <= U) ? (v / A) : powf((v + C) / (1 + C), T);
 		}
 
-		// linear RGB to sRGB (normalized [0,1])
+		// linear sRGB to non-linear sRGB (normalized [0,1])
 		__device__ RGBSpectrum linearTosRGB() {
 			return RGBSpectrum(sRGBEncoding(r), sRGBEncoding(g), sRGBEncoding(b));
 		}

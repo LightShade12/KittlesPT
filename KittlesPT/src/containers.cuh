@@ -68,6 +68,7 @@ namespace KittlesPT
 		DeviceTextureBuffer prev_gbuffer_texture;
 		DeviceTextureBuffer vbuffer_texture;
 		DeviceTextureBuffer debug_texture;
+		DeviceTextureBuffer backbuffer_texture;
 		DeviceTextureBuffer bloom_texture;
 	};
 };
