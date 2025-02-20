@@ -75,6 +75,27 @@ namespace SampleApp
 		ImGui::Text("Runtime secs: %.3f s",
 			std::chrono::duration_cast<std::chrono::duration<float>>(m_last_frame_time_point.time_since_epoch()).count() - m_start_time_secs);
 
+		static float values[90] = {};
+		static int values_offset = 0;
+		static double refresh_time = 0.0;
+		if (refresh_time == 0.0) {
+			refresh_time = ImGui::GetTime();
+		}
+		while (refresh_time < ImGui::GetTime()) // create data at fixed 60 Hz rate
+		{
+			values[values_offset] = fps;
+			values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+			refresh_time += 1.0f / 60.0f;
+		}
+		{
+			char overlay[32];
+			sprintf_s(overlay, "average: %f", m_average_fps);
+			ImGui::PlotLines("###fps_plot", values, IM_ARRAYSIZE(values), values_offset,
+				overlay, -1.0f, 120.0f, ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
+		}
+
+		//ImGui::PlotLines();
+
 		//ImGui::ShowDemoWindow();
 
 		//camera edit
