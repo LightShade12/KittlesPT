@@ -35,7 +35,7 @@ namespace KittlesPT
 		*/
 
 		//standard shader uniforms
-		int2 frame_resolution;//output resolution
+		int2 output_resolution;
 		int32_t frame_index = 0;
 		float frame_delta_ms = 0.0f;//in ms
 

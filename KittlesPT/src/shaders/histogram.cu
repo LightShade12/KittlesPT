@@ -56,7 +56,7 @@ __global__ void histogramComputeKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 
-	int2 frame_res = shader_data.frame_resolution;
+	int2 frame_res = shader_data.output_resolution;
 	ShadingJob shading_job = getShadingJob(frame_res);
 	if (shading_job.invalid) {
 		return;
@@ -94,7 +94,7 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::ShaderDa
 {
 	using namespace KittlesPT;
 
-	int2 frame_res = shader_data.frame_resolution;
+	int2 frame_res = shader_data.output_resolution;
 	ShadingJob shading_job = getShadingJob(frame_res);
 	if (shading_job.invalid) {
 		return;

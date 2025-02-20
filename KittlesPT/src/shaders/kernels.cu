@@ -30,8 +30,8 @@ namespace KittlesPT
 		//8 x 8 = 64 = 32 x 2
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
 		dim3 block_grid_dimensions = dim3(
-			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
-			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			shader_data.output_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.output_resolution.y / thread_block_dimensions.y + 1,
 			1);
 
 		computePathTraceSamplesMegaKernel << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
@@ -44,8 +44,8 @@ namespace KittlesPT
 		//8 x 8 = 64 = 32 x 2
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
 		dim3 block_grid_dimensions = dim3(
-			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
-			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			shader_data.output_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.output_resolution.y / thread_block_dimensions.y + 1,
 			1);
 
 		computePostProcess << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
@@ -58,8 +58,8 @@ namespace KittlesPT
 		//8 x 8 = 64 = 32 x 2
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
 		dim3 block_grid_dimensions = dim3(
-			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
-			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			shader_data.output_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.output_resolution.y / thread_block_dimensions.y + 1,
 			1);
 
 		computeEffects << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
@@ -72,8 +72,8 @@ namespace KittlesPT
 		//8 x 8 = 64 = 32 x 2
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
 		dim3 block_grid_dimensions = dim3(
-			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
-			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			shader_data.output_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.output_resolution.y / thread_block_dimensions.y + 1,
 			1);
 
 		modulateSamples << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
@@ -86,8 +86,8 @@ namespace KittlesPT
 		//16x16 = 256
 		dim3 thread_block_dimensions = dim3(16, 16, 1);
 		dim3 block_grid_dimensions = dim3(
-			shader_data.frame_resolution.x / thread_block_dimensions.x + 1,
-			shader_data.frame_resolution.y / thread_block_dimensions.y + 1,
+			shader_data.output_resolution.x / thread_block_dimensions.x + 1,
+			shader_data.output_resolution.y / thread_block_dimensions.y + 1,
 			1);
 
 		histogramComputeKernel << < block_grid_dimensions, thread_block_dimensions >> > (shader_data);
@@ -282,7 +282,7 @@ namespace KittlesPT
 			return make_float4(curr_color.toFloat3(), 0);
 		}
 
-		int2 frame_res = shader_data.frame_resolution;
+		int2 frame_res = shader_data.output_resolution;
 		//reproject
 		float2 delta_pixel_coord = velocity * make_float2(frame_res);//map UV value to frame_res(pixel coords)
 		float2 prev_pixel_coord = curr_pixel_coord - delta_pixel_coord;
@@ -363,7 +363,7 @@ namespace KittlesPT
 __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
-	int2 frame_res = shader_data.frame_resolution;
+	int2 frame_res = shader_data.output_resolution;
 	ShadingJob shading_job = getShadingJob(frame_res);
 	if (shading_job.invalid) {
 		return;
@@ -428,7 +428,7 @@ __global__ void modulateSamples(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 
-	ShadingJob shading_job = getShadingJob(shader_data.frame_resolution);
+	ShadingJob shading_job = getShadingJob(shader_data.output_resolution);
 
 	if (shading_job.invalid) {
 		return;
@@ -448,7 +448,7 @@ __global__ void computePostProcess(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 
-	ShadingJob shading_job = getShadingJob(shader_data.frame_resolution);
+	ShadingJob shading_job = getShadingJob(shader_data.output_resolution);
 
 	if (shading_job.invalid) {
 		return;
@@ -477,7 +477,7 @@ __global__ void computeEffects(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 
-	ShadingJob shading_job = getShadingJob(shader_data.frame_resolution);
+	ShadingJob shading_job = getShadingJob(shader_data.output_resolution);
 
 	if (shading_job.invalid) {
 		return;

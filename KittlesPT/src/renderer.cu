@@ -52,13 +52,14 @@ namespace KittlesPT
 
 	void Renderer::resizeResolution(uint32_t width, uint32_t height)
 	{
-		if (m_output_width == width && m_output_height == height)
-		{
+		if (m_output_width == width && m_output_height == height) {
 			return;
 		}
 
-		m_output_width = width; m_output_height = height;
-		m_renderer_rsrc->shader_data.frame_resolution = make_int2(m_output_width, m_output_height);
+		m_output_width = width, m_output_height = height;
+		m_render_width = m_output_width, m_render_height = m_output_height;
+
+		m_renderer_rsrc->shader_data.output_resolution = make_int2(m_output_width, m_output_height);
 
 		//recompute projection for new screen size
 		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix.inverse().toGLM();

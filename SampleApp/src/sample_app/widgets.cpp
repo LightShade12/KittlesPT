@@ -223,6 +223,7 @@ namespace SampleApp
 				pt_settings_updated |= ImGui::Checkbox("Enable AutoExposure", &pt_settings.tonemapper_enable_auto_exposure);
 				pt_settings_updated |= ImGui::Checkbox("Enable TAA", &pt_settings.integrator_use_temporal_accumulation);
 				pt_settings_updated |= ImGui::Checkbox("Enable Post Effects", &pt_settings.postprocess_enable_effects);
+				pt_settings_updated |= ImGui::Checkbox("Enable Upscaling", &pt_settings.upscale_enable);
 
 				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.bloom_generate_bloom);
 				ImGui::Indent();
