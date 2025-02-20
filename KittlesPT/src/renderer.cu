@@ -58,7 +58,7 @@ namespace KittlesPT
 		}
 
 		m_output_width = width, m_output_height = height;
-		m_render_width = m_output_width, m_render_height = m_output_height;
+		m_render_width = m_output_width / 3, m_render_height = m_output_height / 3;
 
 		m_renderer_rsrc->shader_data.output_resolution = make_int2(m_output_width, m_output_height);
 		m_renderer_rsrc->shader_data.render_resolution = make_int2(m_render_width, m_render_height);
@@ -66,19 +66,23 @@ namespace KittlesPT
 		//recompute projection for new screen size
 		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix.inverse().toGLM();
 		float fov_rad = 2.0f * atan(1.0f / old_proj[1][1]);
-		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_output_width, (float)m_output_height, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_render_width, (float)m_render_height, 0.1f, 100.0f);
 		m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix = Mat4(projection).inverse();
 		resetAccumulation();
 
 		for (std::pair<const std::string, TextureBuffer>& tex : m_renderer_rsrc->m_frame_textures)
 		{
+			bool is_output_res = (tex.first == "output_texture") || (tex.first == "backbuffer_texture");
+
 			if (tex.second.isInitialised())
 			{
-				tex.second.resize(m_output_width, m_output_height);
+				tex.second.resize((is_output_res) ? m_output_width : m_render_width,
+					(is_output_res) ? m_output_height : m_render_height);
 				continue;
 			}
 			std::printf("[RENDERER] Initializing renderer texture:%s\n", tex.first.c_str());
-			tex.second.initialize(m_output_width, m_output_height);
+			tex.second.initialize((is_output_res) ? m_output_width : m_render_width,
+				(is_output_res) ? m_output_height : m_render_height);
 		}
 
 		m_renderer_rsrc->bloom_mipchain.resize(m_output_width, m_output_height);
