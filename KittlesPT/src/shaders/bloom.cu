@@ -94,13 +94,13 @@ __global__ void downSample(const KittlesPT::ShaderData t_shader_data, KittlesPT:
 
 	ShadingJob shading_job = getShadingJob(t_dst.dimensions);
 
-	if (shading_job.invalid) {
+	if (shading_job.is_invalid) {
 		return;
 	}
 
 	//TODO: use shading_job.uv_coord?
-	float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
-	float2 src_pixel_coord = dst_uv * t_src.dimensions;
+		float2 dst_uv = make_float2(shading_job.pixel_coord) / t_dst.dimensions;
+		float2 src_pixel_coord = dst_uv * t_src.dimensions;
 
 	//Min filter
 	float4 min_filtered_color = textureRead36Texels(t_src, src_pixel_coord, karis_avg);//TODO:pass as float2
@@ -116,7 +116,7 @@ __global__ void upSampleCombine(const KittlesPT::ShaderData shader_data, Kittles
 
 	ShadingJob shading_job = getShadingJob(t_dst.dimensions);
 
-	if (shading_job.invalid) {
+	if (shading_job.is_invalid) {
 		return;
 	}
 
@@ -128,9 +128,9 @@ __global__ void upSampleCombine(const KittlesPT::ShaderData shader_data, Kittles
 	//TODO: make separable gaussian blur?
 	//Mag filter
 #pragma unroll
-	for (int y = -1; y <= 1; y++) {
+	for (int32_t y = -1; y <= 1; y++) {
 #pragma unroll
-		for (int x = -1; x <= 1; x++) {
+		for (int32_t x = -1; x <= 1; x++) {
 			float2 tap_pixel_coord = src_pixel_coord + make_float2(x, y);
 			float4 tap_color = t_src.textureReadBilinear(tap_pixel_coord, true);
 			mag_filtered_color += GAUSSIAN_3x3_KERNEL[y + 1][x + 1] * tap_color;

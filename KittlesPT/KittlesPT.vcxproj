@@ -168,6 +168,7 @@
     <ClInclude Include="src\shaders\texture.cuh" />
     <ClInclude Include="src\shaders\tlas.cuh" />
     <ClInclude Include="src\shaders\triangle.cuh" />
+    <ClInclude Include="src\shaders\upscale.cuh" />
     <ClInclude Include="src\texture_buffer.cuh" />
     <ClInclude Include="thirdparty\glad\include\glad\glad.h" />
   </ItemGroup>
