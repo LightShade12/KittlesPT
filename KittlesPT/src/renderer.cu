@@ -29,6 +29,7 @@ namespace KittlesPT
 		m_renderer_rsrc->bloom_mipchain.init();
 
 		m_renderer_rsrc->m_frame_textures["output_texture"] = TextureBuffer();
+		m_renderer_rsrc->m_frame_textures["render_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"] = TextureBuffer();
 		m_renderer_rsrc->m_frame_textures["vbuffer_texture"] = TextureBuffer();
@@ -87,23 +88,24 @@ namespace KittlesPT
 	{
 		m_renderer_rsrc->shader_data.frame_delta_ms = delta_time_ms;
 		m_renderer_rsrc->shader_data.output_texture = m_renderer_rsrc->m_frame_textures["output_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.render_texture = m_renderer_rsrc->m_frame_textures["render_texture"].enableCudaAccess();
+		m_renderer_rsrc->shader_data.backbuffer_texture = m_renderer_rsrc->m_frame_textures["backbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.gbuffer_texture = m_renderer_rsrc->m_frame_textures["gbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.prev_gbuffer_texture = m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.vbuffer_texture = m_renderer_rsrc->m_frame_textures["vbuffer_texture"].enableCudaAccess();
 		m_renderer_rsrc->shader_data.debug_texture = m_renderer_rsrc->m_frame_textures["debug_texture"].enableCudaAccess();
-		m_renderer_rsrc->shader_data.backbuffer_texture = m_renderer_rsrc->m_frame_textures["backbuffer_texture"].enableCudaAccess();
 
 		m_renderer_rsrc->updateTLAS();
 
 		launchPathTraceComputeMegaKernel(m_renderer_rsrc->shader_data);
 		if (m_renderer_rsrc->shader_data.renderer_settings.integrator_use_temporal_accumulation)
 		{//update accumulation texture for next frame
-			m_renderer_rsrc->m_frame_textures["output_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.output_texture);
+			m_renderer_rsrc->m_frame_textures["render_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.render_texture);
 			m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
-			m_renderer_rsrc->m_frame_textures["output_texture"].copyTo(m_renderer_rsrc->m_frame_textures["accumulation_texture"]);
+			m_renderer_rsrc->m_frame_textures["render_texture"].copyTo(m_renderer_rsrc->m_frame_textures["accumulation_texture"]);
 			m_renderer_rsrc->shader_data.accumulation_texture = m_renderer_rsrc->m_frame_textures["accumulation_texture"].enableCudaAccess();
-			m_renderer_rsrc->shader_data.output_texture = m_renderer_rsrc->m_frame_textures["output_texture"].enableCudaAccess();
+			m_renderer_rsrc->shader_data.render_texture = m_renderer_rsrc->m_frame_textures["render_texture"].enableCudaAccess();
 		}
 		launchModulateComputeKernel(m_renderer_rsrc->shader_data);
 
@@ -117,6 +119,7 @@ namespace KittlesPT
 		}
 
 		//UPSCALE HERE------------------
+		launchUpscaleComputeKernel(m_renderer_rsrc->shader_data.render_texture, m_renderer_rsrc->shader_data.output_texture);
 
 		//generate bloom buffer
 		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
@@ -138,12 +141,13 @@ namespace KittlesPT
 		}
 
 		m_renderer_rsrc->m_frame_textures["output_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.output_texture);
+		m_renderer_rsrc->m_frame_textures["render_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.render_texture);
+		m_renderer_rsrc->m_frame_textures["backbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.backbuffer_texture);
 		m_renderer_rsrc->m_frame_textures["accumulation_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.accumulation_texture);
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.gbuffer_texture);
 		m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.prev_gbuffer_texture);
 		m_renderer_rsrc->m_frame_textures["vbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.vbuffer_texture);
 		m_renderer_rsrc->m_frame_textures["debug_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.debug_texture);
-		m_renderer_rsrc->m_frame_textures["backbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.backbuffer_texture);
 
 		m_renderer_rsrc->m_frame_textures["gbuffer_texture"].copyTo(m_renderer_rsrc->m_frame_textures["prev_gbuffer_texture"]);
 

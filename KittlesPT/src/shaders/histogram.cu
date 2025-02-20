@@ -71,7 +71,7 @@ __global__ void histogramComputeKernel(const KittlesPT::ShaderData shader_data)
 		shared_log_lum_histogram[local_index] = 0.0f;
 		__syncthreads();
 
-		RGBSpectrum linear_radiance = RGBSpectrum(shader_data.output_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
+		RGBSpectrum linear_radiance = RGBSpectrum(shader_data.render_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
 		float dynamic_range_ev = shader_data.scene_camera.getFilm().white_point_ev - shader_data.scene_camera.getFilm().black_point_ev;
 		uint log_lum_bin_idx = luminanceToBin(linear_radiance.getLuminance(),
 			shader_data.scene_camera.getFilm().black_point_ev, (1.0f / dynamic_range_ev));
@@ -94,6 +94,7 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::ShaderDa
 {
 	using namespace KittlesPT;
 
+	//TODO: shading job is wrong here
 	int2 frame_res = shader_data.render_resolution;
 	ShadingJob shading_job = getShadingJob(frame_res);
 	if (shading_job.is_invalid) {

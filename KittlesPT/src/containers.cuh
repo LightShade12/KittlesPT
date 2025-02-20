@@ -64,6 +64,7 @@ namespace KittlesPT
 
 		//frame textures
 		DeviceTextureBuffer output_texture;
+		DeviceTextureBuffer render_texture;
 		DeviceTextureBuffer accumulation_texture;
 		DeviceTextureBuffer gbuffer_texture;
 		DeviceTextureBuffer prev_gbuffer_texture;

@@ -436,7 +436,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	vbuffer.velocity *= 10.0f;
 	shader_data.debug_texture.textureWriteUV(make_float4(vbuffer.velocity.x, vbuffer.velocity.y, 0.0f, 1.0f), shading_job.uv_coord);
 	*/
-	shader_data.output_texture.textureWriteUV(frag_color, shading_job.uv_coord);
+	shader_data.render_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
 __global__ void modulateSamples(const KittlesPT::ShaderData shader_data)
@@ -449,13 +449,14 @@ __global__ void modulateSamples(const KittlesPT::ShaderData shader_data)
 		return;
 	}
 
-	RGBSpectrum sensor_linear_srgb_radiance = RGBSpectrum(shader_data.output_texture.textureReadNearestUV(shading_job.uv_coord));
+	RGBSpectrum sensor_linear_srgb_radiance = RGBSpectrum(shader_data.render_texture.textureReadNearestUV(shading_job.uv_coord));
 
 	GBuffer gbuffer = GBuffer::unpackGBuffer(shader_data.gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
 	//Simulate 1st interaction spectral reflectance
 	sensor_linear_srgb_radiance *= RGBSpectrum(gbuffer.albedo);//Modulate
 
-	shader_data.output_texture.textureWrite(make_float4(sensor_linear_srgb_radiance.toFloat3(), 1), shading_job.pixel_coord);
+	shader_data.render_texture.textureWrite(make_float4(sensor_linear_srgb_radiance.toFloat3(), 1),
+		shading_job.pixel_coord);
 }
 
 //Conversion from radiance to screen pixels (task 3)
