@@ -387,6 +387,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	//evaluate integral(f(x)/p(x)) at Xi
 	RGBSpectrum sensor_linear_srgb_radiance = RGBSpectrum(fs.weight) * camera_weight *
 		Integrator::Li(shader_data, primary_ray, sampler, &visible_surface, &debugdata);
+	sensor_linear_srgb_radiance = sensor_linear_srgb_radiance.clampOutput();
 
 	GBuffer gbuffer = GBuffer(visible_surface);
 	shader_data.gbuffer_texture.textureWriteUV(gbuffer.packGBuffer(), shading_job.uv_coord);

@@ -121,7 +121,12 @@ namespace KittlesPT
 
 		launchPostProcessComputeKernel(m_renderer_rsrc->shader_data);
 
-		launchFxComputeKernel(m_renderer_rsrc->shader_data);
+		if (m_renderer_rsrc->shader_data.renderer_settings.postprocess_enable_effects) {
+			launchFxComputeKernel(m_renderer_rsrc->shader_data);
+		}
+		else {
+			m_renderer_rsrc->m_frame_textures["backbuffer_texture"].copyTo(m_renderer_rsrc->m_frame_textures["main_texture"]);
+		}
 
 		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
 			m_renderer_rsrc->bloom_mipchain.mip_textures[0].disableCudaAccess(m_renderer_rsrc->shader_data.bloom_texture);

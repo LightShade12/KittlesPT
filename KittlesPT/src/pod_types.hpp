@@ -52,6 +52,7 @@ namespace KittlesPT
 		float bloom_final_blend = 0.175f;
 		float bloom_internal_blend = 0.65f;
 		bool tonemapper_enable_auto_exposure = false;
+		bool postprocess_enable_effects = false;
 	};
 
 	//Adheres to GLTF 2.0 specifications
