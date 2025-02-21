@@ -17,6 +17,7 @@
 namespace KittlesPT
 {
 	//TODO:Add proper logging
+	//TODO: convert rsrc to rsrc manager
 
 	void Renderer::initialize()
 	{
@@ -53,12 +54,21 @@ namespace KittlesPT
 
 	void Renderer::resizeResolution(uint32_t width, uint32_t height)
 	{
-		if (m_output_width == width && m_output_height == height) {
+		bool upscale = m_renderer_rsrc->shader_data.renderer_settings.upscale_enable;
+
+		if (m_output_width == width && m_output_height == height
+			&& m_render_width == ((upscale) ? m_output_width / 3 : m_output_width)
+			&& m_render_height == ((upscale) ? m_output_height / 3 : m_output_height))
+		{
 			return;
 		}
+		//printf("resizing; upscale %d \n", upscale);
 
 		m_output_width = width, m_output_height = height;
-		m_render_width = m_output_width / 3, m_render_height = m_output_height / 3;
+		m_render_width = m_output_width, m_render_height = m_output_height;
+		if (upscale) {
+			m_render_width /= 3, m_render_height /= 3;
+		}
 
 		m_renderer_rsrc->shader_data.output_resolution = make_int2(m_output_width, m_output_height);
 		m_renderer_rsrc->shader_data.render_resolution = make_int2(m_render_width, m_render_height);
@@ -66,7 +76,8 @@ namespace KittlesPT
 		//recompute projection for new screen size
 		glm::mat4 old_proj = m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix.inverse().toGLM();
 		float fov_rad = 2.0f * atan(1.0f / old_proj[1][1]);
-		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_render_width, (float)m_render_height, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspectiveFovLH(fov_rad, (float)m_render_width, (float)m_render_height,
+			0.1f, 100.0f);
 		m_renderer_rsrc->shader_data.scene_camera.curr_inv_projection_matrix = Mat4(projection).inverse();
 		resetAccumulation();
 
@@ -74,8 +85,7 @@ namespace KittlesPT
 		{
 			bool is_output_res = (tex.first == "output_texture") || (tex.first == "backbuffer_texture");
 
-			if (tex.second.isInitialised())
-			{
+			if (tex.second.isInitialised()) {
 				tex.second.resize((is_output_res) ? m_output_width : m_render_width,
 					(is_output_res) ? m_output_height : m_render_height);
 				continue;
@@ -123,7 +133,16 @@ namespace KittlesPT
 		}
 
 		//UPSCALE HERE------------------
-		launchUpscaleComputeKernel(m_renderer_rsrc->shader_data.render_texture, m_renderer_rsrc->shader_data.output_texture);
+		if (m_renderer_rsrc->shader_data.renderer_settings.upscale_enable) {
+			launchUpscaleComputeKernel(m_renderer_rsrc->shader_data.render_texture, m_renderer_rsrc->shader_data.output_texture);
+		}
+		else {
+			m_renderer_rsrc->m_frame_textures["render_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.render_texture);
+			m_renderer_rsrc->m_frame_textures["output_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.output_texture);
+			m_renderer_rsrc->m_frame_textures["render_texture"].copyTo(m_renderer_rsrc->m_frame_textures["output_texture"]);
+			m_renderer_rsrc->shader_data.output_texture = m_renderer_rsrc->m_frame_textures["output_texture"].enableCudaAccess();
+			m_renderer_rsrc->shader_data.render_texture = m_renderer_rsrc->m_frame_textures["render_texture"].enableCudaAccess();
+		}
 
 		//generate bloom buffer
 		if (m_renderer_rsrc->shader_data.renderer_settings.bloom_generate_bloom) {
