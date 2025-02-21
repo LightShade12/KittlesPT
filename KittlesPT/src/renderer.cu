@@ -55,7 +55,7 @@ namespace KittlesPT
 	void Renderer::resizeResolution(uint32_t width, uint32_t height)
 	{
 		bool upscale = m_renderer_rsrc->shader_data.renderer_settings.upscale_enable;
-		float scale_factor = 2;
+		float scale_factor = 2.5;
 
 		if (m_output_width == width && m_output_height == height
 			&& m_render_width == ((upscale) ? int(m_output_width / scale_factor) : m_output_width)

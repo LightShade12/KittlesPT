@@ -337,6 +337,7 @@ namespace KittlesPT
 			return RGBSpectrum(powf(r, i), powf(g, i), powf(b, i));
 		}
 
+	private:
 		//Same primaries and white-point as ITU-R BT.709
 		//IEC 61966-2-1:1999
 
@@ -357,7 +358,7 @@ namespace KittlesPT
 
 			return (v <= U) ? (v / A) : powf((v + C) / (1 + C), T);
 		}
-
+	public:
 		// linear sRGB to non-linear sRGB (normalized [0,1])
 		__device__ RGBSpectrum linearTosRGB() {
 			return RGBSpectrum(sRGBEncoding(r), sRGBEncoding(g), sRGBEncoding(b));

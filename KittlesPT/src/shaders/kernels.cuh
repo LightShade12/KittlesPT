@@ -1,7 +1,7 @@
 #pragma once
 
-#define USE_FSR
-
+//#define USE_FSR
+//TODO: correct FSR 1.0 placement in frame
 namespace KittlesPT
 {
 	struct ShaderData;

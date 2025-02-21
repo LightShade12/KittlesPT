@@ -402,9 +402,10 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	jittered_ndc = ndc_coord;
 
 	DebugData debugdata;
-	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc);
 	VisibleSurface visible_surface;
 	float camera_weight = 1.0f;
+	Ray primary_ray = shader_data.scene_camera.generateRay(jittered_ndc);
+
 	//We estimate radiance directly as RGB triplets
 	//evaluate integral(f(x)/p(x)) at Xi
 	RGBSpectrum sensor_linear_srgb_radiance = RGBSpectrum(fs.weight) * camera_weight *
@@ -427,7 +428,8 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	}
 	else {
 		//Monte-Carlo estimation; static accumulation
-		sensor_linear_srgb_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord, sensor_linear_srgb_radiance);
+		sensor_linear_srgb_radiance = Integrator::addSample(shader_data, shading_job.pixel_coord,
+			sensor_linear_srgb_radiance);
 	}
 
 	float4 frag_color = make_float4(sensor_linear_srgb_radiance.toFloat3(), alpha);
@@ -444,6 +446,7 @@ __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData sh
 	vbuffer.velocity *= 10.0f;
 	shader_data.debug_texture.textureWriteUV(make_float4(vbuffer.velocity.x, vbuffer.velocity.y, 0.0f, 1.0f), shading_job.uv_coord);
 	*/
+
 	shader_data.render_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
 
@@ -459,12 +462,13 @@ __global__ void modulateSamples(const KittlesPT::ShaderData shader_data)
 
 	RGBSpectrum sensor_linear_srgb_radiance = RGBSpectrum(shader_data.render_texture.textureReadNearestUV(shading_job.uv_coord));
 
-	GBuffer gbuffer = GBuffer::unpackGBuffer(shader_data.gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
+	GBuffer gbuffer = GBuffer::unpackGBuffer(shader_data.gbuffer_texture.textureReadNearestUV(shading_job.uv_coord));
 	//Simulate 1st interaction spectral reflectance
 	sensor_linear_srgb_radiance *= RGBSpectrum(gbuffer.albedo);//Modulate
 
-	shader_data.render_texture.textureWrite(make_float4(sensor_linear_srgb_radiance.toFloat3(), 1),
-		shading_job.pixel_coord);
+	float4 frag_color = make_float4(sensor_linear_srgb_radiance.toFloat3(), 1);
+
+	shader_data.render_texture.textureWrite(frag_color, shading_job.pixel_coord);
 }
 
 //Conversion from radiance to screen pixels (task 3)
@@ -479,21 +483,23 @@ __global__ void computePostProcess(const KittlesPT::ShaderData shader_data)
 	}
 
 	RGBSpectrum sensor_linear_srgb_radiance = RGBSpectrum(shader_data.output_texture.textureReadNearestUV(shading_job.uv_coord));
-
+	//apply bloom
 	if (shader_data.renderer_settings.bloom_generate_bloom) {
 		RGBSpectrum veiling_linear_srgb_radiance = RGBSpectrum(shader_data.bloom_texture.textureReadNearestUV(shading_job.uv_coord));
 		sensor_linear_srgb_radiance = lerp(sensor_linear_srgb_radiance, veiling_linear_srgb_radiance, shader_data.renderer_settings.bloom_final_blend);
 	}
 
+	//apply exposure
 	{
 		float3 Yxy = sensor_linear_srgb_radiance.toYxy();
 		Yxy.x *= shader_data.scene_camera.getFilm().luminance_exposure_scalar;//scale scene luminance; TODO: stupid API
 		sensor_linear_srgb_radiance = RGBSpectrum::fromYxy(Yxy);
 	}
 
+	//tonemap
 	float3 frag_color = shader_data.scene_camera.getFilm().computeNormalizedNonLinearSRGB(sensor_linear_srgb_radiance);
 	//frag_color = make_float3(shader_data.gbuffer_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
-	//non-linear srgb target; expects gamma correction
+
 	shader_data.backbuffer_texture.textureWriteUV(make_float4(frag_color, 1.0f), shading_job.uv_coord);
 }
 
@@ -506,13 +512,17 @@ __global__ void computeEffects(const KittlesPT::ShaderData shader_data)
 	if (shading_job.is_invalid) {
 		return;
 	}
+
+	//fisheye
 	float2 uv = getFishEyeUV(make_float2(shading_job.pixel_coord), make_float2(shading_job.work_size));
+
+	//chromatic abberation
 	float2 offset = powf(fabs(shading_job.uv_coord - make_float2(0.5)) * 2.0f, 2.0f) * 0.01f;
-	float r = RGBSpectrum(shader_data.backbuffer_texture.textureReadNearestUV(uv + offset)).r;
-	float g = RGBSpectrum(shader_data.backbuffer_texture.textureReadNearestUV(uv)).g;
-	float b = RGBSpectrum(shader_data.backbuffer_texture.textureReadNearestUV(uv - offset)).b;
+	float r = shader_data.backbuffer_texture.textureReadNearestUV(uv + offset).x;
+	float g = shader_data.backbuffer_texture.textureReadNearestUV(uv).y;
+	float b = shader_data.backbuffer_texture.textureReadNearestUV(uv - offset).z;
 
-	RGBSpectrum sensor_radiance(r, g, b);
+	float4 frag_color = make_float4(r, g, b, 1.0f);
 
-	shader_data.output_texture.textureWriteUV(make_float4(sensor_radiance.toFloat3(), 1.0f), shading_job.uv_coord);
+	shader_data.output_texture.textureWriteUV(frag_color, shading_job.uv_coord);
 }
