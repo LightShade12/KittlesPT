@@ -55,10 +55,11 @@ namespace KittlesPT
 	void Renderer::resizeResolution(uint32_t width, uint32_t height)
 	{
 		bool upscale = m_renderer_rsrc->shader_data.renderer_settings.upscale_enable;
+		float scale_factor = 2;
 
 		if (m_output_width == width && m_output_height == height
-			&& m_render_width == ((upscale) ? m_output_width / 3 : m_output_width)
-			&& m_render_height == ((upscale) ? m_output_height / 3 : m_output_height))
+			&& m_render_width == ((upscale) ? int(m_output_width / scale_factor) : m_output_width)
+			&& m_render_height == ((upscale) ? int(m_output_height / scale_factor) : m_output_height))
 		{
 			return;
 		}
@@ -67,7 +68,8 @@ namespace KittlesPT
 		m_output_width = width, m_output_height = height;
 		m_render_width = m_output_width, m_render_height = m_output_height;
 		if (upscale) {
-			m_render_width /= 3, m_render_height /= 3;
+			m_render_width = int(m_render_width / scale_factor),
+				m_render_height = int(m_render_height / scale_factor);
 		}
 
 		m_renderer_rsrc->shader_data.output_resolution = make_int2(m_output_width, m_output_height);
