@@ -136,7 +136,16 @@ namespace KittlesPT
 
 		//UPSCALE HERE------------------
 		if (m_renderer_rsrc->shader_data.renderer_settings.upscale_enable) {
-			launchUpscaleComputeKernel(m_renderer_rsrc->shader_data.render_texture, m_renderer_rsrc->shader_data.output_texture);
+			launchUpscaleComputeKernel(m_renderer_rsrc->shader_data.render_texture, m_renderer_rsrc->shader_data.output_texture,
+				m_renderer_rsrc->shader_data.backbuffer_texture);
+
+#ifdef USE_FSR
+			m_renderer_rsrc->m_frame_textures["backbuffer_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.backbuffer_texture);
+			m_renderer_rsrc->m_frame_textures["output_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.output_texture);
+			m_renderer_rsrc->m_frame_textures["backbuffer_texture"].copyTo(m_renderer_rsrc->m_frame_textures["output_texture"]);
+			m_renderer_rsrc->shader_data.output_texture = m_renderer_rsrc->m_frame_textures["output_texture"].enableCudaAccess();
+			m_renderer_rsrc->shader_data.backbuffer_texture = m_renderer_rsrc->m_frame_textures["backbuffer_texture"].enableCudaAccess();
+#endif
 		}
 		else {
 			m_renderer_rsrc->m_frame_textures["render_texture"].disableCudaAccess(m_renderer_rsrc->shader_data.render_texture);

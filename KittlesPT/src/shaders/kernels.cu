@@ -81,7 +81,7 @@ namespace KittlesPT
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
 
-	void launchUpscaleComputeKernel(const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst)
+	void launchUpscaleComputeKernel(const DeviceTextureBuffer& src, const DeviceTextureBuffer& dst, const DeviceTextureBuffer& back)
 	{
 		dim3 thread_block_dimensions = dim3(8, 8, 1);
 		dim3 block_grid_dimensions = dim3(
@@ -96,7 +96,7 @@ namespace KittlesPT
 
 #ifdef USE_FSR
 
-		sharpen << < block_grid_dimensions, thread_block_dimensions >> > (src, dst);
+		sharpen << < block_grid_dimensions, thread_block_dimensions >> > (dst, back);
 
 		checkCudaErrors(cudaGetLastError());
 		checkCudaErrors(cudaDeviceSynchronize());
@@ -335,7 +335,7 @@ namespace KittlesPT
 
 		//out----
 		return make_float4(final_color.toFloat3(), color_history_length + 1);
-		}
+	}
 
 	__device__ float2 getFishEyeUV(float2 pixel_coord, float2 frame_res)
 	{
@@ -372,16 +372,16 @@ namespace KittlesPT
 		uv.y *= prop;
 		return uv;
 	}
-	}/*KittlesPT*/
+}/*KittlesPT*/
 
-	/*
-	* The task is to simulate the process and result of :
-		1) Physically Based Light Transport in the scene,
-		2) Radiance reception at camera sensor,
-		3) Image reconstruction and output from camera
-	*/
+/*
+* The task is to simulate the process and result of :
+	1) Physically Based Light Transport in the scene,
+	2) Radiance reception at camera sensor,
+	3) Image reconstruction and output from camera
+*/
 
-	//GPU Kernel to compute a single sample for Monte Carlo Integration of the Rendering Equation (task 1 and 2)
+//GPU Kernel to compute a single sample for Monte Carlo Integration of the Rendering Equation (task 1 and 2)
 __global__ void computePathTraceSamplesMegaKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
