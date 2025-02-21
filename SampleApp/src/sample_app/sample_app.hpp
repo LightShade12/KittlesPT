@@ -9,6 +9,7 @@
 #include "kittlesPT/kittlesPT.hpp"
 
 #include <vector>
+#include <unordered_map>
 
 namespace SampleApp
 {
@@ -30,6 +31,8 @@ namespace SampleApp
 		void registerListeners();
 	public:
 		std::vector<MeshObject> m_meshes;
+		std::unordered_map <std::string, GLTexture> m_textures;
+
 		ApplicationData m_application_data;
 		EventDispatcher m_event_dispatcher;
 		GLTexture m_viewport_texture;

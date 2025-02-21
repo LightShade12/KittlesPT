@@ -70,6 +70,7 @@
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <CodeGeneration>compute_75,sm_75</CodeGeneration>
       <FastMath>true</FastMath>
+      <AdditionalOptions>-diag-suppress 20012 --std=c++17 -arch=lto_75 %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

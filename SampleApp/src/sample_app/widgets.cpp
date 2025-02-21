@@ -60,41 +60,57 @@ namespace SampleApp
 
 	void DeveloperWindow::renderUI()
 	{
-		ImGui::Text("Delta ms(last frame): %.3f ms", m_delta_time_secs.count() * 1000.0f);
-		float fps = 1000.0f / (m_delta_time_secs.count() * 1000.0f);
-		ImGui::Text("FPS(last frame): %.3f", fps);
-
-		//TODO: weird; idk
-		float avg = glm::mix(m_average_fps, fps, 0.01f);
-		if (!isnan(avg) && !isinf(avg))
 		{
-			m_average_fps = avg;
-		}
+			float curr_fps = 1000.0f / (m_delta_time_secs.count() * 1000.0f);
+			float runtime_secs = std::chrono::duration_cast<std::chrono::duration<float>>(
+				m_last_frame_time_point.time_since_epoch()).count() - m_start_time_secs;
 
-		ImGui::Text("EMA FPS: %.3f", m_average_fps);
-		ImGui::Text("Runtime secs: %.3f s",
-			std::chrono::duration_cast<std::chrono::duration<float>>(m_last_frame_time_point.time_since_epoch()).count() - m_start_time_secs);
+			if (ImGui::BeginTable("mytable", 2))
+			{
+				ImGui::TableSetupColumn("A0", 0, 0.8);
+				ImGui::TableSetupColumn("A1", 0, 0.3);
 
-		static float values[90] = {};
-		static int values_offset = 0;
-		static double refresh_time = 0.0;
-		if (refresh_time == 0.0) {
-			refresh_time = ImGui::GetTime();
-		}
-		while (refresh_time < ImGui::GetTime()) // create data at fixed 60 Hz rate
-		{
-			values[values_offset] = fps;
-			values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
-			refresh_time += 1.0f / 60.0f;
-		}
-		{
-			char overlay[32];
-			sprintf_s(overlay, "average: %f", m_average_fps);
-			ImGui::PlotLines("###fps_plot", values, IM_ARRAYSIZE(values), values_offset,
-				overlay, -1.0f, 120.0f, ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
-		}
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Delta time (last frame): %.3f ms", m_delta_time_secs.count() * 1000.0f);
+				ImGui::Text("FPS (last frame): %.3f", curr_fps);
 
-		//ImGui::PlotLines();
+				//TODO: weird; idk
+				float avg = glm::mix(m_average_fps, curr_fps, 0.01f);
+				if (!isnan(avg) && !isinf(avg)) {
+					m_average_fps = avg;
+				}
+
+				ImGui::Text("EMA FPS: %.3f", m_average_fps);
+				ImGui::Text("Runtime secs: %.3f s", runtime_secs);
+				ImGui::TableSetColumnIndex(1);
+				//ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				//ImGui::Dummy(ImVec2(10,10)); ImGui::SameLine();
+				ImGui::Image((ImTextureID*)(int64_t((*m_textures_handle)["img0"].getGLTexture())),
+					ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x));
+
+				ImGui::EndTable();
+			}
+
+			static float values[90] = {};
+			static int values_offset = 0;
+			static double refresh_time = 0.0;
+			if (refresh_time == 0.0) {
+				refresh_time = ImGui::GetTime();
+			}
+			while (refresh_time < ImGui::GetTime()) // create data at fixed 60 Hz rate
+			{
+				values[values_offset] = curr_fps;
+				values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+				refresh_time += 1.0f / 60.0f;
+			}
+			{
+				char overlay[32];
+				sprintf_s(overlay, "average: %.3f fps", m_average_fps);
+				ImGui::PlotLines("###fps_plot", values, IM_ARRAYSIZE(values), values_offset,
+					overlay, -1.0f, 121.0f, ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
+			}
+		}
 
 		//ImGui::ShowDemoWindow();
 

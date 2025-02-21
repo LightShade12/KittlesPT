@@ -6,9 +6,13 @@ namespace SampleApp
 {
 	struct GLTexture
 	{
-		void init(int width, int height);
+		GLTexture() = default;
 
-		void resize(int width, int  height);
+		void load(int32_t width, int32_t height, uint8_t* data);
+
+		void init(int32_t width, int32_t height);
+
+		void resize(int32_t width, int32_t height);
 
 		bool isValid() const {
 			return m_GL_texture_name != NULL;
@@ -26,4 +30,6 @@ namespace SampleApp
 		int32_t m_width = 0, m_height = 0;
 		GLuint m_GL_texture_name = NULL;
 	};
+
+	GLTexture loadImage(const char* file_path);
 }

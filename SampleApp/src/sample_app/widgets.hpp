@@ -14,11 +14,13 @@ namespace SampleApp
 	{
 	public:
 		void updateUI() override;
-		void init(EventDispatcher* dispatcher, CameraController* camera, ApplicationData* app_data)
+		void init(EventDispatcher* dispatcher, CameraController* camera,
+			ApplicationData* app_data, std::unordered_map <std::string, GLTexture>* textures)
 		{
 			m_event_dispatcher_handle = dispatcher;
 			m_camera_handle = camera;
 			m_shared_data_handle = app_data;
+			m_textures_handle = textures;
 		};
 		//TODO: actually return secs
 		float getDeltaTS_ms() const { return m_delta_time_secs.count(); };
@@ -27,6 +29,7 @@ namespace SampleApp
 		void renderUI() override;
 
 	private:
+		std::unordered_map <std::string, GLTexture>* m_textures_handle = nullptr;
 		ApplicationData* m_shared_data_handle = nullptr;
 		EventDispatcher* m_event_dispatcher_handle = nullptr;
 		CameraController* m_camera_handle = nullptr;
