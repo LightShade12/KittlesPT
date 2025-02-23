@@ -30,10 +30,11 @@ namespace SampleApp
 		//loadSceneFile("test.glb");
 		//loadSceneFile("mc_village_med.glb");
 		//loadSceneFile("temp.glb");
-		loadSceneFile("cs16_italy.glb");
+		//loadSceneFile("cs16_italy.glb");
 		//loadSceneFile("cs16_dust.glb");
 		//loadSceneFile("mc_fort.glb");
 		//loadSceneFile("mc_min.glb");
+		loadSceneFile("cornell_box.glb");
 
 		{
 			m_textures["img0"] = loadImage("man.png");

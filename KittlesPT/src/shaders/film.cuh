@@ -123,7 +123,7 @@ namespace KittlesPT
 		/// <returns>normalized look adjusted curve</returns>
 		inline __device__ float3 AgXLook(const float3& val)
 		{
-			float luma = dot(val, rec709_luminance_coeffs);
+			float luma = dot(val, sRGB_Y_coeffs);
 
 			// Default
 			float3 offset{ 0.0f,0.0f,0.0f };
@@ -165,6 +165,7 @@ namespace KittlesPT
 			float3 linear_sRGB = AgX_OUTSET_REC2020_TO_sRGB_MATRIX * linear_rec2020;
 			linear_sRGB = fmaxf(linear_sRGB, make_float3(0.0f));
 
+			//Display transform
 			// sRGB IEC 61966-2-1 2.2 Exponent Reference EOTF Display
 			float3 non_linear_sRGB = RGBSpectrum(linear_sRGB).linearTosRGB().toFloat3();
 
@@ -181,7 +182,7 @@ namespace KittlesPT
 		{
 			float3 linear_rec_709 = linear_srgb_radiance.toFloat3();//sRGB and rec 709 have exactly same primaries but different gamma
 			float3 display_color = AgXMinimal::AgXFitted(linear_rec_709, white_point_ev, black_point_ev);
-			display_color = AgXMinimal::AgXLook(display_color);
+			display_color = AgXMinimal::AgXLook(display_color);//View transform
 			display_color = AgXMinimal::AgXFittedEOTF(display_color);
 			//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF however
 			return display_color;

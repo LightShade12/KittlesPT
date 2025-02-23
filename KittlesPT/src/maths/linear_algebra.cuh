@@ -32,7 +32,7 @@ namespace KittlesPT
 	__host__ __device__ inline float sign(float v) {
 		return (v < 0.0f) ? -1.0f : (v > 0.0f) ? 1.0f : 0.0f;
 	}
-	__host__ __device__ inline float sign(int v) {
+	__host__ __device__ inline float sign(int32_t v) {
 		return (v < 0) ? -1.0f : (v > 0) ? 1.0f : 0.0f;
 	}
 

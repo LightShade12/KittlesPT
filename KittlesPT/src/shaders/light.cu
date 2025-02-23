@@ -24,7 +24,7 @@ namespace KittlesPT
 		if (mat.emission_texture_id >= 0) {
 			TextureEvalContext ctx({}, uv);
 			RGBSpectrum sampled = shader_data.texture_buffer.data[mat.emission_texture_id].evaluate(shader_data, ctx);
-			sampled = sampled.gamma2_2ToLinear();//sRGB to linear approx
+			sampled = sampled.gamma_2_2ToLinear();//sRGB to linear approx
 			emission *= sampled;
 		}
 		return emission;
