@@ -60,6 +60,7 @@ namespace SampleApp
 
 	void DeveloperWindow::renderUI()
 	{
+		auto columnflags=ImGuiTableColumnFlags_WidthStretch;
 		{
 			float curr_fps = 1000.0f / (m_delta_time_secs.count() * 1000.0f);
 			float runtime_secs = std::chrono::duration_cast<std::chrono::duration<float>>(
@@ -67,8 +68,8 @@ namespace SampleApp
 
 			if (ImGui::BeginTable("mytable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.8);
-				ImGui::TableSetupColumn("A1", 0, 0.3);
+				ImGui::TableSetupColumn("A0", columnflags, 0.8);
+				ImGui::TableSetupColumn("A1", columnflags, 0.3);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -132,8 +133,8 @@ namespace SampleApp
 
 			if (ImGui::BeginTable("cameraedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.4f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.4f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -204,8 +205,8 @@ namespace SampleApp
 			ImGui::SeparatorText("View Transform");
 			if (ImGui::BeginTable("cameracolortransformedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.4f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.4f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -246,8 +247,8 @@ namespace SampleApp
 			bool pt_settings_updated = false;
 
 			if (ImGui::BeginTable("integratoredittable", 2)) {
-				ImGui::TableSetupColumn("A0", 0, 0.4f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.4f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -266,8 +267,8 @@ namespace SampleApp
 				ImGui::Indent();
 				pt_settings_updated |= ImGui::Checkbox("Use Karis Average", &pt_settings.bloom_use_karis_average);
 				if (ImGui::BeginTable("bloomedittable", 2)) {
-					ImGui::TableSetupColumn("A0", 0, 0.8f);
-					ImGui::TableSetupColumn("A1", 0);
+					ImGui::TableSetupColumn("A0", columnflags, 0.8f);
+					ImGui::TableSetupColumn("A1", columnflags);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -302,8 +303,8 @@ namespace SampleApp
 
 			if (ImGui::BeginTable("envedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.6f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.6f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -350,8 +351,8 @@ namespace SampleApp
 			MeshObject editable_mesh;
 			if (ImGui::BeginTable("geometryedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.6f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.6f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -422,8 +423,8 @@ namespace SampleApp
 
 			if (ImGui::BeginTable("materialedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.6f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.6f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
