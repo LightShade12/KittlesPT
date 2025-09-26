@@ -1468,6 +1468,11 @@ inline __device__ __host__ float4 smoothstep(float4 a, float4 b, float4 x)
 
 //Extensions
 
+inline __host__ __device__ float2 operator+(float2  a, int2 b)
+{
+	return make_float2(a.x + b.x, a.y + b.y);
+}
+
 inline __host__ __device__ int2 operator/(int2 a, float b)
 {
 	return make_int2(int((float)a.x / (float)b), int((float)a.y / (float)b));

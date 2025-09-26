@@ -21,7 +21,7 @@ namespace KittlesPT
 
 			for (uint32_t miplevel = 0; miplevel <= max_mip_level; miplevel++)
 			{
-				int32_t mip_width = base_width >> miplevel;
+				int32_t mip_width = base_width >> miplevel;//div by expmip
 				int32_t	mip_height = base_height >> miplevel;
 
 				TextureBuffer& mip_texture = mip_textures[miplevel];

@@ -32,7 +32,7 @@ namespace KittlesPT
 		* From: https://github.com/godotengine/godot/blob/master/servers/rendering/renderer_rd/shaders/effects/tonemap.glsl
 		*/
 
-		__constant__ constexpr Mat3 LINEAR_SRGB_TO_LINEAR_REC2020 = Mat3(
+		__constant__ constexpr Mat3 LINEAR_SRGB_TO_LINEAR_REC2020_MATRIX = Mat3(
 			0.6274f, 0.0691f, 0.0164f,
 			0.3293f, 0.9195f, 0.0880f,
 			0.0433f, 0.0113f, 0.8956f);
@@ -47,16 +47,83 @@ namespace KittlesPT
 			-0.85594737466675834968f, 1.3263980951083531115f, -0.23819967517076844919f,
 			-0.10883731725048386702f, -0.02702191058393112346f, 1.4025007379775505276f);
 
-		__constant__ constexpr float3 LUMINANCE_COEFFICIENTS{ 0.2126f, 0.7152f, 0.0722f };//spectral curve coefficients
 		__constant__ constexpr float MIDDLE_GRAY = 0.18f;
 
-		// 0: Default, 1: Golden, 2: Punchy
-#define AGX_LOOK 0
-
-		// ASC CDL based look transform
-		inline __device__ float3 AgXLook(float3 val)
+		/// <summary>
+		/// Fifth order
+		/// <para/> Mean error^2: 3.6705141e-06
+		/// </summary>
+		/// <param name="x"> : normalized input values</param>
+		/// <returns> normalized curve output </returns>
+		inline __device__ float3 AgXDefaultContrastApprox(const float3& x)
 		{
-			float luma = dot(val, LUMINANCE_COEFFICIENTS);
+			float3 x2 = x * x;
+			float3 x4 = x2 * x2;
+
+			return +15.5f * x4 * x2
+				- 40.14f * x4 * x
+				+ 31.96f * x4
+				- 6.868f * x2 * x
+				+ 0.4298f * x2
+				+ 0.1191f * x
+				- 0.00232f;
+		}
+
+		/// <summary>
+		/// Input is expected as linear tristimulus with Rec.709(BT 709) primary chromaticities (exactly same as "linear sRGB" primaries)
+		/// </summary>
+		/// <param name="linear_rec_709"></param>
+		/// <param name="white_point_ev"></param>
+		/// <param name="black_point_ev"></param>
+		/// <returns>Values adjusted with the sigmoid curve</returns>
+		inline __device__ float3 AgXFitted(float3 linear_rec_709, float white_point_ev, float black_point_ev)
+		{
+			/*NOTES:
+			From https://gist.github.com/nxrighthere/eb208dae8b66dbe452af223f276e46cc
+			// DEFAULT_LOG2_MIN      = -10.0
+			// DEFAULT_LOG2_MAX      =  +6.5
+			// MIDDLE_GRAY           =  0.18
+			// log2(pow(2, VALUE) * MIDDLE_GRAY)
+			// Adjusted for Unreal's zero exposure compensation
+			const float min_ev = -12.47393f; // Default: -12.47393f;
+			const float max_ev = 0.526069f;  // Default:  4.026069f;
+			*/
+
+			const float AgX_min_ev = log2f(exp2f(black_point_ev) * MIDDLE_GRAY);
+			const float AgX_max_ev = log2f(exp2f(white_point_ev) * MIDDLE_GRAY);
+			const float dynamic_range = AgX_max_ev - AgX_min_ev;
+
+			//AgX in Rec 2020 to match Blender better
+			float3 linear_rec_2020 = LINEAR_SRGB_TO_LINEAR_REC2020_MATRIX * linear_rec_709;
+			//prevent -ve values for AgX inset; loss of information if done before REC 2020 transform
+			linear_rec_2020 = fmaxf(linear_rec_2020, make_float3(0.0f));
+
+			// Input transform (inset)
+			float3 agx_inset_linear_rec_2020 = AgX_INSET_MATRIX * linear_rec_2020;
+
+			//linear_rec_709 = BaseValues::g_AgX_mat * linear_rec_709;
+
+			// Log2 space encoding(in AgX inset space)
+			float3 log2_rec_2020 = clamp(log2f(agx_inset_linear_rec_2020), AgX_min_ev, AgX_max_ev);
+			float3 log2_rec_2020_normalized = (log2_rec_2020 - AgX_min_ev) / dynamic_range;//normalization
+
+			// Apply sigmoid function approximation (tonemapping curve)
+			float3 tonemapped_color = AgXDefaultContrastApprox(log2_rec_2020_normalized);
+
+			return tonemapped_color;
+		}
+
+		// 0: Default, 1: Golden, 2: Punchy
+#define AGX_LOOK 2
+
+		/// <summary>
+		/// ASC CDL based look transform
+		/// </summary>
+		/// <param name="val"> : normalized values from sigmoid curve</param>
+		/// <returns>normalized look adjusted curve</returns>
+		inline __device__ float3 AgXLook(const float3& val)
+		{
+			float luma = dot(val, sRGB_Y_coeffs);
 
 			// Default
 			float3 offset{ 0.0f,0.0f,0.0f };
@@ -72,91 +139,37 @@ namespace KittlesPT
 #elif AGX_LOOK == 2
 			// Punchy
 			slope = make_float3(1.0);
-			power = make_float3(1.35, 1.35, 1.35);
-			sat = 1.4;
+			power = make_float3(1.05);//1.35
+			sat = 1.25;//1.4
 #endif
 
 			// ASC CDL based look transform
-			val = powf(val * slope + offset, power);
-			return luma + sat * (val - luma);
+			float3 new_val = powf(val * slope + offset, power);
+			return luma + sat * (new_val - luma);
 		}
 
-		//Fifth order
-		//Mean error^2: 3.6705141e-06
-		inline __device__ float3 AgXDefaultContrastApprox(float3 x)
-		{
-			float3 x2 = x * x;
-			float3 x4 = x2 * x2;
-
-			return +15.5f * x4 * x2
-				- 40.14f * x4 * x
-				+ 31.96f * x4
-				- 6.868f * x2 * x
-				+ 0.4298f * x2
-				+ 0.1191f * x
-				- 0.00232f;
-		}
-
-		//Input is expected as linear tristimulus with Rec.709(BT 709) primary chromaticities ("linear sRGB")
-		inline __device__ float3 AgXFitted(float3 linear_rec_709, float white_point_ev, float black_point_ev)
-		{
-			/*From https://gist.github.com/nxrighthere/eb208dae8b66dbe452af223f276e46cc
-			// DEFAULT_LOG2_MIN      = -10.0
-			// DEFAULT_LOG2_MAX      =  +6.5
-			// MIDDLE_GRAY           =  0.18
-			// log2(pow(2, VALUE) * MIDDLE_GRAY)
-			// Adjusted for Unreal's zero exposure compensation
-			const float min_ev = -12.47393f; // Default: -12.47393f;
-			const float max_ev = 0.526069f;  // Default:  4.026069f;
-			*/
-
-			const float AgX_min_ev = log2(pow(2, black_point_ev) * MIDDLE_GRAY);
-			const float AgX_max_ev = log2(pow(2, white_point_ev) * MIDDLE_GRAY);
-			const float dynamic_range = AgX_max_ev - AgX_min_ev;
-
-			//AgX in Rec 2020 to match Blender better
-			linear_rec_709 = LINEAR_SRGB_TO_LINEAR_REC2020 * linear_rec_709;
-			//prevent -ve values for AgX inset; loss of information if done before REC2020 transform
-			linear_rec_709 = fmaxf(linear_rec_709, make_float3(0.0f));
-
-			// Input transform (inset)
-			linear_rec_709 = AgX_INSET_MATRIX * linear_rec_709;
-
-			//linear_rec_709 = BaseValues::g_AgX_mat * linear_rec_709;
-
-			// Log2 space encoding
-			float3 log2_rec_709 = clamp(log2f(linear_rec_709), AgX_min_ev, AgX_max_ev);
-			log2_rec_709 = (log2_rec_709 - AgX_min_ev) / dynamic_range;//normalization
-
-			// Apply sigmoid function approximation
-			float3 color_out = AgXDefaultContrastApprox(log2_rec_709);
-
-			return color_out;
-		}
-
-		//Outputs NON-LINEAR Rec. 709
-		inline __device__ float3 AgXFittedOETF(float3 val)
+		/// <summary>
+		/// Outputs non-linear sRGB
+		/// </summary>
+		/// <param name="non_linear_rec2020"></param>
+		/// <returns>Normalized non-linear sRGB color</returns>
+		inline __device__ float3 AgXFittedEOTF(const float3& non_linear_rec2020)//how is it now in non-linear space??
 		{
 			// Convert back to linear before applying outset matrix.
-			val = powf(val, make_float3(2.4));
+			float3 linear_rec2020 = powf(non_linear_rec2020, make_float3(2.4));//approximate Rec 2020 decoding(gamma 2.4)
 
 			// Inverse input transform (outset)
-			//float3 non_linear_rec_709 = BaseValues::g_AgX_mat_inv * val;
+			//float3 linear_sRGB = BaseValues::g_AgX_mat_inv * val;
 
-			// Apply outset to make the result more chroma-laden and then go back to linear sRGB.
-			float3 non_linear_rec_709 = AgX_OUTSET_REC2020_TO_sRGB_MATRIX * val;
+			// Apply outset to make the result more chroma-laden and then go back to linear sRGB from linear Rec 2020.
+			float3 linear_sRGB = AgX_OUTSET_REC2020_TO_sRGB_MATRIX * linear_rec2020;
+			linear_sRGB = fmaxf(linear_sRGB, make_float3(0.0f));
 
+			//Display transform
 			// sRGB IEC 61966-2-1 2.2 Exponent Reference EOTF Display
-			// NOTE: We're linearizing the output here. Comment/adjust when
-			// *not* using a sRGB render target
-			//non_linear_rec_709 = powf(non_linear_rec_709, make_float3(2.2f));
+			float3 non_linear_sRGB = RGBSpectrum(linear_sRGB).linearTosRGB().toFloat3();
 
-			// sRGB approx OETF
-			non_linear_rec_709 = fmaxf(non_linear_rec_709, make_float3(0.0f));
-			non_linear_rec_709 = powf(non_linear_rec_709,
-				constexpr_float3(0.45454545454545453f));//sRGB OETF approx (1.0/2.2)
-
-			return non_linear_rec_709;
+			return non_linear_sRGB;
 		}
 	}
 
@@ -165,11 +178,12 @@ namespace KittlesPT
 	class Film
 	{
 	public:
-		__device__ float3 getDisplayNonLinearSRGB(RGBSpectrum linear_radiance) const
+		__device__ float3 computeNormalizedNonLinearSRGB(const RGBSpectrum& linear_srgb_radiance) const
 		{
-			float3 display_color = AgXMinimal::AgXFitted(linear_radiance.toFloat3(), white_point_ev, black_point_ev);
-			display_color = AgXMinimal::AgXLook(display_color);
-			display_color = AgXMinimal::AgXFittedOETF(display_color);
+			float3 linear_rec_709 = linear_srgb_radiance.toFloat3();//sRGB and rec 709 have exactly same primaries but different gamma
+			float3 display_color = AgXMinimal::AgXFitted(linear_rec_709, white_point_ev, black_point_ev);
+			display_color = AgXMinimal::AgXLook(display_color);//View transform
+			display_color = AgXMinimal::AgXFittedEOTF(display_color);
 			//NOTE: display_color in NOT sRGB; its Rec. 709 with gamma 2.2(unlike usual 2.4); highly similar, different OETF however
 			return display_color;
 		}

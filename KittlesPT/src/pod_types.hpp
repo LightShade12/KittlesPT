@@ -39,7 +39,7 @@ namespace KittlesPT
 		float sun_angular_diameter_rad = 0.0087f;
 		float sun_phi_rad = 4.18879f;//rotation
 		//float sun_theta_rad = 0.785f;
-		float sun_theta_rad = 0.0872665f;//altitude
+		float sun_theta_rad = glm::radians<float>(17);//0.0872665f;//altitude
 		float sun_emission_factor = 1.0f;
 	};
 
@@ -52,6 +52,8 @@ namespace KittlesPT
 		float bloom_final_blend = 0.175f;
 		float bloom_internal_blend = 0.65f;
 		bool tonemapper_enable_auto_exposure = false;
+		bool postprocess_enable_effects = false;
+		bool upscale_enable = false;
 	};
 
 	//Adheres to GLTF 2.0 specifications

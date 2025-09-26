@@ -52,6 +52,8 @@ namespace KittlesPT
 		void executeBloomGeneration();
 
 		uint32_t m_output_width = 0, m_output_height = 0;
+		uint32_t m_render_width = 0, m_render_height = 0;
+
 		RendererResource* m_renderer_rsrc = nullptr;
 	};
 }/*KittlesPT*/

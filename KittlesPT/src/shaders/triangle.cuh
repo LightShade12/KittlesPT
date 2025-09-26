@@ -148,7 +148,7 @@ namespace KittlesPT
 		Mat4 curr_inv_model_matrix;
 		Mat4 prev_inv_model_matrix;
 
-		int32_t blas_id = -1;
+		int32_t blas_index = -1;
 		uint32_t prim_count = 0;
 		int32_t prim_offset = -1;
 	};

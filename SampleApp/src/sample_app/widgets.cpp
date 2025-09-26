@@ -60,20 +60,58 @@ namespace SampleApp
 
 	void DeveloperWindow::renderUI()
 	{
-		ImGui::Text("Delta ms(last frame): %.3f ms", m_delta_time_secs.count() * 1000.0f);
-		float fps = 1000.0f / (m_delta_time_secs.count() * 1000.0f);
-		ImGui::Text("FPS(last frame): %.3f", fps);
-
-		//TODO: weird; idk
-		float avg = glm::mix(m_average_fps, fps, 0.01f);
-		if (!isnan(avg) && !isinf(avg))
+		auto columnflags=ImGuiTableColumnFlags_WidthStretch;
 		{
-			m_average_fps = avg;
-		}
+			float curr_fps = 1000.0f / (m_delta_time_secs.count() * 1000.0f);
+			float runtime_secs = std::chrono::duration_cast<std::chrono::duration<float>>(
+				m_last_frame_time_point.time_since_epoch()).count() - m_start_time_secs;
 
-		ImGui::Text("EMA FPS: %.3f", m_average_fps);
-		ImGui::Text("Runtime secs: %.3f s",
-			std::chrono::duration_cast<std::chrono::duration<float>>(m_last_frame_time_point.time_since_epoch()).count() - m_start_time_secs);
+			if (ImGui::BeginTable("mytable", 2))
+			{
+				ImGui::TableSetupColumn("A0", columnflags, 0.8);
+				ImGui::TableSetupColumn("A1", columnflags, 0.3);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Delta time (last frame): %.3f ms", m_delta_time_secs.count() * 1000.0f);
+				ImGui::Text("FPS (last frame): %.3f", curr_fps);
+
+				//TODO: weird; idk
+				float avg = glm::mix(m_average_fps, curr_fps, 0.01f);
+				if (!isnan(avg) && !isinf(avg)) {
+					m_average_fps = avg;
+				}
+
+				ImGui::Text("EMA FPS: %.3f", m_average_fps);
+				ImGui::Text("Runtime secs: %.3f s", runtime_secs);
+				ImGui::TableSetColumnIndex(1);
+				//ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				//ImGui::Dummy(ImVec2(10,10)); ImGui::SameLine();
+				ImGui::Image((ImTextureID*)(int64_t((*m_textures_handle)["img0"].getGLTexture())),
+					ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x));
+
+				ImGui::EndTable();
+			}
+
+			static float values[90] = {};
+			static int values_offset = 0;
+			static double refresh_time = 0.0;
+			if (refresh_time == 0.0) {
+				refresh_time = ImGui::GetTime();
+			}
+			while (refresh_time < ImGui::GetTime()) // create data at fixed 60 Hz rate
+			{
+				values[values_offset] = curr_fps;
+				values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+				refresh_time += 1.0f / 60.0f;
+			}
+			{
+				char overlay[32];
+				sprintf_s(overlay, "average: %.3f fps", m_average_fps);
+				ImGui::PlotLines("###fps_plot", values, IM_ARRAYSIZE(values), values_offset,
+					overlay, -1.0f, 121.0f, ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
+			}
+		}
 
 		//ImGui::ShowDemoWindow();
 
@@ -95,8 +133,8 @@ namespace SampleApp
 
 			if (ImGui::BeginTable("cameraedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.4f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.4f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -167,8 +205,8 @@ namespace SampleApp
 			ImGui::SeparatorText("View Transform");
 			if (ImGui::BeginTable("cameracolortransformedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.4f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.4f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -209,8 +247,8 @@ namespace SampleApp
 			bool pt_settings_updated = false;
 
 			if (ImGui::BeginTable("integratoredittable", 2)) {
-				ImGui::TableSetupColumn("A0", 0, 0.4f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.4f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -222,13 +260,15 @@ namespace SampleApp
 
 				pt_settings_updated |= ImGui::Checkbox("Enable AutoExposure", &pt_settings.tonemapper_enable_auto_exposure);
 				pt_settings_updated |= ImGui::Checkbox("Enable TAA", &pt_settings.integrator_use_temporal_accumulation);
+				pt_settings_updated |= ImGui::Checkbox("Enable Post Effects", &pt_settings.postprocess_enable_effects);
+				pt_settings_updated |= ImGui::Checkbox("Enable Upscaling", &pt_settings.upscale_enable);
 
 				pt_settings_updated |= ImGui::Checkbox("Generate Veiling Luminance(Bloom)", &pt_settings.bloom_generate_bloom);
 				ImGui::Indent();
 				pt_settings_updated |= ImGui::Checkbox("Use Karis Average", &pt_settings.bloom_use_karis_average);
 				if (ImGui::BeginTable("bloomedittable", 2)) {
-					ImGui::TableSetupColumn("A0", 0, 0.8f);
-					ImGui::TableSetupColumn("A1", 0);
+					ImGui::TableSetupColumn("A0", columnflags, 0.8f);
+					ImGui::TableSetupColumn("A1", columnflags);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -263,8 +303,8 @@ namespace SampleApp
 
 			if (ImGui::BeginTable("envedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.6f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.6f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -311,8 +351,8 @@ namespace SampleApp
 			MeshObject editable_mesh;
 			if (ImGui::BeginTable("geometryedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.6f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.6f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -383,8 +423,8 @@ namespace SampleApp
 
 			if (ImGui::BeginTable("materialedittable", 2))
 			{
-				ImGui::TableSetupColumn("A0", 0, 0.6f);
-				ImGui::TableSetupColumn("A1", 0);
+				ImGui::TableSetupColumn("A0", columnflags, 0.6f);
+				ImGui::TableSetupColumn("A1", columnflags);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);

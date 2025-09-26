@@ -14,7 +14,7 @@ namespace KittlesPT
 		wpos(surface.world_position),
 		wo(surface.wo)
 	{}
-	__device__ BSDF Material::getBSDF(const ShaderData& shader_data, MaterialEvalContext ctx) const
+	__device__ UnifiedBSDF Material::getBSDF(const ShaderData& shader_data, MaterialEvalContext ctx) const
 	{
 		RGBSpectrum eval_albedo = RGBSpectrum(albedo);
 		float eval_roughness = roughness_factor;
@@ -23,37 +23,42 @@ namespace KittlesPT
 
 		if (albedo_texture_id >= 0)
 		{
-			RGBSpectrum sampled = shader_data.texture_buffer.data[albedo_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
+			RGBSpectrum sampled = shader_data.texture_buffer.data[albedo_texture_id].evaluate(
+				shader_data, TextureEvalContext(ctx));
 			//sRGB to linear approx
-			eval_albedo *= sampled.gamma2_2ToLinear();
+			eval_albedo *= sampled.sRGBToLinear();
 		}
 		if (ORM_texture_id >= 0) {
-			RGBSpectrum sampled = shader_data.texture_buffer.data[ORM_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
+			RGBSpectrum sampled = shader_data.texture_buffer.data[ORM_texture_id].evaluate(
+				shader_data, TextureEvalContext(ctx));
 			//ORM: r=Occlusion, g=Roughness, b=Metalness
 			eval_roughness *= sampled.g;
 			eval_metalness *= sampled.b;
 		}
 		if (transmission_texture_id >= 0)
 		{
-			RGBSpectrum sampled = shader_data.texture_buffer.data[transmission_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
+			RGBSpectrum sampled = shader_data.texture_buffer.data[transmission_texture_id].evaluate(
+				shader_data, TextureEvalContext(ctx));
 			eval_transmission *= sampled.r;
 		}
 		//normal map application
 		if (normal_texture_id >= 0) {
-			RGBSpectrum sampled = shader_data.texture_buffer.data[normal_texture_id].evaluate(shader_data, TextureEvalContext(ctx));
-			float3 normal_quantized = sampled.toFloat3();
-			float3 mapped_normal = (normal_quantized * 2.0f) - 1.0f;
+			RGBSpectrum sampled = shader_data.texture_buffer.data[normal_texture_id].evaluate(
+				shader_data, TextureEvalContext(ctx));
+			float3 unmapped_normal = sampled.toFloat3();
+			float3 mapped_normal = (unmapped_normal * 2.0f) - 1.0f;
 			mapped_normal.x *= normal_scale;
 			mapped_normal.y *= normal_scale;
 			//mapped_normal.y = -mapped_normal.y;//DX12 => GL convention
 			Mat3 frame = generateONBFrisvad(ctx.wgnorm);
 			float3 shading_wn = frame * normalize(mapped_normal);
 
+			//FIXME: nasty fix for degenerate normals
 			ctx.wgnorm = (dot(ctx.wo, shading_wn) > 0.0f) ? shading_wn : ctx.wgnorm;
 		}
 
 		//TODO: consider moving basis generation to BSDF constructor
-		BSDF bsdf = BSDF(generateONBFrisvad(ctx.wgnorm),
+		UnifiedBSDF bsdf = UnifiedBSDF(generateONBFrisvad(ctx.wgnorm),
 			eval_albedo,
 			eval_metalness,
 			eval_roughness,

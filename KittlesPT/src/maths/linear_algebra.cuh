@@ -32,7 +32,7 @@ namespace KittlesPT
 	__host__ __device__ inline float sign(float v) {
 		return (v < 0.0f) ? -1.0f : (v > 0.0f) ? 1.0f : 0.0f;
 	}
-	__host__ __device__ inline float sign(int v) {
+	__host__ __device__ inline float sign(int32_t v) {
 		return (v < 0) ? -1.0f : (v > 0) ? 1.0f : 0.0f;
 	}
 
@@ -83,6 +83,18 @@ namespace KittlesPT
 	}
 	__host__ __device__ inline float distance(float4 p0, float4 p1) {
 		return length(p0 - p1);
+	}
+
+	__host__ __device__ inline float cube(float v) {
+		return v * v * v;
+	}
+
+	__host__ __device__ inline float pow4(float v) {
+		return v * v * v * v;
+	}
+
+	__host__ __device__ inline float pow5(float v) {
+		return v * v * v * v * v;
 	}
 
 	/*

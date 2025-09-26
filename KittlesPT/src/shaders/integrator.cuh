@@ -20,6 +20,7 @@
 //TODO:use *_t types
 
 //#define INTERSECT_DEBUG
+
 //INFO: Volumetrics is postponed
 namespace KittlesPT
 {
@@ -62,10 +63,11 @@ namespace KittlesPT
 		//will implicitly use GAS in ShaderData
 		inline __device__ Intersection intersect(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
 		{
+#ifndef INTERSECT_DEBUG
 			return shader_data.top_level_acceleration_structure.intersect(shader_data, ray, tmin, tmax, dbg);
 
-#ifdef INTERSECT_DEBUG
-			return shader_data.blas_buffer.data[0].intersect(shader_data, ray, tmin, tmax, dbg);
+#else
+			//return shader_data.blas_buffer.data[0].intersect(shader_data, ray, tmin, tmax, dbg);
 
 			Intersection closest;
 			Intersection intr;
@@ -73,12 +75,12 @@ namespace KittlesPT
 			for (int32_t instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
-				Ray transformed_ray = ray.transform(mesh.curr_inv_model_matrix);
+				Ray object_ray = ray.transform(mesh.curr_inv_model_matrix);
 
 				for (int32_t primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
-					tri.intersect(transformed_ray, tmin, tmax, &intr);
+					tri.intersect(object_ray, tmin, tmax, &intr);
 					//TODO: can just store and use pmin of tmax,INF
 					if (intr.distance < INFINITY && intr.distance < tmax && intr.distance > tmin && intr.distance < closest.distance)
 					{
@@ -94,25 +96,22 @@ namespace KittlesPT
 
 		inline __device__ bool intersectShadow(const ShaderData& shader_data, const Ray& ray, float tmin, float tmax, DebugData& dbg)
 		{
+#ifndef INTERSECT_DEBUG
 			return shader_data.top_level_acceleration_structure.intersectP(shader_data, ray, tmin, tmax);
 
-#ifdef INTERSECT_DEBUG
-			return shader_data.blas_buffer.data[0].intersectP(shader_data, ray, tmin, tmax);
-
+#else
+			//return shader_data.blas_buffer.data[0].intersectP(shader_data, ray, tmin, tmax);
 			Intersection intr;
 			for (int32_t instance_id = 0; instance_id < shader_data.meshes_buffer.num; instance_id++)
 			{
 				const TriangleMesh& mesh = shader_data.meshes_buffer.data[instance_id];
-				Ray object_ray = ray;
-				//TODO: ensure normality
-				object_ray.setDirection(make_float3(mesh.curr_inv_model_matrix * make_float4(object_ray.getDirection(), 0)));
-				object_ray.setOrigin(make_float3(mesh.curr_inv_model_matrix * make_float4(object_ray.getOrigin(), 1)));
+				Ray object_ray = ray.transform(mesh.curr_inv_model_matrix);
 
 				for (int32_t primitive_id = mesh.prim_offset; primitive_id < mesh.prim_offset + mesh.prim_count; primitive_id++)
 				{
 					const Triangle& tri = shader_data.triangles_buffer.data[primitive_id];
 					tri.intersect(object_ray, tmin, tmax, &intr);
-					if (intr.distance < INFINITY && intr.distance < tmax && intr.distance>tmin)
+					if (intr.distance < INFINITY && intr.distance < tmax && intr.distance > tmin)
 					{
 						return true;
 					}
@@ -139,11 +138,13 @@ namespace KittlesPT
 			float similarity = dot(ray.getDirection(), atmosphere.getSunDirection());
 			bool sun_surface = similarity > min_similarity_threshold;//step
 			//TODO:fucked sun emission
-			float sun_nits = shader_data.procedural_environment_data.sun_emission_factor * Atmosphere::Values::SUN_HORIZON_LUMINANCE_NITS;
-			return RGBSpectrum(sun_nits * ::powf(1.0f / sun_nits, !sun_surface));//branchless
+			float sun_radiance = shader_data.procedural_environment_data.sun_emission_factor * Atmosphere::Values::SUN_HORIZON_LUMINANCE_NITS;
+			return RGBSpectrum(sun_radiance * ::powf(1.0f / sun_radiance, !sun_surface));//branchless
 		}
+
 		__constant__ constexpr float SUN_VISIBILITY_TEST_DISTANCE_METERS = 100.0f;
-		inline __device__ RGBSpectrum sampleLdSun(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
+
+		inline __device__ RGBSpectrum sampleLdSun(const ShaderData& shader_data, const Ray& ray, const UnifiedBSDF& bsdf,
 			const SurfaceInteraction& surface, const Atmosphere::NishitaAtmosphereModel& atmosphere, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0.0f);
@@ -184,7 +185,7 @@ namespace KittlesPT
 			return Ld;
 		}
 
-		inline __device__ RGBSpectrum sampleLd(const ShaderData& shader_data, const Ray& ray, const BSDF& bsdf,
+		inline __device__ RGBSpectrum sampleLd(const ShaderData& shader_data, const Ray& ray, const UnifiedBSDF& bsdf,
 			const SurfaceInteraction& surface, const UniformLightSampler& light_sampler, IndependentSampler& sampler)
 		{
 			RGBSpectrum Ld(0.0f);
@@ -237,7 +238,8 @@ namespace KittlesPT
 			return 1.0f / (4.0f * Constants::PI);
 		}
 
-		inline __device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler, GBuffer* visible_surface)
+		inline __device__ RGBSpectrum Li(const ShaderData& shader_data, const Ray& ray_in, IndependentSampler& sampler,
+			VisibleSurface* visible_surface, DebugData* p_dbg)
 		{
 			//114fps
 			const int32_t max_ray_depth = shader_data.renderer_settings.integrator_max_ray_depth;
@@ -314,13 +316,12 @@ namespace KittlesPT
 					/* MISS
 					* Sampling only one InfiniteLight with bsdf sampling here,
 					* without any explicit sky sampling elsewhere, so no MIS used here */
-					RGBSpectrum sky_radiance = atmosphere.sampleLi(Ray(atmosphere_observer_position, ray.getDirection()));
+					RGBSpectrum sky_inscatter = atmosphere.sampleLi(Ray(atmosphere_observer_position, ray.getDirection()));
 					if (first_surface) {
-						sky_radiance *= LeSun(shader_data, ray, atmosphere);//done here to prevent fireflies
-						*visible_surface = GBuffer(sky_radiance, SurfaceInteraction());
+						sky_inscatter *= LeSun(shader_data, ray, atmosphere);//done here to prevent fireflies
+						*visible_surface = VisibleSurface(SurfaceInteraction(), sky_inscatter);
 					}
-
-					light += sky_radiance * throughput;
+					light += sky_inscatter * throughput;
 					break;
 				}
 				//79fps => 105fps(90fps when looking through atmosphere)
@@ -342,7 +343,7 @@ namespace KittlesPT
 				}
 				//102fps
 
-				BSDF bsdf = surf_intr.getBSDF(shader_data);
+				UnifiedBSDF bsdf = surf_intr.getBSDF(shader_data);
 				if (!bsdf) { //skip over medium boundaries
 					surf_intr.skipInteraction(&ray);
 					continue;
@@ -351,7 +352,7 @@ namespace KittlesPT
 				if (first_surface) {
 					//using texture diffuse albedo/emission texture for reflectance estimate
 					RGBSpectrum albedo = (Le) ? Le : bsdf.getAlbedo();
-					*visible_surface = GBuffer(albedo, surf_intr);
+					*visible_surface = VisibleSurface(surf_intr, albedo);
 					bsdf.demodulate();
 				}
 
@@ -396,8 +397,7 @@ namespace KittlesPT
 				}
 				//90fps=>93fps(bsdf inlining)=>95fps(bxdf inlning)
 			}
-			visible_surface->blas_hits = dbg.blas_hits;
-			visible_surface->tlas_hits = dbg.tlas_hits;
+			*p_dbg = dbg;
 			return light;
 		}
 

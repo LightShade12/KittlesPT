@@ -375,3 +375,7 @@ FodyWeavers.xsd
 /SampleApp/display1.png
 /SampleApp/display0.png
 *.glb
+/SampleApp/space.jpg
+/SampleApp/eye.png
+/SampleApp/F-35.jpeg
+/SampleApp/man.png

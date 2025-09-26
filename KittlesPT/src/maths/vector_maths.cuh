@@ -9,10 +9,6 @@ namespace KittlesPT
 		return (vec.x == 0.f && vec.y == 0.f && vec.z == 0.f);
 	}
 
-	inline __device__ float3 expf(const float3& v) {
-		return make_float3(::expf(v.x), ::expf(v.y), ::expf(v.z));
-	}
-
 	inline __device__ float AbsDot(const float3& a, const float3& b)
 	{
 		return fabsf(dot(a, b));
@@ -35,16 +31,6 @@ namespace KittlesPT
 			return make_float3(0);
 		}
 		return clamp(v, 0, 1.0e8f);
-	}
-
-	inline __device__ float3 log2f(const float3 a)
-	{
-		return make_float3(::log2f(a.x), ::log2f(a.y), ::log2f(a.z));
-	}
-
-	inline __device__ float3 powf(const float3 a, const float3 b)
-	{
-		return make_float3(::powf(a.x, b.x), ::powf(a.y, b.y), ::powf(a.z, b.z));
 	}
 
 	//TODO: is Z-up only for tangent space; fix inconsistency
@@ -91,4 +77,22 @@ namespace KittlesPT
 	{
 		return dot(a, b) > 0.0f;
 	}
+}
+inline __device__ float3 log2f(const float3& a)
+{
+	return make_float3(log2f(a.x), log2f(a.y), log2f(a.z));
+}
+
+inline __device__ float3 powf(const float3& a, const float3& b)
+{
+	return make_float3(powf(a.x, b.x), powf(a.y, b.y), powf(a.z, b.z));
+}
+
+inline __device__ float3 expf(const float3& v) {
+	return make_float3(expf(v.x), expf(v.y), expf(v.z));
+}
+
+inline __device__ float2 powf(float2 v, float p)
+{
+	return make_float2(powf(v.x, p), powf(v.y, p));
 }

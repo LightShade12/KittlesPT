@@ -28,11 +28,17 @@ namespace SampleApp
 
 		//loadSceneFile("two_objects.glb");
 		//loadSceneFile("test.glb");
+		//loadSceneFile("mc_village_med.glb");
 		//loadSceneFile("temp.glb");
-		//loadSceneFile("cs16_italy.glb");
+		loadSceneFile("cs16_italy.glb");
 		//loadSceneFile("cs16_dust.glb");
 		//loadSceneFile("mc_fort.glb");
-		loadSceneFile("mc_min.glb");
+		//loadSceneFile("mc_min.glb");
+		//loadSceneFile("cornell_box.glb");
+
+		{
+			m_textures["img0"] = loadImage("man.png");
+		}
 
 		//TODO: not robust to empty scenes
 		m_application_data.environment_settings = m_renderer.getProceduralEnvironmentData();
@@ -54,14 +60,19 @@ namespace SampleApp
 		//TODO: make a constructor/init() for event dispatcher, which registers all listeners, pass it to dev_win
 		registerListeners();
 
-		m_developer_window.init(&m_event_dispatcher, &m_camera,
-			&m_application_data);
+		m_developer_window.init(&m_event_dispatcher,
+			&m_camera,
+			&m_application_data,
+			&m_textures);
 	}
 
 	void SampleAppWindow::onDestroy()
 	{
 		m_renderer.shutdown();
 		m_viewport_texture.destroy();
+		for (auto tex : m_textures) {
+			tex.second.destroy();
+		}
 	}
 
 	void SampleAppWindow::renderUI()
@@ -79,7 +90,7 @@ namespace SampleApp
 		m_renderer.executeRendering(m_developer_window.getDeltaTS_ms());
 		//m_renderer.getDebugRenderTargetTexture(m_viewport_texture.getGLTexture());
 		m_renderer.getRenderTargetTexture(m_viewport_texture.getGLTexture());
-
+		//TODO: why does viewport not own viewport texture?
 		m_viewport.draw(m_window_ctx_handle);
 
 		if (g_custom_font)ImGui::PushFont(g_custom_font);

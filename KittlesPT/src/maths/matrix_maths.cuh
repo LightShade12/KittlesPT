@@ -132,7 +132,6 @@ namespace KittlesPT
 		}
 
 		__host__ __device__ Matrix3x3 inverse() const {
-			// Compute the determinant
 			const float3& c0 = m_columns[0];
 			const float3& c1 = m_columns[1];
 			const float3& c2 = m_columns[2];
@@ -142,14 +141,14 @@ namespace KittlesPT
 				c2.x * (c0.y * c1.z - c0.z * c1.y);
 
 			if (fabs(det) < 1e-6f) {
-				return Matrix3x3::getIdentity();  // Not invertible, return identity (or handle differently)
+				return Matrix3x3::getIdentity(); 
 			}
 
 			float invDet = 1.0f / det;
 
 			Matrix3x3 inv;
 
-			// Compute the inverse matrix elements
+			// inv matrix comps
 			inv[0].x = (c1.y * c2.z - c1.z * c2.y) * invDet;
 			inv[0].y = (c0.z * c2.y - c0.y * c2.z) * invDet;
 			inv[0].z = (c0.y * c1.z - c0.z * c1.y) * invDet;
@@ -303,13 +302,12 @@ namespace KittlesPT
 		}
 
 		__host__ __device__ Matrix4x4 inverse() const {
-			// Alias for readability
+
 			const float4& c0 = m_columns[0];
 			const float4& c1 = m_columns[1];
 			const float4& c2 = m_columns[2];
 			const float4& c3 = m_columns[3];
 
-			// Compute the minors for the determinant calculation
 			float subfactor00 = c2.z * c3.w - c3.z * c2.w;
 			float subfactor01 = c2.y * c3.w - c3.y * c2.w;
 			float subfactor02 = c2.y * c3.z - c3.y * c2.z;
@@ -317,23 +315,21 @@ namespace KittlesPT
 			float subfactor04 = c2.x * c3.z - c3.x * c2.z;
 			float subfactor05 = c2.x * c3.y - c3.x * c2.y;
 
-			// Compute the determinant
 			float det = c0.x * (c1.y * subfactor00 - c1.z * subfactor01 + c1.w * subfactor02) -
 				c0.y * (c1.x * subfactor00 - c1.z * subfactor03 + c1.w * subfactor04) +
 				c0.z * (c1.x * subfactor01 - c1.y * subfactor03 + c1.w * subfactor05) -
 				c0.w * (c1.x * subfactor02 - c1.y * subfactor04 + c1.z * subfactor05);
 
 			if (fabs(det) < 1e-6f) {
-				// Matrix is not invertible, return the identity matrix (or handle error)
+				//no inverse
 				return Matrix4x4::getIdentity();
 			}
 
-			// Inverse is 1/det * adjugate
+			// inv = 1/det * adjugate
 			float invDet = 1.0f / det;
 
 			Matrix4x4 inverseMatrix;
 
-			// Compute each element of the adjugate (transposed cofactor matrix) multiplied by invDet
 			inverseMatrix[0].x = (c1.y * subfactor00 - c1.z * subfactor01 + c1.w * subfactor02) * invDet;
 			inverseMatrix[0].y = -(c0.y * subfactor00 - c0.z * subfactor01 + c0.w * subfactor02) * invDet;
 			inverseMatrix[0].z = (c0.y * (c1.z * c3.w - c1.w * c3.z) - c0.z * (c1.y * c3.w - c1.w * c3.y) + c0.w * (c1.y * c3.z - c1.z * c3.y)) * invDet;
@@ -367,13 +363,10 @@ namespace KittlesPT
 
 	inline __device__ Mat3 generateOrthonormalBasis(const float3& normal)
 	{
-		// Choose a helper vector H that is not parallel to the normal
 		float3 helper = (fabs(normal.x) > fabs(normal.z)) ? make_float3(0, 1, 0) : make_float3(1, 0, 0);
 
-		// Compute tangent vector (orthogonal to normal)
 		float3 tangent = normalize(cross(helper, normal));
 
-		// Compute bitangent vector (orthogonal to both normal and tangent)
 		float3 bitangent = cross(normal, tangent);
 
 		return Mat3(tangent, bitangent, normal);

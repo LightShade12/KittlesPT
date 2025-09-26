@@ -56,9 +56,9 @@ __global__ void histogramComputeKernel(const KittlesPT::ShaderData shader_data)
 {
 	using namespace KittlesPT;
 
-	int2 frame_res = shader_data.frame_resolution;
+	int2 frame_res = shader_data.render_resolution;
 	ShadingJob shading_job = getShadingJob(frame_res);
-	if (shading_job.invalid) {
+	if (shading_job.is_invalid) {
 		return;
 	}
 
@@ -71,7 +71,7 @@ __global__ void histogramComputeKernel(const KittlesPT::ShaderData shader_data)
 		shared_log_lum_histogram[local_index] = 0.0f;
 		__syncthreads();
 
-		RGBSpectrum linear_radiance = RGBSpectrum(shader_data.main_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
+		RGBSpectrum linear_radiance = RGBSpectrum(shader_data.render_texture.textureReadNearest(make_float2(shading_job.pixel_coord)));
 		float dynamic_range_ev = shader_data.scene_camera.getFilm().white_point_ev - shader_data.scene_camera.getFilm().black_point_ev;
 		uint log_lum_bin_idx = luminanceToBin(linear_radiance.getLuminance(),
 			shader_data.scene_camera.getFilm().black_point_ev, (1.0f / dynamic_range_ev));
@@ -94,9 +94,10 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::ShaderDa
 {
 	using namespace KittlesPT;
 
-	int2 frame_res = shader_data.frame_resolution;
+	//TODO: shading job is wrong here
+	int2 frame_res = shader_data.render_resolution;
 	ShadingJob shading_job = getShadingJob(frame_res);
-	if (shading_job.invalid) {
+	if (shading_job.is_invalid) {
 		return;
 	}
 
@@ -142,10 +143,11 @@ __global__ void histogramAverageLuminanceComputeKernel(const KittlesPT::ShaderDa
 
 		float dynamic_range_ev = shader_data.scene_camera.getFilm().white_point_ev - shader_data.scene_camera.getFilm().black_point_ev;
 		// Map from our histogram space to actual luminance
-		float avg_luminance = powf(2, (clamp((log_lum_bin_idx_avg - 1.0f) / float(Constants::HISTOGRAM_SIZE - 2), 0.0f, 1.0f) * dynamic_range_ev) + shader_data.scene_camera.getFilm().black_point_ev);
+		float avg_luminance = powf(2, (clamp((log_lum_bin_idx_avg - 1.0f) / 
+			float(Constants::HISTOGRAM_SIZE - 2), 0.0f, 1.0f) * dynamic_range_ev) + shader_data.scene_camera.getFilm().black_point_ev);
 
 		float lum_last_frame = *(shader_data.scene_average_luminance);
-		float speed = 0.5f;
+		const float speed = 0.5f;
 		float adapted_lum = lerp(lum_last_frame, avg_luminance, 1.0f - expf(-shader_data.frame_delta_ms * speed));
 		*(shader_data.scene_average_luminance) = adapted_lum;
 	}

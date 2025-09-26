@@ -9,14 +9,14 @@ namespace KittlesPT
 	struct ShaderData;
 	class RGBSpectrum;
 	class Ray;
-	class BSDF;
+	class UnifiedBSDF;
 	class Light;
 
 	struct SurfaceInteraction
 	{
 		__device__ RGBSpectrum Le(const ShaderData& shader_data, const Ray& ray) const;
 
-		__device__ BSDF getBSDF(const ShaderData& shader_data) const;
+		__device__ UnifiedBSDF getBSDF(const ShaderData& shader_data) const;
 
 		__device__ void skipInteraction(Ray* ray)
 		{

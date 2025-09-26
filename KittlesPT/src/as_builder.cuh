@@ -51,7 +51,7 @@ namespace KittlesPT
 			BVH2Node& node = (*m_bvhnodes_buffer)[node_idx];
 			node.bounds.pmin = make_float3(FLT_MAX);
 			node.bounds.pmax = make_float3(-FLT_MAX);
-			for (uint32_t first = node.left_child_node_id_or_tris_index_start_id, i = 0; i < node.node_tris_idx_count; i++)
+			for (uint32_t first = node.left_child_node_index_or_tris_index_start_index, i = 0; i < node.node_tris_index_count; i++)
 			{
 				uint32_t tri_id = (*m_tris_index_buffer)[first + i];
 				const Triangle& leaf_tri = (*m_tris_buffer)[tri_id];
@@ -77,9 +77,9 @@ namespace KittlesPT
 			// determine triangle counts and bounds for this split candidate
 			Bounds3f leftBox{}, rightBox{};
 			int leftCount = 0, rightCount = 0;
-			for (uint i = 0; i < node.node_tris_idx_count; i++)
+			for (uint i = 0; i < node.node_tris_index_count; i++)
 			{
-				int32_t tri_id = (*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i];
+				int32_t tri_id = (*m_tris_index_buffer)[node.left_child_node_index_or_tris_index_start_index + i];
 				const Triangle& triangle = (*m_tris_buffer)[tri_id];
 				const BVHTriangleCache& tri_cache = m_cache[tri_id];
 
@@ -111,13 +111,16 @@ namespace KittlesPT
 		{
 			constexpr uint8_t BINS = 8;
 			float best_cost = INFINITY;
-			//TODO: try out longest axis SAH
+			/*
+			* NOTE:
+			* If there is a need for even faster build times, we can try out "Longest Axis SAH"
+			*/
 			for (int32_t candidate_axis = 0; candidate_axis < 3; candidate_axis++)
 			{
 				float boundsMin = INFINITY, boundsMax = -INFINITY;
-				for (int i = 0; i < node.node_tris_idx_count; i++)
+				for (int i = 0; i < node.node_tris_index_count; i++)
 				{
-					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_index_or_tris_index_start_index + i]];
 					boundsMin = min(boundsMin, comp(cache.centroid, candidate_axis));
 					boundsMax = max(boundsMax, comp(cache.centroid, candidate_axis));
 				}
@@ -132,10 +135,10 @@ namespace KittlesPT
 				Bin bin[BINS];
 				float scale = BINS / (boundsMax - boundsMin);
 
-				for (uint32_t i = 0; i < node.node_tris_idx_count; i++)
+				for (uint32_t i = 0; i < node.node_tris_index_count; i++)
 				{
-					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
-					const Triangle& tri = (*m_tris_buffer)[(*m_tris_index_buffer)[node.left_child_node_id_or_tris_index_start_id + i]];
+					const BVHTriangleCache& cache = m_cache[(*m_tris_index_buffer)[node.left_child_node_index_or_tris_index_start_index + i]];
+					const Triangle& tri = (*m_tris_buffer)[(*m_tris_index_buffer)[node.left_child_node_index_or_tris_index_start_index + i]];
 					int binIdx = min(BINS - 1,
 						(int32_t)((comp(cache.centroid, candidate_axis) - boundsMin) * scale));
 					bin[binIdx].tris_count++;
@@ -183,18 +186,18 @@ namespace KittlesPT
 			float split_pos = 0;
 			float split_cost = findBestSplitPlane(parent_node, &axis, &split_pos);
 
-			float nosplit_cost = parent_node.node_tris_idx_count * parent_node.surfaceArea();
+			float nosplit_cost = parent_node.node_tris_index_count * parent_node.surfaceArea();
 
 			//if (nosplit_cost <= split_cost) {
 			//	return;//termination condition
 			//}
-			if (parent_node.node_tris_idx_count <= 8) {
+			if (parent_node.node_tris_index_count <= 8) {
 				return;
 			}
 
 			//split grp---------
-			int32_t i = parent_node.left_child_node_id_or_tris_index_start_id;
-			int32_t j = i + parent_node.node_tris_idx_count - 1;
+			int32_t i = parent_node.left_child_node_index_or_tris_index_start_index;
+			int32_t j = i + parent_node.node_tris_index_count - 1;
 			while (i <= j)
 			{
 				if (comp(m_cache[(*m_tris_index_buffer)[i]].centroid, axis) < split_pos) {
@@ -208,17 +211,17 @@ namespace KittlesPT
 
 			//create children------------
 			BVH2Node left, right;
-			left.node_tris_idx_count = split_id - parent_node.left_child_node_id_or_tris_index_start_id;
-			if (left.node_tris_idx_count == 0 || left.node_tris_idx_count == parent_node.node_tris_idx_count) {
+			left.node_tris_index_count = split_id - parent_node.left_child_node_index_or_tris_index_start_index;
+			if (left.node_tris_index_count == 0 || left.node_tris_index_count == parent_node.node_tris_index_count) {
 				return;//full imbalanced split
 			}
 			int32_t left_child_id = (*node_index_ptr)++;
 			int32_t right_child_id = (*node_index_ptr)++;
-			left.left_child_node_id_or_tris_index_start_id = parent_node.left_child_node_id_or_tris_index_start_id;
-			right.left_child_node_id_or_tris_index_start_id = split_id;
-			right.node_tris_idx_count = parent_node.node_tris_idx_count - left.node_tris_idx_count;
-			parent_node.node_tris_idx_count = 0;//mark parent as interior
-			parent_node.left_child_node_id_or_tris_index_start_id = left_child_id;
+			left.left_child_node_index_or_tris_index_start_index = parent_node.left_child_node_index_or_tris_index_start_index;
+			right.left_child_node_index_or_tris_index_start_index = split_id;
+			right.node_tris_index_count = parent_node.node_tris_index_count - left.node_tris_index_count;
+			parent_node.node_tris_index_count = 0;//mark parent as interior
+			parent_node.left_child_node_index_or_tris_index_start_index = left_child_id;
 
 			(*m_bvhnodes_buffer)[left_child_id] = left;
 			(*m_bvhnodes_buffer)[right_child_id] = right;
@@ -245,14 +248,14 @@ namespace KittlesPT
 			std::iota(m_tris_index_buffer->end() - mesh_tris_count, m_tris_index_buffer->end(), mesh_tris_offset);
 
 			BLAS2 blas;
-			blas.bvhnode_root_id = bvh_root_id;
-			BVH2Node& root = (*m_bvhnodes_buffer)[blas.bvhnode_root_id];
-			root.node_tris_idx_count = mesh_tris_count;
-			root.left_child_node_id_or_tris_index_start_id = mesh_tris_offset;
-			updateNodeBounds(blas.bvhnode_root_id);
+			blas.bvhnode_root_index = bvh_root_id;
+			BVH2Node& root = (*m_bvhnodes_buffer)[blas.bvhnode_root_index];
+			root.node_tris_index_count = mesh_tris_count;
+			root.left_child_node_index_or_tris_index_start_index = mesh_tris_offset;
+			updateNodeBounds(blas.bvhnode_root_index);
 			blas.bounds = root.bounds;
 			uint32_t node_index_ptr = bvh_root_id + 1;
-			subdivide(blas.bvhnode_root_id, &node_index_ptr);
+			subdivide(blas.bvhnode_root_index, &node_index_ptr);
 			m_bvhnodes_buffer->shrink_to_fit();
 			return blas;
 		}
@@ -274,8 +277,8 @@ namespace KittlesPT
 						continue;
 					}
 					// interior node: adjust bounds to child node bounds
-					BVH2Node& leftChild = (*m_bvhnodes_buffer)[node->left_child_node_id_or_tris_index_start_id];
-					BVH2Node& rightChild = (*m_bvhnodes_buffer)[node->left_child_node_id_or_tris_index_start_id + 1];
+					BVH2Node& leftChild = (*m_bvhnodes_buffer)[node->left_child_node_index_or_tris_index_start_index];
+					BVH2Node& rightChild = (*m_bvhnodes_buffer)[node->left_child_node_index_or_tris_index_start_index + 1];
 					node->bounds.pmin = fminf(leftChild.bounds.pmin, rightChild.bounds.pmin);
 					node->bounds.pmax = fmaxf(leftChild.bounds.pmax, rightChild.bounds.pmax);
 				}
@@ -326,8 +329,8 @@ namespace KittlesPT
 			for (uint32_t i = 0; i < BLAS_COUNT; i++) {
 				tlas_node_ids[i] = node_index_ptr;
 				(*m_tlasnodes_buffer)[node_index_ptr].bounds = (*m_blas_buffer)[i].bounds;
-				(*m_tlasnodes_buffer)[node_index_ptr].blas_id = i;
-				(*m_tlasnodes_buffer)[node_index_ptr++].left_right_id = 0u; // Leaf marker
+				(*m_tlasnodes_buffer)[node_index_ptr].blas_index = i;
+				(*m_tlasnodes_buffer)[node_index_ptr++].left_right_index = 0u; // Leaf marker
 			}
 
 			// agglomerative clustering to build TLAS
@@ -347,7 +350,7 @@ namespace KittlesPT
 					const TLASNode& nodeB = (*m_tlasnodes_buffer)[node_id_B];
 
 					TLASNode& new_node = (*m_tlasnodes_buffer)[node_index_ptr];
-					new_node.left_right_id = node_id_A + (node_id_B << 16);
+					new_node.left_right_index = node_id_A + (node_id_B << 16);
 					new_node.bounds.pmin = fminf(nodeA.bounds.pmin, nodeB.bounds.pmin);
 					new_node.bounds.pmax = fmaxf(nodeA.bounds.pmax, nodeB.bounds.pmax);
 
@@ -361,9 +364,9 @@ namespace KittlesPT
 			}
 
 			TLAS tlas;
-			tlas.tlasnode_root_id = 0;
-			(*m_tlasnodes_buffer)[tlas.tlasnode_root_id] = (*m_tlasnodes_buffer)[tlas_node_ids[A]];
-			tlas.bounds = (*m_tlasnodes_buffer)[tlas.tlasnode_root_id].bounds;
+			tlas.tlasnode_root_index = 0;
+			(*m_tlasnodes_buffer)[tlas.tlasnode_root_index] = (*m_tlasnodes_buffer)[tlas_node_ids[A]];
+			tlas.bounds = (*m_tlasnodes_buffer)[tlas.tlasnode_root_index].bounds;
 
 			m_tlasnodes_buffer->resize(node_index_ptr);
 			return tlas;

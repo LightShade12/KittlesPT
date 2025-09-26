@@ -193,6 +193,7 @@ namespace KittlesPT
 						integration_partial_sigma_t_M_Li += ::expf(-altitude_Li / m_Hm) * light_ray_step_size; // Integrate Mie partial optical depth for light ray
 						current_light_ray_t += light_ray_step_size;
 					}
+					;
 					if (j == lightRayMarchingSteps) // Light raymarch completed without hitting Earth
 					{
 						// Sea-level scattering coefficients (precomputed for sea level for efficiency)
@@ -203,7 +204,7 @@ namespace KittlesPT
 						const RGBSpectrum tau = sigma_t_R_sea_level * (integration_partial_sigma_t_R + integration_partial_sigma_t_R_Li)
 							+ sigma_t_M_sea_level * (integration_partial_sigma_t_M + integration_partial_sigma_t_M_Li);
 
-						const RGBSpectrum Tr = exp(-tau); // Transmittance along both paths
+						const RGBSpectrum Tr = expf(-tau); // Transmittance along both paths
 
 						integration_R_Tr += Tr * partial_sigma_t_R; // Accumulate Rayleigh term
 						integration_M_Tr += Tr * partial_sigma_t_M;   // Accumulate Mie term

@@ -153,17 +153,35 @@ namespace KittlesPT
 		return normalize(vector);
 	}
 
+	struct VisibleSurface
+	{
+		__device__ VisibleSurface() = default;
+		__device__ VisibleSurface(const SurfaceInteraction& si, const RGBSpectrum& albedo) :
+			albedo(albedo.toFloat3()),
+			depth(si.distance),
+			normal(si.world_geometric_normal),
+			shading_normal(si.world_geometric_normal),
+			position(si.world_position),
+			instance_id(si.instance_id),
+			primitive_id(si.primitive_id)
+		{}
+
+		float3 albedo;
+		float depth;
+		float3 normal;
+		float3 shading_normal;
+		float3 position;
+		int32_t instance_id = -1;
+		int32_t primitive_id = -1;
+	};
+
 	struct GBuffer
 	{
 		GBuffer() = default;
 
-		__device__ GBuffer(const RGBSpectrum& albedo, const SurfaceInteraction& surface) :
-			albedo(albedo.toFloat3()),
-			wgnorm(surface.world_geometric_normal),
-			wpos(surface.world_position),
-			depth(surface.distance),
-			instance_id(surface.instance_id),
-			primitive_id(surface.primitive_id)
+		__device__ GBuffer(const VisibleSurface& vs) :
+			albedo(vs.albedo), wgnorm(vs.normal),
+			wpos(vs.position), depth(vs.depth)
 		{}
 
 		__device__ float4 packGBuffer()
@@ -194,16 +212,12 @@ namespace KittlesPT
 		float3 wgnorm{ 0.0f,0.0f,0.0f };
 		float depth = INFINITY;
 
+		//------
+
 		//Not included in packing:
 		float3 wpos{ 0.0f,0.0f,0.0f };
-		int32_t instance_id = -1;
-		int32_t primitive_id = -1;
-
-		int32_t blas_hits = 0;
-		int32_t tlas_hits = 0;
 
 		/*
-		* float3 wpos;
 		* float3 viewdir;
 		* PBRT:
 		* dzdx, dzdy
@@ -217,9 +231,9 @@ namespace KittlesPT
 	{
 		VBuffer() = default;
 
-		__device__ VBuffer(const GBuffer& gbuff) :
-			instance_id(gbuff.instance_id),
-			primitive_id(gbuff.primitive_id)
+		__device__ VBuffer(const VisibleSurface& vs) :
+			instance_id(vs.instance_id),
+			primitive_id(vs.primitive_id)
 		{};
 
 		__device__ float4 packVBuffer()

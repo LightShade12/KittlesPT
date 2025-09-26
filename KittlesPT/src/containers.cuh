@@ -35,7 +35,8 @@ namespace KittlesPT
 		*/
 
 		//standard shader uniforms
-		int2 frame_resolution;//output resolution
+		int2 output_resolution;
+		int2 render_resolution;
 		int32_t frame_index = 0;
 		float frame_delta_ms = 0.0f;//in ms
 
@@ -62,12 +63,14 @@ namespace KittlesPT
 		RendererSettings renderer_settings;
 
 		//frame textures
-		DeviceTextureBuffer main_texture;
+		DeviceTextureBuffer output_texture;
+		DeviceTextureBuffer render_texture;
 		DeviceTextureBuffer accumulation_texture;
 		DeviceTextureBuffer gbuffer_texture;
 		DeviceTextureBuffer prev_gbuffer_texture;
 		DeviceTextureBuffer vbuffer_texture;
 		DeviceTextureBuffer debug_texture;
+		DeviceTextureBuffer backbuffer_texture;
 		DeviceTextureBuffer bloom_texture;
 	};
 };
